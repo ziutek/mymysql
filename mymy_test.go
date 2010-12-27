@@ -97,6 +97,7 @@ func TestQuery(t *testing.T) {
     dbConnect(t, true)
     query("drop table T") // Drop test table if exists
     checkRes(t, query("create table T (s varchar(40))"), queryOK(0))
+
     exp := &RowsResErr {
         res: &Result {
             db:         db,
@@ -119,6 +120,7 @@ func TestQuery(t *testing.T) {
             Map:        map[string]int{"s": 0},
         },
     }
+
     for ii := 0; ii < 100; ii++ {
         var val Nbin
         if ii % 10 == 0 {
@@ -131,15 +133,50 @@ func TestQuery(t *testing.T) {
         }
         exp.rows = append(exp.rows, &TextRow{Data: []Nbin{val}})
     }
+
     checkRes(t, query("select s from T"), exp)
     checkRes(t, query("drop table T"), queryOK(0))
     dbClose(t)
 }
 
+func check(err os.Error) {
+    if err != nil {
+        fmt.Println(err)
+        os.Exit(1)
+    }
+}
+
 func BenchmarkSelect(b *testing.B) {
     b.StopTimer()
-    // Szykujemy dane
-    // Startujemy test
+
+    db := New(conn[0], conn[1], conn[2], user, passwd, dbname)
+
+    check(db.Connect())
+
+    db.Start("drop table B") // Drop test table if exists
+
+    _, err := db.Start("create table B (s varchar(40), i int)")
+    check(err)
+
+    for ii := 0; ii < 10000; ii++ {
+        _, err := db.Startf("insert B values ('%d-%d-%d', %d)", ii, ii, ii, ii)
+        check(err)
+    }
+
     b.StartTimer()
-    // Kod testu
+    for ii := 0; ii < b.N; ii++ {
+        res, err := db.Start("select * from B")
+        check(err)
+        for {
+            row, err := res.GetTextRow()
+            check(err)
+            if row == nil {
+                break
+            }
+        }
+    }
+
+    _, err = db.Start("drop table B")
+    check(err)
+    check(db.Close())
 }

@@ -4,6 +4,9 @@ This is a MySQL connector package created entirely in Go. It was created due to
 lack of properly working connector, ready for my production application
 (December 2010).
 
+This package has internal error handling using *panic()* exceptions. Thus the
+probability of an unhandled internal error is very small.
+
 ## Instaling
 
     $ git clone git://github.com/ziutek/mymysql
@@ -51,6 +54,9 @@ Main functions/methods:
     // This call Start and next call GetTextRow once or more times. It read
     // all rows from connection and returns they as a slice.
     func (*MySQL) Query(sql string) ([]*TextRow, *Result, os.Error)
+
+    // Ping
+    func (*MySQL) Ping() os.Error
 
 There are some mutations of *Start* and *Query*:
 

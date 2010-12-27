@@ -91,6 +91,7 @@ func TestUse(t *testing.T) {
 func TestPing(t *testing.T) {
     dbConnect(t, false)
     checkErr(t, db.Ping())
+}
 
 func TestQuery(t *testing.T) {
     dbConnect(t, true)

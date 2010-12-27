@@ -197,4 +197,21 @@ func (my *MySQL) Query(sql string) (rows []*TextRow, res *Result, err os.Error){
     return
 }
 
-func (my *MySQL) Ping() 
+func (my *MySQL) Ping() (err os.Error) {
+    if my.conn == nil {
+        return NOT_CONN_ERROR
+    }
+    if my.unreaded_rows {
+        return UNREADED_ROWS_ERROR
+    }
+    defer my.unlock()
+    defer catchOsError(&err)
+    my.lock()
+
+    // Send command
+    my.sendCmd(COM_PING)
+    // Get server response
+    my.getResult(nil)
+
+    return
+}

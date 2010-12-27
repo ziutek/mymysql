@@ -65,6 +65,8 @@ There are some mutations of *Start* and *Query*:
     func (*MySQL) Queryv(a ...interface{}) ([]*TextRow, *Result, os.Error)
     func (*MySQL) Queryf(format string, a ...interface{}) ([]*TextRow, *Result, os.Error)
 
+## Usage
+
 Data readed from a server are unmodified - they are character strings.
 You can get data like in this example:
 

@@ -4,7 +4,7 @@ This is a MySQL connector package created entirely in Go. It was created due to
 lack of properly working connector, ready for my production application
 (December 2010).
 
-This package has internal error handling using *panic()* exceptions. Thus the
+This package has internal error handling using *panic()* exceptions, thus the
 probability of an unhandled internal error is very small.
 
 ## Instaling

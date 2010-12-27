@@ -12,8 +12,8 @@ var (
     user   = "testuser"
     passwd = "TestPasswd9"
     dbname = "test"
-    conn   = []string{"unix", "", "/var/run/mysqld/mysqld.sock"}
-    //conn = []string{"tcp",  "", "127.0.0.1:3306"}
+    //conn   = []string{"unix", "", "/var/run/mysqld/mysqld.sock"}
+    conn = []string{"tcp",  "", "127.0.0.1:3306"}
     debug  = false
 )
 

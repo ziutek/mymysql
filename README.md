@@ -70,10 +70,26 @@ There are some mutations of *Start* and *Query*:
 Data readed from a server are unmodified - they are character strings.
 You can get data like in this example:
 
+    import (
+        //...
+        "mymy"
+    )
+
+    //...
+
+    db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+    db.Debug = true
+
+    err := db.Connect()
+    if err != nil {
+        //...
+    }
+
     rows, res, err := db.Query("select * from X")
     if err != nil {
         //...
     }
+
     for _, row := range rows {
         for _, col := range row.Data {
             if col == nil {
@@ -85,8 +101,8 @@ You can get data like in this example:
         // You can get specific value from a row
         val1 := row.Data[1] // (type mymy.Nbin == *[]byte)
 
-	// You can use it directly if conversion isn't needed
-	os.Stdeout.Write(*val1)
+        // You can use it directly if conversion isn't needed
+        os.Stdeout.Write(*val1)
 	
         // You can get converted value
         number := row.Int(0)    // First value (type int, 0 if NULL)

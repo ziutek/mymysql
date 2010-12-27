@@ -43,10 +43,10 @@ func main() {
     user   := "testuser"
     pass   := "TestPasswd9"
     dbname := "test"
-    proto  := "unix"
-    addr   := "/var/run/mysqld/mysqld.sock"
-    //proto := "tcp"
-    //addr  := "127.0.0.1:3306"
+    //proto  := "unix"
+    //addr   := "/var/run/mysqld/mysqld.sock"
+    proto := "tcp"
+    addr  := "127.0.0.1:3306"
 
     db := mymy.New(proto, "", addr, user, pass, dbname)
     //db.Debug = true

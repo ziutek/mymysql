@@ -1,4 +1,4 @@
-# MySQL library
+# Another MySQL connector for Go
 
 This is a MySQL connector package created entirely in Go. It was created due to
 lack of properly working connector, ready for my production application

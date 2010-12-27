@@ -141,22 +141,26 @@ func (my *MySQL) Start(sql string) (res *Result, err os.Error) {
     if !ok {
         return nil, BAD_RESULT_ERROR
     }
-    my.unreaded_rows = true
     res.db = my
-
+    if res.FieldCount == 0 {
+        // This query was ended (OK result)
+        my.unlock()
+    } else {
+        // This query can return rows
+        res.db = my
+        my.unreaded_rows = true
+    }
     return
 }
 
 func (res *Result) GetTextRow() (row *TextRow, err os.Error) {
+    if res.FieldCount == 0 {
+        // There is no fields in result (OK result)
+        return
+    }
     defer res.db.unlockIfError(&err)
     defer catchOsError(&err)
 
-    if res.FieldCount == 0 {
-        // There is no fields in result (OK result)
-        res.db.unreaded_rows = false
-        res.db.unlock()
-        return
-    }
     switch result := res.db.getResult(res).(type) {
     case *TextRow:
         row = result

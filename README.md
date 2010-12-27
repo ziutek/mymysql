@@ -102,19 +102,19 @@ You can get data like in this example:
         val1 := row.Data[1] // (type mymy.Nbin == *[]byte)
 
         // You can use it directly if conversion isn't needed
-        os.Stdeout.Write(*val1)
+        os.Stdout.Write(*val1)
 	
         // You can get converted value
-        number := row.Int(0)    // First value (type int, 0 if NULL)
-        str    := row.Str(1)    // Second value (type string, "" if NULL)
-        bignum := row.Uint64(2) // Thrid value (type uint64, 0 if NULL)
+        number := row.Int(0)    // Zero value (type int, 0 if NULL)
+        str    := row.Str(1)    // First value (type string, "" if NULL)
+        bignum := row.Uint64(2) // Second value (type uint64, 0 if NULL)
 	
-	// You may get value by column name
+        // You may get value by column name
         val2 := row.Data[res.Map["FirstColumn"]] 
     }
 
 If you do not want to load the entire result into memory you may use
-Start / GetTextRow functions:
+Start and GetTextRow methods:
 
     res, err := db.Start("select * from X")
     if err != nil {
@@ -156,10 +156,10 @@ You can use this package in multithreading enviroment. All functions are thread
 safe.
 
 If one thread is calling *Query* method, other threads will be blocked if they
-call *Query* or *Start* until *Query* return in first thread.
+call *Query*, *Start* or other method, until *Query* return in first thread.
 
 If one thread is calling *Start* method, other threads will be blocked if they
-call *Query* or *Start* until all rows will be readed from a connection in first
+call *Query*, *Start* or other method,  until all rows will be readed from a connection in first
 thread.
 
 ## TODO

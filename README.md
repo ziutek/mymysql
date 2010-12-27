@@ -130,11 +130,11 @@ Start and GetTextRow methods:
             break
         }
 
-	// Print fields
+        // Print fields
         for _, field := range res.Fields {
-		fmt.Print(field.Name, " ")
-	}
-	fmt.Println()
+            fmt.Print(field.Name, " ")
+        }
+        fmt.Println()
 
         // Print all rows
         for _, col := range row.Data {

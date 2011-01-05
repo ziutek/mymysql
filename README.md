@@ -1,5 +1,5 @@
-This package contains MySQL Go API created entirely in Go. It was created due
-to lack of properly working MySQL API package, ready for my production
+This package contains MySQL client API written entirely in Go. It was created
+due to lack of properly working MySQL API package, ready for my production
 application (December 2010).
 
 The code of this package is carefuly written and has internal error handling

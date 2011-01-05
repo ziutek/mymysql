@@ -257,7 +257,7 @@ below:
      TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
     BLOB, TINYBLOB, MEDIUMBLOB, LONGBLOB  -->  []byte
                             DECIMAL, BIT  -->  []byte
-				    NULL  -->  nil
+                                    NULL  -->  nil
 
 ## Big packets
 

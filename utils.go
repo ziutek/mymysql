@@ -13,22 +13,8 @@ func (my *MySQL) unlock() {
     my.mutex.Unlock()
 }
 
-func (my *MySQL) writeHead(pay_len int) {
-    // Write header
-    writeU24(my.wr, uint32(pay_len))
-    writeByte(my.wr, my.seq)
-    // Update sequence number
-    my.seq++
-}
-
-/*func (my *MySQL) sendPkt(payload []byte) {
-    my.writeHead(len(payload))
-    write(my.wr, payload)
-    flush(my.wr)
-}*/
-
 func (my *MySQL) init() {
-    pr := newPktReader(my.rd, &my.seq)
+    pr := my.newPktReader()
     my.info.scramble = make([]byte, 20)
 
     my.info.prot_ver = readByte(pr)
@@ -46,7 +32,7 @@ func (my *MySQL) init() {
 
     if my.Debug {
         log.Printf(
-            "[%d ->] Init packet: ProtVer=%d, ServVer=\"%s\" Status=0x%x",
+            "[%2d ->] Init packet: ProtVer=%d, ServVer=\"%s\" Status=0x%x",
             my.seq - 1, my.info.prot_ver, my.info.serv_ver, status,
         )
     }
@@ -55,31 +41,29 @@ func (my *MySQL) init() {
 func (my *MySQL) auth() {
     pay_len := 4 + 4 + 1 + 23 + len(my.user)+1 + 1+len(my.info.scramble)
     flags := uint32(
-        CLIENT_PROTOCOL_41 |
-        CLIENT_LONG_PASSWORD |
-        CLIENT_SECURE_CONN |
-        CLIENT_TRANSACTIONS,
+        _CLIENT_PROTOCOL_41 |
+        _CLIENT_LONG_PASSWORD |
+        _CLIENT_SECURE_CONN |
+        _CLIENT_TRANSACTIONS,
     )
     if len(my.dbname) > 0 {
         pay_len += len(my.dbname)+1
-        flags |= CLIENT_CONNECT_WITH_DB
+        flags |= _CLIENT_CONNECT_WITH_DB
     }
     encr_passwd := my.encryptedPasswd()
 
-    my.writeHead(pay_len)
-    writeU32(my.wr, flags)
-    writeU32(my.wr, uint32(1 << 24)) // Max packet size
-    writeByte(my.wr, my.info.lang)   // Charset number
-    write(my.wr, make([]byte, 23))   // Filler
-    writeNTS(my.wr, my.user)         // Username
-    writeNbin(my.wr, &encr_passwd)   // Encrypted password
+    pw := my.newPktWriter(pay_len)
+    writeU32(pw, flags)
+    writeU32(pw, uint32(my.MaxPktSize))
+    writeByte(pw, my.info.lang)   // Charset number
+    write(pw, make([]byte, 23))   // Filler
+    writeNTS(pw, my.user)         // Username
+    writeNbin(pw, &encr_passwd)   // Encrypted password
     if len(my.dbname) > 0 {
-        writeNTS(my.wr, my.dbname)
+        writeNTS(pw, my.dbname)
     }
-    flush(my.wr)
-
     if my.Debug {
-        log.Printf("[%d <-] Authentication packet", my.seq)
+        log.Printf("[%2d <-] Authentication packet", my.seq)
     }
     return
 }

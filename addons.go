@@ -1,28 +1,6 @@
 package mymy
 
-import (
-    "os"
-    "fmt"
-)
-
-func (my *MySQL) Startv(a ...interface{}) (*Result, os.Error) {
-    return my.Start(fmt.Sprint(a...))
-}
-
-func (my *MySQL) Startf(format string, a ...interface{}) (*Result, os.Error) {
-    return my.Start(fmt.Sprintf(format, a...))
-}
-
-func (my *MySQL) Queryv(a ...interface{}) ([]*TextRow, *Result, os.Error) {
-    return my.Query(fmt.Sprint(a...))
-}
-
-func (my *MySQL) Queryf(format string, a ...interface{}) (
-        []*TextRow, *Result, os.Error) {
-    return my.Query(fmt.Sprintf(format, a...))
-}
-
-func NbinToNstr(nbin Nbin) Nstr {
+func NbinToNstr(nbin *[]byte) *string {
     if nbin == nil {
         return nil
     }
@@ -30,11 +8,10 @@ func NbinToNstr(nbin Nbin) Nstr {
     return &str
 }
 
-func NstrToNbin(nstr Nstr) Nbin {
+func NstrToNbin(nstr *string) *[]byte {
     if nstr == nil {
         return nil
     }
     bin := []byte(*nstr)
     return &bin
 }
-

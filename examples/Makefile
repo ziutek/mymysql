@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-ALL=simple
+ALL=simple prepared_stmt
 
 all: $(ALL)
 

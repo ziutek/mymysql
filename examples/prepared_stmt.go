@@ -54,20 +54,42 @@ func main() {
     checkedResult(db.Query("create table A (txt varchar(40), number int)"))
     printOK()
 
+    fmt.Print("Prepare insert statement... ")
+    ins, err := db.Prepare("insert A values (?, ?)")
+    checkError(err)
+    printOK()
+
+    fmt.Print("Prepare select statement... ")
+    sel, err := db.Prepare("select * from A where number > ?")
+    checkError(err)
+    printOK()
+
+    params := struct {txt *string; number *int}{}
+
+    fmt.Print("Bind insert parameters... ")
+    ins.BindParams(&params)
+    printOK()
+
     fmt.Print("Insert into A... ")
-    for ii := 0; ii < 10; ii++ {
-        if ii % 5 == 0 {
-            checkedResult(db.Query("insert A values (null, null)"))
+    for ii := 0; ii < 1000; ii += 100 {
+        if ii % 500 == 0 {
+            // Assign NULL values to the parameters
+            params.txt    = nil
+            params.number = nil
         } else {
-            checkedResult(db.Query(
-                "insert A values ('%d*10= %d', %d)", ii, ii*10, ii*100,
-            ))
+            // Modify parameters
+            str := fmt.Sprintf("%d*10= %d", ii / 100, ii / 10)
+            params.txt = &str
+            params.number = &ii
         }
+        // Execute statement with modified data
+        _, err = ins.Execute()
+        checkError(err)
     }
     printOK()
 
     fmt.Println("Select from A... ")
-    rows, res := checkedResult(db.Query("select * from A"))
+    rows, res := checkedResult(db.Query(sel, 0))
     name   := res.Map["name"]
     number := res.Map["number"]
     for ii, row := range rows {

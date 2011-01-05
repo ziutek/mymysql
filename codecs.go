@@ -6,59 +6,80 @@ import (
     "bytes"
 )
 
+func DecodeU16(buf []byte) uint16 {
+    return uint16(buf[1]) << 8 | uint16(buf[0])
+}
 func readU16(rd io.Reader) uint16 {
     buf := make([]byte, 2)
     readFull(rd, buf)
-    return uint16(buf[1]) << 8 | uint16(buf[0])
+    return DecodeU16(buf)
 }
 
+func DecodeU24(buf []byte) uint32 {
+    return (uint32(buf[2]) << 8 | uint32(buf[1])) << 8 | uint32(buf[0])
+}
 func readU24(rd io.Reader) uint32 {
     buf := make([]byte, 3)
     readFull(rd, buf)
-    return (uint32(buf[2]) << 8 | uint32(buf[1])) << 8 | uint32(buf[0])
+    return DecodeU24(buf)
 }
 
-func readU32(rd io.Reader) uint32 {
-    buf := make([]byte, 4)
-    readFull(rd, buf)
+func DecodeU32(buf []byte) uint32 {
     return ((uint32(buf[3]) << 8 | uint32(buf[2])) << 8 |
         uint32(buf[1])) << 8 | uint32(buf[0])
 }
-
-func readU64(rd io.Reader) (rv uint64) {
-    buf := make([]byte, 8)
+func readU32(rd io.Reader) uint32 {
+    buf := make([]byte, 4)
     readFull(rd, buf)
+    return DecodeU32(buf)
+}
+
+func DecodeU64(buf []byte) (rv uint64) {
     for ii, vv := range buf {
         rv |= uint64(vv) << uint(ii * 8)
     }
     return
 }
+func readU64(rd io.Reader) (rv uint64) {
+    buf := make([]byte, 8)
+    readFull(rd, buf)
+    return DecodeU64(buf)
+}
 
+func EncodeU16(val uint16) *[]byte {
+    return &[]byte{byte(val), byte(val >> 8)}
+}
 func writeU16(wr io.Writer, val uint16) {
-    write(wr, []byte{byte(val), byte(val >> 8)})
+    write(wr, *EncodeU16(val))
 }
 
+func EncodeU24(val uint32) *[]byte {
+    return &[]byte{byte(val), byte(val >> 8), byte(val >> 16)}
+}
 func writeU24(wr io.Writer, val uint32) {
-    write(wr, []byte{byte(val), byte(val >> 8), byte(val >> 16)})
+    write(wr, *EncodeU24(val))
 }
 
+func EncodeU32(val uint32) *[]byte {
+    return &[]byte{byte(val), byte(val >> 8), byte(val >> 16), byte(val >> 24)}
+}
 func writeU32(wr io.Writer, val uint32) {
-    write(wr,
-        []byte{byte(val), byte(val >> 8), byte(val >> 16), byte(val >> 24)},
-    )
+    write(wr, *EncodeU32(val))
 }
 
-func writeU64(wr io.Writer, val uint64) {
+func EncodeU64(val uint64) *[]byte {
     buf := make([]byte, 8)
     for ii := range buf {
         buf[ii] = byte(val >> uint(ii * 8))
     }
-    write(wr, buf)
+    return &buf
+}
+func writeU64(wr io.Writer, val uint64) {
+    write(wr, *EncodeU64(val))
 }
 
-type Nu64 *uint64
 
-func readNu64(rd io.Reader) Nu64 {
+func readNu64(rd io.Reader) *uint64 {
     bb := readByte(rd)
     var val uint64
     switch bb {
@@ -80,7 +101,7 @@ func readNu64(rd io.Reader) Nu64 {
     return &val
 }
 
-func readNotNullNu64(rd io.Reader) (val uint64) {
+func readNotNullU64(rd io.Reader) (val uint64) {
     nu := readNu64(rd)
     if nu == nil {
         panic(UNEXP_NULL_LCB_ERROR)
@@ -121,7 +142,7 @@ func lenLCB(val uint64) int {
     return 9
 }
 
-func writeNu64(wr io.Writer, nu Nu64) {
+func writeNu64(wr io.Writer, nu *uint64) {
     if nu == nil {
         writeByte(wr, 251)
     } else {
@@ -129,16 +150,14 @@ func writeNu64(wr io.Writer, nu Nu64) {
     }
 }
 
-func lenNu64(nu Nu64) int {
+func lenNu64(nu *uint64) int {
     if nu == nil {
         return 1
     }
     return lenLCB(*nu)
 }
 
-type Nbin *[]byte
-
-func readNbin(rd io.Reader) Nbin {
+func readNbin(rd io.Reader) *[]byte {
     if nu := readNu64(rd); nu != nil {
         buf := make([]byte, *nu)
         readFull(rd, buf)
@@ -147,7 +166,7 @@ func readNbin(rd io.Reader) Nbin {
     return nil
 }
 
-func readNotNullNbin(rd io.Reader) []byte {
+func readNotNullBin(rd io.Reader) []byte {
     nbuf := readNbin(rd)
     if nbuf == nil {
         panic(UNEXP_NULL_LCS_ERROR)
@@ -155,7 +174,7 @@ func readNotNullNbin(rd io.Reader) []byte {
     return *nbuf
 }
 
-func writeNbin(wr io.Writer, nbuf Nbin) {
+func writeNbin(wr io.Writer, nbuf *[]byte) {
     if nbuf == nil {
         writeByte(wr, 251)
         return
@@ -164,16 +183,14 @@ func writeNbin(wr io.Writer, nbuf Nbin) {
     write(wr, *nbuf)
 }
 
-func lenNbin(nbuf Nbin) int {
+func lenNbin(nbuf *[]byte) int {
     if nbuf == nil {
         return 1
     }
     return lenLCB(uint64(len(*nbuf))) + len(*nbuf)
 }
 
-type Nstr *string
-
-func readNstr(rd io.Reader) (nstr Nstr) {
+func readNstr(rd io.Reader) (nstr *string) {
     if nbuf := readNbin(rd); nbuf != nil {
         str := string(*nbuf)
         nstr = &str
@@ -181,13 +198,13 @@ func readNstr(rd io.Reader) (nstr Nstr) {
     return
 }
 
-func readNotNullNstr(rd io.Reader) (str string) {
-    buf := readNotNullNbin(rd)
+func readNotNullStr(rd io.Reader) (str string) {
+    buf := readNotNullBin(rd)
     str = string(buf)
     return
 }
 
-func writeNstr(wr io.Writer, nstr Nstr) {
+func writeNstr(wr io.Writer, nstr *string) {
     if nstr == nil {
         writeByte(wr, 251)
         return
@@ -196,7 +213,7 @@ func writeNstr(wr io.Writer, nstr Nstr) {
     writeString(wr, *nstr)
 }
 
-func lenNstr(nstr Nstr) int {
+func lenNstr(nstr *string) int {
     if nstr == nil {
         return 1
     }
@@ -205,20 +222,20 @@ func lenNstr(nstr Nstr) int {
 
 func writeLC(wr io.Writer, v interface{}) {
     switch val := v.(type) {
-    case Nbin:   writeNbin(wr, val)
-    case []byte: writeNbin(wr, &val)
-    case Nstr:   writeNstr(wr, val)
-    case string: writeNstr(wr, &val)
+    case []byte:  writeNbin(wr, &val)
+    case string:  writeNstr(wr, &val)
+    case *[]byte: writeNbin(wr, val)
+    case *string: writeNstr(wr, val)
     default: panic("Unknown data type for write as lenght coded string")
     }
 }
 
 func lenLC(v interface{}) int {
     switch val := v.(type) {
-    case Nbin:   return lenNbin(val)
-    case []byte: return lenNbin(&val)
-    case Nstr:   return lenNstr(val)
-    case string: return lenNstr(&val)
+    case []byte:  return lenNbin(&val)
+    case string:  return lenNstr(&val)
+    case *[]byte: return lenNbin(val)
+    case *string: return lenNstr(val)
     }
     panic("Unknown data type for write as lenght coded string")
 }
@@ -260,6 +277,98 @@ func writeNT(wr io.Writer, v interface{}) {
     case string: writeNTS(wr, val)
     default: panic("Unknown type for write as null terminated data")
     }
+}
+
+func readNdatetime(rd io.Reader) *Datetime {
+    dlen := readByte(rd)
+    switch dlen {
+    case 251:
+        // Null timestamp
+        return nil
+    case 0:
+        // 0000-00-00
+        return new(Datetime)
+    case 4, 7, 11:
+        // Properly datetime length
+    default:
+        panic(WRONG_DATE_LEN_ERROR)
+    }
+
+    buf := make([]byte, dlen)
+    readFull(rd, buf)
+    var dt Datetime
+    switch dlen {
+    case 11:
+        // 2006-01-02 15:04:05.001004005
+        dt.Nanosec = DecodeU32(buf[7:])
+        fallthrough
+    case 7:
+        // 2006-01-02 15:04:05
+        dt.Hour   = buf[4]
+        dt.Minute = buf[5]
+        dt.Second = buf[6]
+        fallthrough
+    case 4:
+        // 2006-01-02
+        dt.Year  = int16(DecodeU16(buf[0:2]))
+        dt.Month = buf[2]
+        dt.Day   = buf[3]
+    }
+    return &dt
+}
+
+func readNotNullDatetime(rd io.Reader) (dt *Datetime) {
+    dt = readNdatetime(rd)
+    if dt == nil {
+        panic(UNEXP_NULL_DATE_ERROR)
+    }
+    return
+}
+
+func EncodeDatetime(dt *Datetime) *[]byte {
+    if dt == nil {
+        return &[]byte{251}
+    }
+    buf := make([]byte, 12)
+    switch {
+    case dt.Nanosec != 0:
+        copy(buf[7:12], *EncodeU32(dt.Nanosec))
+        buf[0] += 4
+        fallthrough
+
+    case dt.Second != 0 || dt.Minute != 0 || dt.Hour != 0:
+        buf[7] = dt.Second
+        buf[6] = dt.Minute
+        buf[5] = dt.Hour
+        buf[0] += 3
+        fallthrough
+
+    case dt.Day != 0 || dt.Month != 0 || dt.Year != 0:
+        buf[4] = dt.Day
+        buf[3] = dt.Month
+        copy(buf[1:3], *EncodeU16(uint16(dt.Year)))
+        buf[0] += 4
+    }
+    buf = buf[0 : buf[0]+1]
+    return &buf
+}
+
+func writeNdatetime(wr io.Writer, dt *Datetime) {
+    write(wr, *EncodeDatetime(dt))
+}
+
+func lenNdatetime(dt *Datetime) int {
+    switch {
+    case dt == nil:
+        return 1
+    case dt.Nanosec != 0:
+        return 12
+    case dt.Second != 0 || dt.Minute != 0 || dt.Hour != 0:
+        return 8
+    case dt.Day != 0 || dt.Month != 0 || dt.Year != 0:
+        return 5
+    }
+   return 1
 }
 
 // Borrowed from GoMySQL

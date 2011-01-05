@@ -2,6 +2,7 @@ package mymy
 
 import (
     "os"
+    "io"
     "bufio"
 )
 
@@ -12,8 +13,8 @@ type pktReader struct {
     last   bool
 }
 
-func newPktReader(rd *bufio.Reader, seq *byte) *pktReader {
-    return &pktReader{rd: rd, seq: seq}
+func (my *MySQL) newPktReader() *pktReader {
+    return &pktReader{rd: my.rd, seq: &my.seq}
 }
 
 func (pr *pktReader) Read(buf []byte) (num int, err os.Error) {
@@ -81,4 +82,67 @@ func (pr *pktReader) checkEof() {
     if !pr.eof() {
         panic(PKT_LONG_ERROR)
     }
+}
+
+type pktWriter struct {
+    wr       *bufio.Writer
+    seq      *byte
+    remain   int
+    to_write int
+    last     bool
+}
+
+func (my *MySQL) newPktWriter(to_write int) *pktWriter {
+    return &pktWriter{wr: my.wr, seq: &my.seq, to_write: to_write}
+}
+
+func (pw *pktWriter) Write(buf []byte) (num int, err os.Error) {
+    if len(buf) == 0 {
+        return
+    }
+    defer catchOsError(&err)
+    var nn int
+    for len(buf) != 0 {
+        if pw.remain == 0 {
+            if pw.to_write == 0 {
+                err = &io.Error{"too many data for write as packet"}
+                return
+            }
+            if pw.to_write >= 0xffffff {
+                pw.remain = 0xffffff
+            } else {
+                pw.remain = pw.to_write
+                pw.last = true
+            }
+            pw.to_write -= pw.remain
+            // Write packet header
+            writeU24(pw.wr, uint32(pw.remain))
+            writeByte(pw.wr, *pw.seq)
+            // Update sequence number
+            *pw.seq++
+        }
+        nn = len(buf)
+        if nn > pw.remain {
+            nn = pw.remain
+        }
+        nn, err = pw.wr.Write(buf[0:nn])
+        num += nn
+        pw.remain -= nn
+        if err != nil {
+            return
+        }
+        buf = buf[nn:]
+    }
+    if pw.remain + pw.to_write == 0 {
+        if !pw.last {
+            // Write  header for empty packet
+            writeU24(pw.wr, 0)
+            writeByte(pw.wr, *pw.seq)
+            // Update sequence number
+            *pw.seq++
+        }
+        // Flush bufio buffers
+        err = pw.wr.Flush()
+    }
+    return
 }

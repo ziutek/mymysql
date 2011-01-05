@@ -3,8 +3,10 @@ package mymy
 import (
     "os"
     "io"
-    "bufio"
+    "time"
 )
+
+var tab8s = "        "
 
 func readFull(rd io.Reader, buf []byte) {
     for nn := 0; nn < len(buf); {
@@ -65,11 +67,11 @@ func lenBS(bs interface{}) int {
     panic("Can't get length: argument isn't a string nor []byte")
 }
 
-func flush(wr *bufio.Writer,) {
+/*func flush(wr *bufio.Writer) {
     if err := wr.Flush(); err != nil {
         panic(err)
     }
-}
+}*/
 
 func catchOsError(err *os.Error) {
     if pv := recover(); pv != nil {
@@ -79,4 +81,24 @@ func catchOsError(err *os.Error) {
             panic(pv)
         }
     }
+}
+
+func IsDatetimeZero(dt *Datetime) bool {
+    return dt.Day==0 && dt.Month==0 && dt.Year==0 && dt.Hour==0 &&
+        dt.Minute == 0 && dt.Second == 0 && dt.Nanosec == 0
+}
+
+func TimeToDatetime(tt *time.Time) *Datetime {
+    return &Datetime {
+        Year:   int16(tt.Year),
+        Month:  uint8(tt.Month),
+        Day:    uint8(tt.Day),
+        Hour:   uint8(tt.Hour),
+        Minute: uint8(tt.Minute),
+        Second: uint8(tt.Second),
+    }
+}
+
+func TimeToTimestamp(tt *time.Time) *Timestamp {
+    return (*Timestamp)(TimeToDatetime(tt))
 }

@@ -1,16 +1,17 @@
-# Another MySQL connector for Go
+This package contains MySQL Go API created entirely in Go. It was created due
+to lack of properly working MySQL API package, ready for my production
+application (December 2010).
 
-This is a MySQL connector package created entirely in Go. It was created due to
-lack of properly working connector, ready for my production application
-(December 2010).
-
-This package has internal error handling using *panic()* exceptions, thus the
-probability of an unhandled internal error is very small.
+The code of this package is carefuly written and has internal error handling
+using *panic()* exceptions, thus the probability of Go bugs or an unhandled
+internal errors should be very small. Unfortunately I'm not a MySQL expert, 
+so bugs in the protocol handling are possible.
 
 ## Instaling
 
     $ git clone git://github.com/ziutek/mymysql
-    $ cd mymysql && make install
+    $ cd mymysql
+    $ make install
 
 ## Testing
 
@@ -20,55 +21,21 @@ For testing you need test database and test user:
     mysql> grant all privileges on test.* to testuser@localhost;
     mysql> set password for testuser@localhost = password("TestPasswd9")
 
-Set MySQL server IP address (or Unix socket name) in *mymy_test.go*. Next run
-tests:
+Make sure that MySQL variable *max_allowed_packet* is greater than 33M (needed
+to test long packets). If not, change it in *my.cnf* file and restart MySQL
+daemon. The default MySQL server addres is *127.0.0.1:3306*. You can change it
+by edit *mymy_test.go* file.
 
-    $ gotest
+Next run tests:
+
+    $ cd mymysql
+    $ gotest -v
 
 ## Interface
 
-Main functions/methods:
+In *GODOC.html* or *GODOC.txt* you can find the full documentation of this package in godoc format.
 
-    // Create new handler
-    func New(proto, laddr, raddr, user, passwd string, db ...string) *MySQL
-
-    // Connect to a server
-    func (*MySQL) Connect() os.Error
-
-    // Disconnect from a server
-    func (*MySQL) Close() os.Error
-
-    // Change database
-    func (*MySQL) Use(dbname string) os.Error
-
-    // Start new query sesion and send query to the server
-    func (*MySQL) Start(sql string) (*Result, os.Error)
-
-    // Get data row from a server. This method reads one row of result directly
-    // from network connection.
-    func (*Result) GetTextRow() (*TextRow, os.Error)
-
-    // Read all unreaded rows form network connection and discard them
-    func (*Result) End() os.Error
-
-    // This call Start and next call GetTextRow once or more times. It read
-    // all rows from connection and returns they as a slice.
-    func (*MySQL) Query(sql string) ([]*TextRow, *Result, os.Error)
-
-    // Ping
-    func (*MySQL) Ping() os.Error
-
-There are some mutations of *Start* and *Query*:
-
-    func (*MySQL) Startv(a ...interface{}) (*Result, os.Error)
-    func (*MySQL) Startf(format string, a ...interface{}) (*Result, os.Error)
-    func (*MySQL) Queryv(a ...interface{}) ([]*TextRow, *Result, os.Error)
-    func (*MySQL) Queryf(format string, a ...interface{}) ([]*TextRow, *Result, os.Error)
-
-## Usage
-
-Data readed from a server are unmodified - they are character strings.
-You can get data like in this example:
+## Example 1
 
     import (
         //...
@@ -99,22 +66,22 @@ You can get data like in this example:
             }
         }
         // You can get specific value from a row
-        val1 := row.Data[1] // (type mymy.Nbin == *[]byte)
+        val1 := row.Data[1].([]byte)
 
         // You can use it directly if conversion isn't needed
-        os.Stdout.Write(*val1)
-	
+        os.Stdout.Write(val1)
+
         // You can get converted value
-        number := row.Int(0)    // Zero value (type int, 0 if NULL)
-        str    := row.Str(1)    // First value (type string, "" if NULL)
-        bignum := row.Uint64(2) // Second value (type uint64, 0 if NULL)
-	
+        number := row.Int(0)      // Zero value
+        str    := row.Str(1)      // First value
+        bignum := row.MustUint(2) // Second value
+
         // You may get value by column name
-        val2 := row.Data[res.Map["FirstColumn"]] 
+        val2 := row.Data[res.Map["FirstColumn"]].([]byte)
     }
 
 If you do not want to load the entire result into memory you may use
-Start and GetTextRow methods:
+*Start* and *GetRow* methods:
 
     res, err := db.Start("select * from X")
     if err != nil {
@@ -130,7 +97,7 @@ Start and GetTextRow methods:
             break
         }
 
-        // Print fields
+        // Print fields names
         for _, field := range res.Fields {
             fmt.Print(field.Name, " ")
         }
@@ -141,14 +108,165 @@ Start and GetTextRow methods:
             if col == nil {
                 fmt.Print("<NULL>")
             } else {
-                os.Stdout.Write(*col)
+                os.Stdout.Write(col)
             }
             fmt.Print(" ")
         }
         fmt.Println()
     }
 
+## Example 2 - prepared statements
+
+You can use *Start* or *Query* method for prepared statements:
+
+    stmt, err := db.Prepare("insert into X values (?, ?)")
+    if err != nil {
+        // ...
+    }
+
+    type Data struct {
+        id  int
+        tax *float // nil means NULL
+    }
+
+    data = new(Data)
+
+    for {
+        err := getData(data)
+        if err == endOfData {
+            break       
+        } else if err != nil {
+            // ...
+        }
+        _, err = db.Start(stmt, data.id, data.tax)
+        if err != nil {
+            // ...
+        }
+    }
+
+*getData* is your function which retrieves data from somewhere and set *id* and
+*tax* fields of the Data struct. In the case of *tax* field *getData* may
+assign pointer to retieved variable or nil if NULL should be stored in
+database.
+
+With *Start* and *Query* methods data are rbinded on every method call. It
+isn't efficient if statement is executer more than once. You can bind
+parameters and use *Execute* method to avoid these unnecessary rebinds. The
+simplest way to bind parameters is:
+
+    stmt.BindParams(data.id, data.tax)
+
+but you can't use it in our example, becouse parameters binded this wah can't
+be changed by *getData* function. You may modify bind like this:
+
+    stmt.BindParams(&data.id, &data.tax)
+
+and now it should work properly. But in our example there is better solution:
+
+    stmt.BindParams(data)
+
+If *BindParams* method has one parameter, and this parameter is a struct or
+a pointer to the struct, it treats all fields of this struct as parameters and
+bind them,
+
+This is improved part of previous example:
+
+    data = new(Data)
+    stmt.BindParams(data)
+
+    for {
+        err := getData(data)
+        if err == endOfData {
+            break       
+        } else if err != nil {
+            // ...
+        }
+        _, err = stmt.Execute()
+        if err != nil {
+            // ...
+        }
+    }
+
 More examples are in *examples* directory.
+
+## Type binding
+
+In the case of classic text queries, all variables that are sent to the MySQL
+server are embded in text query. Thus you allways convert them to a string and
+send embded in SQL query:
+
+    rows, res, err := db.Query("select * from X where id > %d", id)
+
+After text query you always receive a text result. Mysql text result
+corresponds to *[]byte* type in mymysql. It isn't *string* type due to
+avoidance of unnecessary type conversions. You can allways convert *[]byte* to
+*string* yourself:
+
+    fmt.Print(string(rows[0].Data[1].([]byte)))
+
+or usnig *Str* helper method:
+
+    fmt.Print(rows[0].Str(1))
+
+There are other helper methods, for data conversion like *Int* or *Uint*:
+
+    fmt.Print(rows[0].Int(1))
+
+All three above examples return value received in row 0 column 1. If you prefer
+to use the column names, you can use *res.Map* which maps result field names to
+corresponding indexes:
+
+    name := res.Map["name"]
+    fmt.Print(rows[0].Str(name))
+
+In case of prepared statements, the type mapping is slightly more complicated.
+For parameters sended from the client to the server, Go/mymysql types are
+mapped for MySQL protocol types as below:
+
+           string  -->  MYSQL_TYPE_STRING
+           []byte  -->  MYSQL_TYPE_VAR_STRING
+      int8, uint8  -->  MYSQL_TYPE_TINY
+    int16, uint16  -->  MYSQL_TYPE_SHORT
+    int32, uint32  -->  MYSQL_TYPE_LONG
+    int64, uint64  -->  MYSQL_TYPE_LONGLONG
+          float32  -->  MYSQL_TYPE_FLOAT
+          float64  -->  MYSQL_TYPE_DOUBLE
+  *mymy.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
+   *mymy.Datetime  -->  MYSQL_TYPE_DATETIME
+        mymy.Blob  -->  MYSQL_TYPE_BLOB
+	      nil  -->  MYSQL_TYPE_NULL
+
+The MySQL server maps/converts them to a particular MySQL storage type.
+
+For received results MySQL storage types are mapped for Go/mymysql types as
+below:
+
+                                 TINYINT  -->  int8
+                        UNSIGNED TINYINT  -->  uint8
+                                SMALLINT  -->  int16
+                       UNSIGNED SMALLINT  -->  uint16
+                          MEDIUMINT, INT  -->  int32
+        UNSIGNED MEDIUMINT, UNSIGNED INT  -->  uint32
+                                  BIGINT  -->  int64
+                         UNSIGNED BIGINT  -->  uint64
+                                   FLOAT  -->  float32
+                                  DOUBLE  -->  float64
+         TIME, DATE, DATETIME, TIMESTAMP  -->  *mymy.Datetime
+                                    YEAR  -->  int16
+        CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte
+     TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
+    BLOB, TINYBLOB, MEDIUMBLOB, LONGBLOB  -->  []byte
+                            DECIMAL, BIT  -->  []byte
+				    NULL  -->  nil
+
+## Big packets
+
+This package can send and receive MySQL data packets that are biger than 16 MB.
+This means that you can receive response rows biger than 16 MB and can execute
+prepared statements with parameter data biger than 16 MB without using
+SEND_LONG_DATA command. If you want to use this feature you must set
+*db.MaxPktSize* to appropriate value before connect and change
+*max_allowed_packet* value in MySQL server configuration.
 
 ## Thread safety
 
@@ -156,14 +274,18 @@ You can use this package in multithreading enviroment. All functions are thread
 safe.
 
 If one thread is calling *Query* method, other threads will be blocked if they
-call *Query*, *Start* or other method, until *Query* return in first thread.
+call *Query*, *Start*, *Execute* or other method which send data to the server,
+until *Query* return in first thread.
 
-If one thread is calling *Start* method, other threads will be blocked if they
-call *Query*, *Start* or other method,  until all rows will be readed from a connection in first
+If one thread is calling *Start* or *Execute* method, other threads will be
+blocked if they call *Query*, *Start*, *Execute* or other method which send
+data to the server,  until all rows will be readed from a connection in first
 thread.
 
 ## TODO
 
-1. Prepared statements
-2. Multiple results
-3. More MySQL commands (if needed)
+1. Complete GODOC documentation
+2. stmt.SendLongData
+3. stmt.BindResult
+4. Multiple results
+5. io.Reader as bind paremeter, io.Writer as bind result variable

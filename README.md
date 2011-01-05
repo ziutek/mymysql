@@ -145,7 +145,7 @@ You can use *Start* or *Query* method for prepared statements:
 assign pointer to retieved variable or nil if NULL should be stored in
 database.
 
-With *Start* and *Query* methods data are rbinded on every method call. It
+With *Start* and *Query* methods data are rebinded on every method call. It
 isn't efficient if statement is executer more than once. You can bind
 parameters and use *Execute* method to avoid these unnecessary rebinds. The
 simplest way to bind parameters is:
@@ -185,7 +185,7 @@ This is improved part of previous example:
 
 More examples are in *examples* directory.
 
-## Type binding
+## Type mapping
 
 In the case of classic text queries, all variables that are sent to the MySQL
 server are embded in text query. Thus you allways convert them to a string and

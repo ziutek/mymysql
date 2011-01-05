@@ -37,24 +37,19 @@ In *GODOC.html* or *GODOC.txt* you can find the full documentation of this packa
 
 ## Example 1
 
-    import (
-        //...
-        "mymy"
-    )
-
-    //...
+    import "mymy"
 
     db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
     db.Debug = true
 
     err := db.Connect()
     if err != nil {
-        //...
+        panic(err)
     }
 
     rows, res, err := db.Query("select * from X")
     if err != nil {
-        //...
+        panic(err)
     }
 
     for _, row := range rows {
@@ -62,7 +57,7 @@ In *GODOC.html* or *GODOC.txt* you can find the full documentation of this packa
             if col == nil {
                 // col has NULL value
             } else {
-                // Do something with text in *col (type []byte)
+                // Do something with text in col (type []byte)
             }
         }
         // You can get specific value from a row
@@ -85,25 +80,26 @@ If you do not want to load the entire result into memory you may use
 
     res, err := db.Start("select * from X")
     if err != nil {
-        //...
+        panic(err)
     }
+
+    // Print fields names
+    for _, field := range res.Fields {
+        fmt.Print(field.Name, " ")
+    }
+    fmt.Println()
+
+    // Print all rows
     for {
         row, err := res.GetTextRow()
         if err != nil {
-            //...
+            panic(err)
         }
         if row == nil {
             // No more rows
             break
         }
-
-        // Print fields names
-        for _, field := range res.Fields {
-            fmt.Print(field.Name, " ")
-        }
-        fmt.Println()
-
-        // Print all rows
+        // Print all cols
         for _, col := range row.Data {
             if col == nil {
                 fmt.Print("<NULL>")
@@ -121,7 +117,7 @@ You can use *Start* or *Query* method for prepared statements:
 
     stmt, err := db.Prepare("insert into X values (?, ?)")
     if err != nil {
-        // ...
+        panic(err)
     }
 
     type Data struct {
@@ -136,11 +132,11 @@ You can use *Start* or *Query* method for prepared statements:
         if err == endOfData {
             break       
         } else if err != nil {
-            // ...
+            panic(err)
         }
         _, err = db.Start(stmt, data.id, data.tax)
         if err != nil {
-            // ...
+            panic(err)
         }
     }
 
@@ -179,11 +175,11 @@ This is improved part of previous example:
         if err == endOfData {
             break       
         } else if err != nil {
-            // ...
+            panic(err)
         }
         _, err = stmt.Execute()
         if err != nil {
-            // ...
+            panic(err)
         }
     }
 

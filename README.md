@@ -223,22 +223,22 @@ In case of prepared statements, the type mapping is slightly more complicated.
 For parameters sended from the client to the server, Go/mymysql types are
 mapped for MySQL protocol types as below:
 
-           string  -->  MYSQL_TYPE_STRING
-           []byte  -->  MYSQL_TYPE_VAR_STRING
-      int8, uint8  -->  MYSQL_TYPE_TINY
-    int16, uint16  -->  MYSQL_TYPE_SHORT
-    int32, uint32  -->  MYSQL_TYPE_LONG
-    int64, uint64  -->  MYSQL_TYPE_LONGLONG
-          float32  -->  MYSQL_TYPE_FLOAT
-          float64  -->  MYSQL_TYPE_DOUBLE
-  *mymy.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
-   *mymy.Datetime  -->  MYSQL_TYPE_DATETIME
-        mymy.Blob  -->  MYSQL_TYPE_BLOB
-	      nil  -->  MYSQL_TYPE_NULL
+             string  -->  MYSQL_TYPE_STRING
+             []byte  -->  MYSQL_TYPE_VAR_STRING
+        int8, uint8  -->  MYSQL_TYPE_TINY
+      int16, uint16  -->  MYSQL_TYPE_SHORT
+      int32, uint32  -->  MYSQL_TYPE_LONG
+      int64, uint64  -->  MYSQL_TYPE_LONGLONG
+            float32  -->  MYSQL_TYPE_FLOAT
+            float64  -->  MYSQL_TYPE_DOUBLE
+    *mymy.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
+     *mymy.Datetime  -->  MYSQL_TYPE_DATETIME
+          mymy.Blob  -->  MYSQL_TYPE_BLOB
+                nil  -->  MYSQL_TYPE_NULL
 
 The MySQL server maps/converts them to a particular MySQL storage type.
 
-For received results MySQL storage types are mapped for Go/mymysql types as
+For received results MySQL storage types are mapped to Go/mymysql types as
 below:
 
                                  TINYINT  -->  int8
@@ -265,7 +265,7 @@ This package can send and receive MySQL data packets that are biger than 16 MB.
 This means that you can receive response rows biger than 16 MB and can execute
 prepared statements with parameter data biger than 16 MB without using
 SEND_LONG_DATA command. If you want to use this feature you must set
-*db.MaxPktSize* to appropriate value before connect and change
+*MySQL.MaxPktSize* to appropriate value before connect and change
 *max_allowed_packet* value in MySQL server configuration.
 
 ## Thread safety

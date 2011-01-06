@@ -23,6 +23,7 @@ doc:
 	godoc -html -path='.' '.' >>GODOC.html
 	cat godoc/tail.html >>GODOC.html
 	godoc -path='.' '.' >GODOC.txt
+	rm -f README.md
 	cp godoc/readme.md README.md
 	godoc -html -path='.' '.' |html2markdown >>README.md
 	chmod a-w README.md

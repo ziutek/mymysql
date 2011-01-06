@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-ALL=simple prepared_stmt
+ALL=simple prepared_stmt reconnect
 
 all: $(ALL)
 

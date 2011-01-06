@@ -4,6 +4,7 @@ import (
     "os"
     "io"
     "bufio"
+    "fmt"
 )
 
 type pktReader struct {
@@ -18,11 +19,11 @@ func (my *MySQL) newPktReader() *pktReader {
 }
 
 func (pr *pktReader) Read(buf []byte) (num int, err os.Error) {
-    defer catchOsError(&err)
-
     if len(buf) == 0 {
         return 0, nil
     }
+    defer catchOsError(&err)
+
     if pr.remain == 0 {
         // No data to read from current packet
         if pr.last {
@@ -101,6 +102,7 @@ func (pw *pktWriter) Write(buf []byte) (num int, err os.Error) {
         return
     }
     defer catchOsError(&err)
+
     var nn int
     for len(buf) != 0 {
         if pw.remain == 0 {
@@ -142,7 +144,9 @@ func (pw *pktWriter) Write(buf []byte) (num int, err os.Error) {
             *pw.seq++
         }
         // Flush bufio buffers
+        fmt.Print("NUM:", pw.wr.Buffered())
         err = pw.wr.Flush()
+        fmt.Println(" FLUSH:", err)
     }
     return
 }

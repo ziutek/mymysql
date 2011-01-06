@@ -35,8 +35,9 @@ type MySQL struct {
     info ServerInfo // MySQL server information
     seq  byte       // MySQL sequence number
 
-    mutex         *sync.Mutex // For concurency
-    unreaded_rows bool
+    mutex           *sync.Mutex // For concurency
+    unreaded_rows   bool
+    reconnect_count int         // Reconnect counter
 
     // Maximum packet size that client can accept from server.
     // Default 16*1024*1024-1. You may change it before connect.
@@ -106,7 +107,7 @@ func (my *MySQL) Close() (err os.Error) {
 
     // Close the connection
     my.sendCmd(_COM_QUIT)
-    my.conn.Close()
+    err = my.conn.Close()
     my.conn = nil // Mark that we disconnect
 
     return

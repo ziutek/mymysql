@@ -2,10 +2,10 @@ include $(GOROOT)/src/Make.inc
 
 TARG=mymy
 GOFILES=\
+	mysql.go\
 	common.go\
 	packet.go\
 	codecs.go\
-	mysql.go\
 	utils.go\
 	errors.go\
 	consts.go\
@@ -22,4 +22,6 @@ doc:
 	cat godoc/head1.html $(GOROOT)/doc/all.css godoc/head2.html >GODOC.html
 	godoc -html -path='.' '.' >>GODOC.html
 	cat godoc/tail.html >>GODOC.html
-	godoc -path='.' '.' >>GODOC.txt
+	godoc -path='.' '.' >GODOC.txt
+	cp godoc/readme.md README.md
+	godoc -html -path='.' '.' |html2markdown >>README.md

@@ -67,12 +67,6 @@ func lenBS(bs interface{}) int {
     panic("Can't get length: argument isn't a string nor []byte")
 }
 
-/*func flush(wr *bufio.Writer) {
-    if err := wr.Flush(); err != nil {
-        panic(err)
-    }
-}*/
-
 func catchOsError(err *os.Error) {
     if pv := recover(); pv != nil {
         if er, ok := pv.(os.Error); ok {

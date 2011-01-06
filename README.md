@@ -91,7 +91,7 @@ If you do not want to load the entire result into memory you may use
 
     // Print all rows
     for {
-        row, err := res.GetTextRow()
+        row, err := res.GetRow()
         if err != nil {
             panic(err)
         }
@@ -104,7 +104,7 @@ If you do not want to load the entire result into memory you may use
             if col == nil {
                 fmt.Print("<NULL>")
             } else {
-                os.Stdout.Write(col)
+                os.Stdout.Write(col.([]byte))
             }
             fmt.Print(" ")
         }

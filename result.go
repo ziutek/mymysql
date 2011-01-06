@@ -258,16 +258,16 @@ func (my *MySQL) getErrorPacket(pr *pktReader) {
         log.Printf("[%2d ->] Error packet:", my.seq - 1)
     }
     var err Error
-    err.code = readU16(pr)
+    err.Code = readU16(pr)
     if readByte(pr) != '#' {
         panic(PKT_ERROR)
     }
     read(pr, 5)
-    err.msg = pr.readAll()
+    err.Msg = pr.readAll()
     pr.checkEof()
 
     if my.Debug {
-        log.Printf(tab8s + "code=0x%x msg=\"%s\"", err.code, err.msg)
+        log.Printf(tab8s + "code=0x%x msg=\"%s\"", err.Code, err.Msg)
     }
     panic(&err)
 }

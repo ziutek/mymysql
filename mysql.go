@@ -295,7 +295,7 @@ func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
 // 
 // params may be a parameter list (slice), a struct or a pointer to the struct.
 // A struct field can by value or pointer to value. A parameter (slice element)
-// can be value, pointer to value or pointer to pointer of value.
+// can be value, pointer to value or pointer to pointer to value.
 // Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 // string, Datetime, Timestamp, Raw.
 func (stmt *Statement) BindParams(params ...interface{}) {

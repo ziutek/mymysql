@@ -1086,7 +1086,7 @@ conversion is impossible.
     Status       uint16
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go#L301">BindParams</a></h3>
+				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go#L304">BindParams</a></h3>
 				<p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>
 				<p>
 Bind input data for the parameter markers in the SQL statement that was
@@ -1100,17 +1100,21 @@ Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 string, Datetime, Timestamp, Raw.
 </p>
 
-				<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go#L360">Delete</a></h3>
+				<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go#L365">Delete</a></h3>
 				<p><code>func (stmt *Statement) Delete() (err os.Error)</code></p>
 				<p>
 Destroy statement on server side. Client side handler is invalid after this
 command.
 </p>
 
-				<h3 id="Statement.Execute">func (*Statement) <a href="/mymysql/mysql.go#L339">Execute</a></h3>
+				<h3 id="Statement.Execute">func (*Statement) <a href="/mymysql/mysql.go#L344">Execute</a></h3>
 				<p><code>func (stmt *Statement) Execute() (res *Result, err os.Error)</code></p>
-				
-				<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go#L380">Reset</a></h3>
+				<p>
+Execute prepared statement. If statement requires parameters you must
+bind them first.
+</p>
+
+				<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go#L387">Reset</a></h3>
 				<p><code>func (stmt *Statement) Reset() (err os.Error)</code></p>
 				<p>
 Resets a prepared statement on server: data sent to the server, unbuffered

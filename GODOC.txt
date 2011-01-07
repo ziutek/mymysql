@@ -804,6 +804,8 @@ Destroy statement on server side. Client side handler is invalid after this
 command.
 
 func (stmt *Statement) Execute() (res *Result, err os.Error)
+Execute prepared statement. If statement requires parameters you must
+bind them first.
 
 func (stmt *Statement) Reset() (err os.Error)
 Resets a prepared statement on server: data sent to the server, unbuffered

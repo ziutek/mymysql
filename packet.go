@@ -4,7 +4,6 @@ import (
     "os"
     "io"
     "bufio"
-    "fmt"
 )
 
 type pktReader struct {
@@ -144,9 +143,7 @@ func (pw *pktWriter) Write(buf []byte) (num int, err os.Error) {
             *pw.seq++
         }
         // Flush bufio buffers
-        fmt.Print("NUM:", pw.wr.Buffered())
         err = pw.wr.Flush()
-        fmt.Println(" FLUSH:", err)
     }
     return
 }

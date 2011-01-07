@@ -1835,6 +1835,9 @@ command.
 
 `func (stmt *Statement) Execute() (res *Result, err os.Error)`
 
+Execute prepared statement. If statement requires parameters you must bind
+them first.
+
 ### func (*Statement) [Reset][60]
 
 `func (stmt *Statement) Reset() (err os.Error)`
@@ -1995,13 +1998,13 @@ Synopsis
 
    [56]: /mymysql/prepared.go#L7
 
-   [57]: /mymysql/mysql.go#L301
+   [57]: /mymysql/mysql.go#L304
 
-   [58]: /mymysql/mysql.go#L360
+   [58]: /mymysql/mysql.go#L365
 
-   [59]: /mymysql/mysql.go#L339
+   [59]: /mymysql/mysql.go#L344
 
-   [60]: /mymysql/mysql.go#L380
+   [60]: /mymysql/mysql.go#L387
 
    [61]: /mymysql/binding.go#L41
 

@@ -5,8 +5,9 @@ import (
 )
 
 type Statement struct {
-    db *MySQL
-    id uint32
+    db  *MySQL
+    id  uint32
+    sql string // For reprepare during reconnect
 
     params []*Value // Parameters binding
     rebind bool

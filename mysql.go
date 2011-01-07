@@ -35,9 +35,9 @@ type MySQL struct {
     info ServerInfo // MySQL server information
     seq  byte       // MySQL sequence number
 
-    mutex           *sync.Mutex // For concurency
-    unreaded_rows   bool
-    reconnect_count int         // Reconnect counter
+    mutex         *sync.Mutex // For concurency
+    unreaded_rows bool
+    stmt_map      map[uint32]*Statement // For reprepare during reconnect
 
     // Maximum packet size that client can accept from server.
     // Default 16*1024*1024-1. You may change it before connect.
@@ -287,6 +287,9 @@ func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
         my.getPrepareResult(stmt)
     }
     stmt.db = my
+    stmt.sql = sql
+    // Add statement to the map
+    my.stmt_map[stmt.id] = stmt
     return
 }
 
@@ -336,6 +339,8 @@ func (stmt *Statement) BindParams(params ...interface{}) {
     }
 }
 
+// Execute prepared statement. If statement requires parameters you must
+// bind them first.
 func (stmt *Statement) Execute() (res *Result, err os.Error) {
     if stmt.db.conn == nil {
         return nil, NOT_CONN_ERROR
@@ -370,6 +375,8 @@ func (stmt *Statement) Delete() (err os.Error) {
 
     // Send command
     stmt.db.sendCmd(_COM_STMT_CLOSE, stmt.id)
+    // Delete statement from stmt_map
+    stmt.db.stmt_map[stmt.id] = nil, false
     // Invalidate handler
     *stmt = Statement{}
     return

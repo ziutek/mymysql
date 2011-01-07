@@ -1130,7 +1130,7 @@ Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 </p>
 
-				<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go#L486">SendLongData</a></h3>
+				<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go#L487">SendLongData</a></h3>
 				<p><code>func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)</code></p>
 				<p>
 Send long data to MySQL server in chunks.
@@ -1139,15 +1139,17 @@ multiple times for one parameter to send TEXT or BLOB data in chunks.
 </p>
 <p>
 pnum     - Parameter number to associate the data with.
-data     - Data source string, []byte or io.Reader.
-pkt_size - It must be must be greater than 6 and less or equal to MySQL
 </p>
-<pre>max_allowed_packet variable. You can obtain value of this variable
-using such query:
-SHOW variables WHERE Variable_name = &#39;max_allowed_packet&#39;
-If data source is io.Reader then (pkt_size - 6) is size of
-a buffer that will be allocated for reading.
-</pre>
+<p>
+data     - Data source string, []byte or io.Reader.
+</p>
+<p>
+pkt_size - It must be must be greater than 6 and less or equal to MySQL
+max_allowed_packet variable. You can obtain value of this variable
+using such query: SHOW variables WHERE Variable_name = &#39;max_allowed_packet&#39;
+If data source is io.Reader then (pkt_size - 6) is size of a buffer that
+will be allocated for reading.
+</p>
 <p>
 If you have data source of type string or []byte in one piece you may
 properly set pkt_size and call this method once. If you have data in

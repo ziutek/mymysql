@@ -823,13 +823,14 @@ You can call this method after Bind and before Execute. It can be called
 multiple times for one parameter to send TEXT or BLOB data in chunks.
 
 pnum     - Parameter number to associate the data with.
+
 data     - Data source string, []byte or io.Reader.
+
 pkt_size - It must be must be greater than 6 and less or equal to MySQL
-           max_allowed_packet variable. You can obtain value of this variable
-           using such query:
-           SHOW variables WHERE Variable_name = 'max_allowed_packet'
-           If data source is io.Reader then (pkt_size - 6) is size of
-           a buffer that will be allocated for reading.
+max_allowed_packet variable. You can obtain value of this variable
+using such query: SHOW variables WHERE Variable_name = 'max_allowed_packet'
+If data source is io.Reader then (pkt_size - 6) is size of a buffer that
+will be allocated for reading.
 
 If you have data source of type string or []byte in one piece you may
 properly set pkt_size and call this method once. If you have data in

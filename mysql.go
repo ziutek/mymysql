@@ -58,6 +58,7 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL) {
         user:       user,
         passwd:     passwd,
         mutex:      new(sync.Mutex),
+        stmt_map:   make(map[uint32]*Statement),
         MaxPktSize: 16*1024*1024-1,
     }
     if len(db) == 1 {

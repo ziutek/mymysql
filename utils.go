@@ -14,6 +14,8 @@ func (my *MySQL) unlock() {
 }
 
 func (my *MySQL) init() {
+    my.seq = 0 // Reset sequence number, mainly for reconnect
+
     pr := my.newPktReader()
     my.info.scramble = make([]byte, 20)
 

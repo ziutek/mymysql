@@ -69,14 +69,9 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL) {
     return
 }
 
-// Establishes a connection with MySQL server version 4.1 or later.
-func (my *MySQL) Connect() (err os.Error) {
-    if my.conn != nil {
-        return ALREDY_CONN_ERROR
-    }
-    defer my.unlock()
+// Thread unsafe connect
+func (my *MySQL) connect() (err os.Error) {
     defer catchOsError(&err)
-    my.lock()
 
     // Make connection
     my.conn, err = net.Dial(my.proto, my.laddr, my.raddr)
@@ -94,6 +89,29 @@ func (my *MySQL) Connect() (err os.Error) {
     return
 }
 
+// Establishes a connection with MySQL server version 4.1 or later.
+func (my *MySQL) Connect() (err os.Error) {
+    if my.conn != nil {
+        return ALREDY_CONN_ERROR
+    }
+    defer my.unlock()
+    my.lock()
+
+    return my.connect()
+}
+
+// Thread unsafe close
+func (my *MySQL) close_conn() (err os.Error) {
+    defer catchOsError(&err)
+
+    // Close the connection
+    my.sendCmd(_COM_QUIT)
+    err = my.conn.Close()
+    my.conn = nil // Mark that we disconnect
+
+    return
+}
+
 // Close connection to the server
 func (my *MySQL) Close() (err os.Error) {
     if my.conn == nil {
@@ -103,13 +121,43 @@ func (my *MySQL) Close() (err os.Error) {
         return UNREADED_ROWS_ERROR
     }
     defer my.unlock()
-    defer catchOsError(&err)
     my.lock()
 
-    // Close the connection
-    my.sendCmd(_COM_QUIT)
-    err = my.conn.Close()
-    my.conn = nil // Mark that we disconnect
+    return my.close_conn()
+}
+
+// Close and reopen connection in one thread safe operation.
+// Ignore unreaded rows, reprepare all prepared statements.
+func (my *MySQL) Reconnect() (err os.Error) {
+    defer my.unlock()
+    my.lock()
+
+    if my.conn != nil {
+        // Close connection, ignore all errors
+        my.close_conn()
+    }
+    // Reopen the connection.
+    if err = my.connect(); err != nil {
+        return
+    }
+    // Reprepare all prepared statements
+    var (
+        new_stmt *Statement
+        new_map = make(map[uint32]*Statement)
+    )
+    for _, stmt := range my.stmt_map {
+        new_stmt, err = my.prepare(stmt.sql)
+        if err != nil {
+            return
+        }
+        // Assume that fields set in new_stmt by prepare() are indentical to
+        // corresponding fields in stmt. Why they can be different?
+        stmt.id = new_stmt.id
+        stmt.rebind = true
+        new_map[stmt.id] = stmt
+    }
+    // Replace the stmt_map
+    my.stmt_map = new_map
 
     return
 }
@@ -219,8 +267,8 @@ func (res *Result) End() (err os.Error) {
     return
 }
 
-// This call Start and next call GetTextRow once or more times. It read
-// all rows from connection and returns they as a slice.
+// This call Start and next call GetRow once or more times. It read all rows
+// from connection and returns they as a slice.
 func (my *MySQL) Query(command interface{}, params ...interface{}) (
         rows []*Row, res *Result, err os.Error) {
 
@@ -240,7 +288,7 @@ func (my *MySQL) Query(command interface{}, params ...interface{}) (
     return
 }
 
-// Send PING packet to server.
+// Send MySQL PING to the server.
 func (my *MySQL) Ping() (err os.Error) {
     if my.conn == nil {
         return NOT_CONN_ERROR
@@ -260,17 +308,8 @@ func (my *MySQL) Ping() (err os.Error) {
     return
 }
 
-// Prepare server side statement. Return statement handler.
-func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
-    if my.conn == nil {
-        return nil, NOT_CONN_ERROR
-    }
-    if my.unreaded_rows {
-        return nil, UNREADED_ROWS_ERROR
-    }
-    defer my.unlock()
+func (my *MySQL) prepare(sql string) (stmt *Statement, err os.Error) {
     defer catchOsError(&err)
-    my.lock()
 
     // Send command
     my.sendCmd(_COM_STMT_PREPARE, sql)
@@ -287,10 +326,30 @@ func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
         // Get column fields
         my.getPrepareResult(stmt)
     }
+    return
+}
+
+// Prepare server side statement. Return statement handler.
+func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
+    if my.conn == nil {
+        return nil, NOT_CONN_ERROR
+    }
+    if my.unreaded_rows {
+        return nil, UNREADED_ROWS_ERROR
+    }
+    defer my.unlock()
+    my.lock()
+
+    stmt, err = my.prepare(sql)
+    if err != nil {
+        return
+    }
+    // Connect statement with database handler
     stmt.db = my
-    stmt.sql = sql
-    // Add statement to the map
     my.stmt_map[stmt.id] = stmt
+    // Save SQL for reconnect
+    stmt.sql = sql
+
     return
 }
 

@@ -5,6 +5,7 @@ import (
     "fmt"
     "os"
     "time"
+    "io"
 )
 
 var (
@@ -38,11 +39,19 @@ func main() {
     }
     fmt.Println("\b\b\b.  ")
 
+
+loop:
     fmt.Print("Select...")
-    buf := [1500]byte{}
-    _, _, err := db.Query("select '%s'", buf[:])
+    rows, _, err := db.Query("select 'qwertyuiopasdfghjklzxcvbnm1234567890'")
+    if ie, ok := err.(*io.Error); ok && ie == io.ErrUnexpectedEOF {
+        fmt.Println(" Error:", ie)
+        fmt.Print("Reconnecting...")
+        check(db.Reconnect())
+        goto loop
+    }
     check(err)
-    //fmt.Println("Result:", rows[0].Str(0))
+
+    fmt.Println("Result:", rows[0].Str(0))
 
     fmt.Print("Disconnect...")
     check(db.Close())

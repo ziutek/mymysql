@@ -242,16 +242,12 @@ func lenLC(v interface{}) int {
 
 func readNTB(rd io.Reader) (buf []byte) {
     bb := new(bytes.Buffer)
-    ch := make([]byte, 1)
     for {
-        if _, err := rd.Read(ch); err != nil {
-            panic(err)
+        ch := readByte(rd)
+        if ch == 0 {
+            return bb.Bytes()
         }
-        if ch[0] == 0 {
-            buf = bb.Bytes()
-            break
-        }
-        bb.WriteByte(ch[0])
+        bb.WriteByte(ch)
     }
     return
 }

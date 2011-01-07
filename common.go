@@ -13,6 +13,9 @@ func readFull(rd io.Reader, buf []byte) {
         kk, err := rd.Read(buf[nn:])
         nn += kk
         if err != nil {
+            if err == os.EOF {
+                err = io.ErrUnexpectedEOF
+            }
             panic(err)
         }
     }
@@ -27,7 +30,10 @@ func read(rd io.Reader, nn int) (buf []byte) {
 func readByte(rd io.Reader) byte {
     buf := make([]byte, 1)
     if _, err := rd.Read(buf); err != nil {
-        panic(err)
+        if err == os.EOF {
+            err = io.ErrUnexpectedEOF
+       }
+       panic(err)
     }
     return buf[0]
 }

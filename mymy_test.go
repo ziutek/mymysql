@@ -384,9 +384,6 @@ func TestVarBinding(t *testing.T) {
     ins, err := db.Prepare("insert T values (?, ?)")
     checkErr(t, err, nil)
 
-    //sel, err := db.Prepare("select str from P where id = ?")
-    //checkErr(t, err, nil)
-
     var (
         rre RowsResErr
         id  *int
@@ -439,7 +436,7 @@ func TestVarBinding(t *testing.T) {
         t.Fatal("Thrid string don't match")
     }
 
-    //checkResult(t, query("drop table T"), cmdOK(0, false))
+    checkResult(t, query("drop table T"), cmdOK(0, false))
     dbClose(t)
 }
 
@@ -533,6 +530,55 @@ func TestBigBlob(t *testing.T) {
     checkResult(t, query("drop table P"), cmdOK(0, false))
     dbClose(t)
 }
+
+func TestReconnect(t *testing.T) {
+    dbConnect(t, true, 0)
+    query("drop table R") // Drop test table if exists
+    checkResult(t,
+        query("create table R (id int primary key, str varchar(20))"),
+        cmdOK(0, false),
+    )
+
+    ins, err := db.Prepare("insert R values (?, ?)")
+    checkErr(t, err, nil)
+    sel, err := db.Prepare("select str from R where id = ?")
+    checkErr(t, err, nil)
+
+    params := struct{id int; str string}{}
+    var sel_id int
+
+    ins.BindParams(&params)
+    sel.BindParams(&sel_id)
+
+    checkErr(t, db.Reconnect(), nil)
+
+    params.id = 1
+    params.str = "Bla bla bla"
+    _, err = ins.Execute()
+    checkErr(t, err, nil)
+
+    checkErr(t, db.Reconnect(), nil)
+
+    sel_id = 1
+    res, err := sel.Execute()
+    checkErr(t, err, nil)
+
+    row, err := res.GetRow()
+    checkErr(t, err, nil)
+
+    checkErr(t, res.End(), nil)
+
+    if row == nil || row.Data == nil || row.Data[0] == nil ||
+            params.str != row.Str(0) {
+        t.Fatal("Bad result")
+    }
+
+    checkErr(t, db.Reconnect(), nil)
+
+    checkResult(t, query("drop table R"), cmdOK(0, false))
+    dbClose(t)
+}
+
 
 // Benchamrks
 

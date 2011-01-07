@@ -7,6 +7,7 @@ import (
     "fmt"
     "time"
     "bytes"
+    "io/ioutil"
 )
 
 var (
@@ -476,7 +477,7 @@ func TestBigBlob(t *testing.T) {
     id = 1
     bb = big_blob
 
-    // Insert full blob. Three packets are sended. First two has maximum length.
+    // Insert full blob. Three packets are sended. First two has maximum length
     rre.res, rre.err = ins.Execute()
     checkResult(t, &rre, cmdOK(1, true))
 
@@ -531,6 +532,8 @@ func TestBigBlob(t *testing.T) {
     dbClose(t)
 }
 
+// Reconnect test
+
 func TestReconnect(t *testing.T) {
     dbConnect(t, true, 0)
     query("drop table R") // Drop test table if exists
@@ -579,6 +582,91 @@ func TestReconnect(t *testing.T) {
     dbClose(t)
 }
 
+// StmtSendLongData test
+
+func TestSendLongData(t *testing.T) {
+    dbConnect(t, true, 64*1024*1024)
+    query("drop table L") // Drop test table if exists
+    checkResult(t,
+        query("create table L (id int primary key, bb longblob)"),
+        cmdOK(0, false),
+    )
+    ins, err := db.Prepare("insert L values (?, ?)")
+    checkErr(t, err, nil)
+
+    sel, err := db.Prepare("select bb from L where id = ?")
+    checkErr(t, err, nil)
+
+
+    var (
+        rre RowsResErr
+        id int
+    )
+
+    ins.BindParams(&id, nil)
+    sel.BindParams(&id)
+
+    // Prepare data
+    data := make([]byte, 4*1024*1024)
+    for ii := range data {
+        data[ii] = byte(ii)
+    }
+    // Send long data twice
+    checkErr(t, ins.SendLongData(1, data,  256*1024), nil)
+    checkErr(t, ins.SendLongData(1, data,  512*1024), nil)
+
+    id = 1
+    rre.res, rre.err = ins.Execute()
+    checkResult(t, &rre, cmdOK(1, true))
+
+    res, err := sel.Execute()
+    checkErr(t, err, nil)
+
+    row, err := res.GetRow()
+    checkErr(t, err, nil)
+
+    checkErr(t, res.End(), nil)
+
+    if row == nil || row.Data == nil || row.Data[0] == nil ||
+            bytes.Compare(append(data, data...), row.Bin(0)) != 0 {
+        t.Fatal("Bad result")
+    }
+
+    // Send long data from io.Reader twice
+    filename := "_test/mymy.a"
+    file, err := os.Open(filename, os.O_RDONLY, 0)
+    checkErr(t, err, nil)
+    checkErr(t, ins.SendLongData(1, file,  128*1024), nil)
+    checkErr(t, file.Close(), nil)
+    file, err = os.Open(filename, os.O_RDONLY, 0)
+    checkErr(t, err, nil)
+    checkErr(t, ins.SendLongData(1, file,  1024*1024), nil)
+    checkErr(t, file.Close(), nil)
+
+    id = 2
+    rre.res, rre.err = ins.Execute()
+    checkResult(t, &rre, cmdOK(1, true))
+
+    res, err = sel.Execute()
+    checkErr(t, err, nil)
+
+    row, err = res.GetRow()
+    checkErr(t, err, nil)
+
+    checkErr(t, res.End(), nil)
+
+    // Read file for check result
+    data, err = ioutil.ReadFile(filename)
+    checkErr(t, err, nil)
+
+    if row == nil || row.Data == nil || row.Data[0] == nil ||
+            bytes.Compare(append(data, data...), row.Bin(0)) != 0 {
+        t.Fatal("Bad result")
+    }
+
+    checkResult(t, query("drop table L"), cmdOK(0, false))
+    dbClose(t)
+}
 
 // Benchamrks
 

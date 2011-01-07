@@ -16,9 +16,9 @@ func (my *MySQL) sendCmd(cmd byte, argv ...interface{}) {
     case _COM_STMT_SEND_LONG_DATA:
         pw := my.newPktWriter(1 + 4 + 2 + lenBS(argv[2]))
         writeByte(pw, cmd)
-        writeU32(pw, argv[0].(uint32))
-        writeU16(pw, argv[1].(uint16))
-        writeBS(pw, argv[2])
+        writeU32(pw, argv[0].(uint32)) // Statement ID
+        writeU16(pw, argv[1].(uint16)) // Parameter number
+        writeBS(pw, argv[2])           // payload
 
     case _COM_QUIT, _COM_STATISTICS, _COM_PROCESS_INFO, _COM_DEBUG, _COM_PING:
         pw := my.newPktWriter(1)

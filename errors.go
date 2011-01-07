@@ -6,7 +6,6 @@ import (
 )
 
 var (
-    WR_BUF_ERROR          = os.NewError("write buffer/packet too short")
     SEQ_ERROR             = os.NewError("packet sequence error")
     PKT_ERROR             = os.NewError("malformed packet")
     PKT_LONG_ERROR        = os.NewError("packet too long")
@@ -19,11 +18,14 @@ var (
     BAD_RESULT_ERROR      = os.NewError("unexpected result")
     UNREADED_ROWS_ERROR   = os.NewError("there are unreaded rows")
     BIND_COUNT_ERROR      = os.NewError("wrong number of values for bind")
-    BIND_UNK_TYPE         = os.NewError("unknown bind value type")
+    BIND_UNK_TYPE         = os.NewError("unknown value type for bind")
     RESULT_COUNT_ERROR    = os.NewError("wrong number of result columns")
     BAD_COMMAND_ERROR     = os.NewError("comand isn't text SQL nor *Statement")
     WRONG_DATE_LEN_ERROR  = os.NewError("wrong datetime/timestamp length")
     UNK_MYSQL_TYPE_ERROR  = os.NewError("unknown MySQL type")
+    WRONG_PARAM_NUM_ERROR = os.NewError("wrong parameter number")
+    UNK_DATA_TYPE_ERROR   = os.NewError("unknown data source type")
+    SMALL_PKT_SIZE_ERROR  = os.NewError("specified packet size is to small")
 )
 
 // If function/method returns error you can check returned error type, and if

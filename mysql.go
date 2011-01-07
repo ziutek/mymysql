@@ -2,6 +2,7 @@ package mymy
 
 import (
     "os"
+    "io"
     "net"
     "bufio"
     "sync"
@@ -462,4 +463,87 @@ func (stmt *Statement) Reset() (err os.Error) {
     // Next exec must send type information.
     stmt.rebind = true
     return
+}
+
+// Send long data to MySQL server in chunks.
+// You can call this method after Bind and before Execute. It can be called
+// multiple times for one parameter to send TEXT or BLOB data in chunks.
+//
+// pnum     - Parameter number to associate the data with.
+// data     - Data source string, []byte or io.Reader.
+// pkt_size - It must be must be greater than 6 and less or equal to MySQL
+//            max_allowed_packet variable. You can obtain value of this variable
+//            using such query:
+//            SHOW variables WHERE Variable_name = 'max_allowed_packet'
+//            If data source is io.Reader then (pkt_size - 6) is size of
+//            a buffer that will be allocated for reading. 
+//
+// If you have data source of type string or []byte in one piece you may
+// properly set pkt_size and call this method once. If you have data in
+// multiple pieces you can call this method multiple times. If data source is
+// io.Reader you should properly set pkt_size. Data will be readed from
+// io.Reader and send in pieces to the server until EOF.
+func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (
+        err os.Error) {
+
+    if stmt.db.conn == nil {
+        return NOT_CONN_ERROR
+    }
+    if stmt.db.unreaded_rows {
+        return UNREADED_ROWS_ERROR
+    }
+    if pnum < 0 || pnum >= stmt.ParamCount {
+        return WRONG_PARAM_NUM_ERROR
+    }
+    if pkt_size -= 6; pkt_size < 0 {
+        return SMALL_PKT_SIZE_ERROR
+    }
+    defer stmt.db.unlock()
+    defer catchOsError(&err)
+    stmt.db.lock()
+
+    switch dd := data.(type) {
+    case io.Reader:
+        buf := make([]byte, pkt_size)
+        for {
+            nn, ee := io.ReadFull(dd, buf)
+            if ee == os.EOF {
+                return
+            }
+            if nn != 0 {
+                stmt.db.sendCmd(
+                    _COM_STMT_SEND_LONG_DATA,
+                    stmt.id, uint16(pnum), buf[0:nn],
+                )
+            }
+            if ee == io.ErrUnexpectedEOF {
+                return
+            } else if ee != nil {
+                return ee
+            }
+        }
+
+    case []byte:
+        for len(dd) > pkt_size {
+            stmt.db.sendCmd(
+                _COM_STMT_SEND_LONG_DATA,
+                stmt.id, uint16(pnum), dd[0:pkt_size],
+            )
+            dd = dd[pkt_size:]
+        }
+        stmt.db.sendCmd(_COM_STMT_SEND_LONG_DATA, stmt.id, uint16(pnum), dd)
+        return
+
+    case string:
+        for len(dd) > pkt_size {
+            stmt.db.sendCmd(
+                _COM_STMT_SEND_LONG_DATA,
+                stmt.id, uint16(pnum), dd[0:pkt_size],
+            )
+            dd = dd[pkt_size:]
+        }
+        stmt.db.sendCmd(_COM_STMT_SEND_LONG_DATA, stmt.id, uint16(pnum), dd)
+        return
+    }
+    return UNK_DATA_TYPE_ERROR
 }

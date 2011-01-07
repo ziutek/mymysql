@@ -6,15 +6,79 @@ import (
     "os"
     "time"
     "io"
+    "net"
+    "log"
 )
 
-var (
-    user   = "testuser"
-    passwd = "TestPasswd9"
-    dbname = "test"
-    //conn   = []string{"unix", "", "/var/run/mysqld/mysqld.sock"}
-    conn = []string{"tcp",  "", "127.0.0.1:3306"}
-)
+type ReconDB struct {
+    // MySQL handler
+    my *mymy.MySQL
+
+    // Maximum reconnect retries
+    MaxRetries int
+}
+
+func NewRDB(proto, laddr, raddr, user, passwd string, db ...string) *ReconDB {
+    return &ReconDB {
+        my: mymy.New(proto, laddr, raddr, user, passwd, db...),
+        MaxRetries: 6,
+    }
+}
+
+func isNetErr(err os.Error) bool {
+    if err == io.ErrUnexpectedEOF {
+        // Probably network error
+        return true
+    } else if _, ok := err.(*net.OpError); ok {
+        // Network error
+        return true
+    }
+    return false
+}
+
+func (rdb *ReconDB) reconnect(err *os.Error) {
+    for nn := 0; *err != nil && isNetErr(*err); nn++ {
+        log.Println("Reconnecting...")
+        time.Sleep(int64(1e9) * int64(nn))
+        *err = rdb.my.Reconnect()
+        if nn > rdb.MaxRetries {
+            return
+        }
+        if *err != nil {
+            log.Println("Can't reconnect:", *err)
+        }
+    }
+}
+
+func (rdb *ReconDB) Connect() (err os.Error) {
+    err = rdb.my.Connect()
+    if err != nil {
+        log.Println("Can't connect:", err)
+        rdb.reconnect(&err)
+    }
+    return
+}
+
+func (rdb *ReconDB) Close() (err os.Error) {
+    return rdb.my.Close()
+}
+
+func (rdb *ReconDB) Query(command interface{}, params ...interface{}) (
+        rows []*mymy.Row, res *mymy.Result, err os.Error) {
+    for nn := 0; nn < rdb.MaxRetries; nn++ {
+        rows, res, err = rdb.my.Query(command, params...)
+        if err == nil {
+            break
+        }
+        log.Println("Query error:", err)
+        rdb.reconnect(&err)
+        if err != nil {
+            // Can't reconnect
+            break
+        }
+    }
+    return
+}
 
 func check(err os.Error) {
     if err != nil {
@@ -26,29 +90,33 @@ func check(err os.Error) {
 }
 
 func main() {
-    db := mymy.New(conn[0], conn[1], conn[2], user,  passwd, dbname)
+    user   := "testuser"
+    passwd := "TestPasswd9"
+    dbname := "test"
+    //conn := []string{"unix", "", "/var/run/mysqld/mysqld.sock"}
+    conn   := []string{"tcp",  "", "127.0.0.1:3306"}
+
+    db := NewRDB(conn[0], conn[1], conn[2], user, passwd, dbname)
 
     fmt.Print("Connect to MySQL...")
     check(db.Connect())
 
     sec := 9
-    fmt.Printf("You may restart MySQL server. Waiting %ds...", sec)
+    fmt.Println(
+        "You may temporarily stop MySQL daemon or make network failure.",
+    )
+    fmt.Printf("Waiting %ds...", sec)
     for sec--; sec >= 0; sec-- {
         time.Sleep(1e9)
         fmt.Printf("\b\b\b\b\b%ds...", sec)
     }
     fmt.Println("\b\b\b.  ")
 
+    data := "qwertyuiopasdfghjklzxcvbnm1234567890"
 
-loop:
-    fmt.Print("Select...")
-    rows, _, err := db.Query("select 'qwertyuiopasdfghjklzxcvbnm1234567890'")
-    if ie, ok := err.(*io.Error); ok && ie == io.ErrUnexpectedEOF {
-        fmt.Println(" Error:", ie)
-        fmt.Print("Reconnecting...")
-        check(db.Reconnect())
-        goto loop
-    }
+    fmt.Printf("Select (len=%d)...", len(data) + 9)
+
+    rows, _, err := db.Query("select '%s'", data)
     check(err)
 
     fmt.Println("Result:", rows[0].Str(0))

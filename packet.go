@@ -96,6 +96,11 @@ func (my *MySQL) newPktWriter(to_write int) *pktWriter {
     return &pktWriter{wr: my.wr, seq: &my.seq, to_write: to_write}
 }
 
+/*func writePktHeader(wr io.Writer, seq byte, pay_len int) {
+    writeU24(wr, uint32(pay_len))
+    writeByte(wr, seq)
+}*/
+
 func (pw *pktWriter) Write(buf []byte) (num int, err os.Error) {
     if len(buf) == 0 {
         return

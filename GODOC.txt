@@ -572,7 +572,6 @@ better preformance use []byte.
 VARIABLES
 
 var (
-    WR_BUF_ERROR          = os.NewError("write buffer/packet too short")
     SEQ_ERROR             = os.NewError("packet sequence error")
     PKT_ERROR             = os.NewError("malformed packet")
     PKT_LONG_ERROR        = os.NewError("packet too long")
@@ -585,11 +584,14 @@ var (
     BAD_RESULT_ERROR      = os.NewError("unexpected result")
     UNREADED_ROWS_ERROR   = os.NewError("there are unreaded rows")
     BIND_COUNT_ERROR      = os.NewError("wrong number of values for bind")
-    BIND_UNK_TYPE         = os.NewError("unknown bind value type")
+    BIND_UNK_TYPE         = os.NewError("unknown value type for bind")
     RESULT_COUNT_ERROR    = os.NewError("wrong number of result columns")
     BAD_COMMAND_ERROR     = os.NewError("comand isn't text SQL nor *Statement")
     WRONG_DATE_LEN_ERROR  = os.NewError("wrong datetime/timestamp length")
     UNK_MYSQL_TYPE_ERROR  = os.NewError("unknown MySQL type")
+    WRONG_PARAM_NUM_ERROR = os.NewError("wrong parameter number")
+    UNK_DATA_TYPE_ERROR   = os.NewError("unknown data source type")
+    SMALL_PKT_SIZE_ERROR  = os.NewError("specified packet size is to small")
 )
 
 
@@ -682,14 +684,18 @@ func (my *MySQL) Connect() (err os.Error)
 Establishes a connection with MySQL server version 4.1 or later.
 
 func (my *MySQL) Ping() (err os.Error)
-Send PING packet to server.
+Send MySQL PING to the server.
 
 func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)
 Prepare server side statement. Return statement handler.
 
 func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)
-This call Start and next call GetTextRow once or more times. It read
-all rows from connection and returns they as a slice.
+This call Start and next call GetRow once or more times. It read all rows
+from connection and returns they as a slice.
+
+func (my *MySQL) Reconnect() (err os.Error)
+Close and reopen connection in one thread safe operation.
+Ignore unreaded rows, reprepare all prepared statements.
 
 func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)
 Start new query session.
@@ -810,6 +816,26 @@ bind them first.
 func (stmt *Statement) Reset() (err os.Error)
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
+
+func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)
+Send long data to MySQL server in chunks.
+You can call this method after Bind and before Execute. It can be called
+multiple times for one parameter to send TEXT or BLOB data in chunks.
+
+pnum     - Parameter number to associate the data with.
+data     - Data source string, []byte or io.Reader.
+pkt_size - It must be must be greater than 6 and less or equal to MySQL
+           max_allowed_packet variable. You can obtain value of this variable
+           using such query:
+           SHOW variables WHERE Variable_name = 'max_allowed_packet'
+           If data source is io.Reader then (pkt_size - 6) is size of
+           a buffer that will be allocated for reading.
+
+If you have data source of type string or []byte in one piece you may
+properly set pkt_size and call this method once. If you have data in
+multiple pieces you can call this method multiple times. If data source is
+io.Reader you should properly set pkt_size. Data will be readed from
+io.Reader and send in pieces to the server until EOF.
 
 type Timestamp Datetime
 

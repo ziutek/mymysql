@@ -183,6 +183,37 @@ This is improved part of previous example:
         }
     }
 
+## Example 3 - using SendLongData in conjunction with http.Get
+
+    _, err = db.Start("CREATE TABLE web (url VARCHAR(80), content LONGBLOB)")
+    checkError(err)
+
+    ins, err := db.Prepare("INSERT INTO web VALUES (?, ?)")
+    checkError(err)
+
+    var url string
+
+    ins.BindParams(&url, nil)
+
+    for  {
+        // Get URL from stdin
+        url = ""
+        fmt.Scanln(&url)
+        if len(url) == 0 {
+            break
+        }
+
+        resp, _, err := http.Get(url)
+        checkError(err)
+
+        // Retrieve response directly into database (resp.Body is io.Reader)
+        err = ins.SendLongData(1, resp.Body, 4092)
+        checkError(err)
+
+        _, err = ins.Execute()
+        checkError(err)
+    }
+
 More examples are in *examples* directory.
 
 ## Type mapping

@@ -9,7 +9,7 @@ type Statement struct {
     id  uint32
     sql string // For reprepare during reconnect
 
-    params []*Value // Parameters binding
+    params []*paramValue // Parameters binding
     rebind bool
 
     Fields []*Field
@@ -125,7 +125,7 @@ func (my *MySQL) getPrepareOkPacket(pr *pktReader) (stmt *Statement) {
     // First byte was readed by getPrepRes
     stmt.id     = readU32(pr)
     stmt.Fields = make([]*Field, int(readU16(pr))) // FieldCount
-    stmt.params = make([]*Value, int(readU16(pr))) // ParamCount
+    stmt.params = make([]*paramValue, int(readU16(pr))) // ParamCount
     read(pr, 1)
     stmt.WarningCount = int(readU16(pr))
     pr.checkEof()

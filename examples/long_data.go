@@ -125,7 +125,7 @@ func main() {
     checkError(err)
     printOK()
 
-    fmt.Print("Close connectioin... ")
+    fmt.Print("Close connection... ")
     checkError(db.Close())
     printOK()
 }

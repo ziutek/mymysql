@@ -844,15 +844,9 @@ func TimeToTimestamp(tt *time.Time) *Timestamp
 
 func (ts *Timestamp) String() string
 
-type Value struct {
-    // contains unexported fields
-}
-
-func (val *Value) Len() int
-
 
 SUBDIRECTORIES
 
 	.git
+	doc
 	examples
-	godoc

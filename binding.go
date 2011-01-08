@@ -5,7 +5,7 @@ import (
     "fmt"
 )
 
-type Value struct {
+type paramValue struct {
     typ    uint16
     addr   uintptr
     is_ptr bool
@@ -57,12 +57,12 @@ var (
     reflectRawType = reflect.Typeof(Raw{})
 )
 
-func bindValue(val reflect.Value) (out *Value) {
+func bindValue(val reflect.Value) (out *paramValue) {
     if val == nil {
-        return &Value{typ: MYSQL_TYPE_NULL}
+        return &paramValue{typ: MYSQL_TYPE_NULL}
     }
 
-    out = &Value{addr: val.Addr()}
+    out = &paramValue{addr: val.Addr()}
     typ := val.Type()
 
     // Dereference type

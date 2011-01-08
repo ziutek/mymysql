@@ -18,12 +18,16 @@ GOFILES=\
 
 include $(GOROOT)/src/Make.pkg
 
-doc:
-	godoc -html -path='.' '.' >godoc.html
-	cat godoc/head1.html $(GOROOT)/doc/all.css godoc/head2.html >GODOC.html
-	cat godoc.html godoc/tail.html >>GODOC.html
-	godoc -path='.' '.' >GODOC.txt
+doc: 
+	godoc -html -path='.' '.' >doc/godoc.html
+	cat doc/head1.html $(GOROOT)/doc/all.css doc/head2.html >GODOC.html
+	doc/make_toc.py doc/godoc.html >>GODOC.html
+	cat doc/godoc.html doc/tail.html >>GODOC.html
+	rm -f doc/godoc.html
 	rm -f README.md
-	cp godoc/readme.md README.md
-	godoc -html -path='.' '.' |html2markdown >>README.md
+	cp doc/readme.md README.md
+	html2markdown < GODOC.html |sed 's/^    \[func/> \[func/g' >>README.md
 	chmod a-w README.md
+	godoc -path='.' '.' >GODOC.txt
+
+.PHONY : doc

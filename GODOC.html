@@ -183,6 +183,61 @@ span.alert {
         </style>
     </head>
     <body>    
+        <h1>Package mymy</h1>
+<dl>
+  <dt><a href='#DecodeU16'>func DecodeU16</a></dt>
+  <dt><a href='#DecodeU24'>func DecodeU24</a></dt>
+  <dt><a href='#DecodeU32'>func DecodeU32</a></dt>
+  <dt><a href='#DecodeU64'>func DecodeU64</a></dt>
+  <dt><a href='#EncodeDatetime'>func EncodeDatetime</a></dt>
+  <dt><a href='#EncodeU16'>func EncodeU16</a></dt>
+  <dt><a href='#EncodeU24'>func EncodeU24</a></dt>
+  <dt><a href='#EncodeU32'>func EncodeU32</a></dt>
+  <dt><a href='#EncodeU64'>func EncodeU64</a></dt>
+  <dt><a href='#IsDatetimeZero'>func IsDatetimeZero</a></dt>
+  <dt><a href='#NbinToNstr'>func NbinToNstr</a></dt>
+  <dt><a href='#NstrToNbin'>func NstrToNbin</a></dt>
+  <dt><a href='#Blob'>type Blob</a></dt>
+  <dt><a href='#Datetime'>type Datetime</a></dt>
+    <dd><a href='#Datetime.TimeToDatetime'>func TimeToDatetime</a></dd>
+    <dd><a href='#Datetime.String'>func (*Datetime) String</a></dd>
+  <dt><a href='#Error'>type Error</a></dt>
+    <dd><a href='#Error.String'>func (Error) String</a></dd>
+  <dt><a href='#Field'>type Field</a></dt>
+  <dt><a href='#MySQL'>type MySQL</a></dt>
+    <dd><a href='#MySQL.New'>func New</a></dd>
+    <dd><a href='#MySQL.Close'>func (*MySQL) Close</a></dd>
+    <dd><a href='#MySQL.Connect'>func (*MySQL) Connect</a></dd>
+    <dd><a href='#MySQL.Ping'>func (*MySQL) Ping</a></dd>
+    <dd><a href='#MySQL.Prepare'>func (*MySQL) Prepare</a></dd>
+    <dd><a href='#MySQL.Query'>func (*MySQL) Query</a></dd>
+    <dd><a href='#MySQL.Reconnect'>func (*MySQL) Reconnect</a></dd>
+    <dd><a href='#MySQL.Start'>func (*MySQL) Start</a></dd>
+    <dd><a href='#MySQL.Use'>func (*MySQL) Use</a></dd>
+  <dt><a href='#Raw'>type Raw</a></dt>
+  <dt><a href='#Result'>type Result</a></dt>
+    <dd><a href='#Result.End'>func (*Result) End</a></dd>
+    <dd><a href='#Result.GetRow'>func (*Result) GetRow</a></dd>
+  <dt><a href='#Row'>type Row</a></dt>
+    <dd><a href='#Row.Bin'>func (*Row) Bin</a></dd>
+    <dd><a href='#Row.Int'>func (*Row) Int</a></dd>
+    <dd><a href='#Row.IntErr'>func (*Row) IntErr</a></dd>
+    <dd><a href='#Row.MustInt'>func (*Row) MustInt</a></dd>
+    <dd><a href='#Row.MustUint'>func (*Row) MustUint</a></dd>
+    <dd><a href='#Row.Str'>func (*Row) Str</a></dd>
+    <dd><a href='#Row.Uint'>func (*Row) Uint</a></dd>
+    <dd><a href='#Row.UintErr'>func (*Row) UintErr</a></dd>
+  <dt><a href='#ServerInfo'>type ServerInfo</a></dt>
+  <dt><a href='#Statement'>type Statement</a></dt>
+    <dd><a href='#Statement.BindParams'>func (*Statement) BindParams</a></dd>
+    <dd><a href='#Statement.Delete'>func (*Statement) Delete</a></dd>
+    <dd><a href='#Statement.Execute'>func (*Statement) Execute</a></dd>
+    <dd><a href='#Statement.Reset'>func (*Statement) Reset</a></dd>
+    <dd><a href='#Statement.SendLongData'>func (*Statement) SendLongData</a></dd>
+  <dt><a href='#Timestamp'>type Timestamp</a></dt>
+    <dd><a href='#Timestamp.TimeToTimestamp'>func TimeToTimestamp</a></dd>
+    <dd><a href='#Timestamp.String'>func (*Timestamp) String</a></dd>
+</dl>
 <!--
 	Copyright 2009 The Go Authors. All rights reserved.
 	Use of this source code is governed by a BSD-style
@@ -1167,14 +1222,6 @@ io.Reader and send in pieces to the server until EOF.
 				<h3 id="Timestamp.String">func (*Timestamp) <a href="/mymysql/binding.go#L42">String</a></h3>
 				<p><code>func (ts *Timestamp) String() string</code></p>
 				
-			<h2 id="Value">type <a href="/mymysql/binding.go#L8">Value</a></h2>
-			
-			<p><pre>type Value struct {
-    <span class="comment">// contains unexported fields</span>
-}</pre></p>
-				<h3 id="Value.Len">func (*Value) <a href="/mymysql/unsafe.go#L8">Len</a></h3>
-				<p><code>func (val *Value) Len() int</code></p>
-				
 	<h2 id="Subdirectories">Subdirectories</h2>
 	<p>
 	<table class="layout">
@@ -1194,13 +1241,13 @@ io.Reader and send in pieces to the server until EOF.
 		</tr>
 		<tr>
 		
-		<td align="left" colspan="1"><a href="examples">examples</a></td>
+		<td align="left" colspan="1"><a href="doc">doc</a></td>
 		<td></td>
 		<td align="left"></td>
 		</tr>
 		<tr>
 		
-		<td align="left" colspan="1"><a href="godoc">godoc</a></td>
+		<td align="left" colspan="1"><a href="examples">examples</a></td>
 		<td></td>
 		<td align="left"></td>
 		</tr>

@@ -5,7 +5,7 @@ import (
     "unsafe"
 )
 
-func (val *Value) Len() int {
+func (val *paramValue) Len() int {
     ptr := unsafe.Pointer(val.addr)
     if val.is_ptr && *(*unsafe.Pointer)(ptr) == nil {
             // NULL value
@@ -35,7 +35,7 @@ func (val *Value) Len() int {
     return lenNbin((*[]byte)(ptr))
 }
 
-func writeValue(wr io.Writer, val *Value) {
+func writeValue(wr io.Writer, val *paramValue) {
     ptr := unsafe.Pointer(val.addr)
     if val.raw || val.typ == MYSQL_TYPE_VAR_STRING ||
             val.typ == MYSQL_TYPE_BLOB {

@@ -714,7 +714,8 @@ func (my *MySQL) Use(dbname string) (err os.Error)
 Change database
 
 type Raw struct {
-    // contains unexported fields
+    Typ uint16
+    Val *[]byte
 }
 
 type Result struct {

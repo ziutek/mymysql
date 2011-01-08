@@ -46,8 +46,8 @@ func (ts *Timestamp) String() string {
 type Blob []byte
 
 type Raw struct {
-    val *[]byte
-    typ uint16
+    Typ uint16
+    Val *[]byte
 }
 
 var (
@@ -115,8 +115,8 @@ func bindValue(val reflect.Value) (out *paramValue) {
         }
         if tt == reflectRawType {
             rv := val.(*reflect.StructValue)
-            out.typ = uint16(rv.FieldByName("typ").(*reflect.UintValue).Get())
-            out.addr = rv.FieldByName("val").(*reflect.PtrValue).Get()
+            out.typ = uint16(rv.FieldByName("Typ").(*reflect.UintValue).Get())
+            out.addr = rv.FieldByName("Val").(*reflect.PtrValue).Get()
             out.is_ptr = true
             out.raw = true
             return

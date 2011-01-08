@@ -1814,7 +1814,9 @@ Change database
 
     type Raw struct {
 
-        // contains unexported fields
+        Typ uint16
+
+        Val *[]byte
 
     }
 

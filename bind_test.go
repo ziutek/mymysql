@@ -20,7 +20,7 @@ var (
     pDate   *Datetime
     pTstamp *Timestamp
 
-    raw    = Raw{&[]byte{3, 2, 1}, MYSQL_TYPE_INT24}
+    raw    = Raw{MYSQL_TYPE_INT24, &[]byte{3, 2, 1}}
 
     Int8   = int8(1)
     Uint8  = uint8(2)

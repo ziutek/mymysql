@@ -86,7 +86,7 @@ func main() {
             continue
         }
         checkError(ins.SendLongData(1, http_res.Body, 4092))
-        _, err = ins.Execute()
+        _, err = ins.Run()
         checkError(err)
     }
     fmt.Println()

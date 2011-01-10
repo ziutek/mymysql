@@ -398,7 +398,7 @@ func TestVarBinding(t *testing.T) {
     s1 := "Ala"
     id = &i1
     str = &s1
-    rre.res, rre.err = ins.Execute()
+    rre.res, rre.err = ins.Run()
     checkResult(t, &rre, cmdOK(1, true))
 
     i2 := 2
@@ -406,14 +406,14 @@ func TestVarBinding(t *testing.T) {
     id = &i2
     str = &s2
 
-    rre.res, rre.err = ins.Execute()
+    rre.res, rre.err = ins.Run()
     checkResult(t, &rre, cmdOK(1, true))
 
     ins.BindParams(&ii, &ss)
     ii = 3
     ss = "A kot ma Ale!"
 
-    rre.res, rre.err = ins.Execute()
+    rre.res, rre.err = ins.Run()
     checkResult(t, &rre, cmdOK(1, true))
 
     sel, err := db.Prepare("select str from T where id = ?")
@@ -478,7 +478,7 @@ func TestBigBlob(t *testing.T) {
     bb = big_blob
 
     // Insert full blob. Three packets are sended. First two has maximum length
-    rre.res, rre.err = ins.Execute()
+    rre.res, rre.err = ins.Run()
     checkResult(t, &rre, cmdOK(1, true))
 
     // Struct binding
@@ -487,7 +487,7 @@ func TestBigBlob(t *testing.T) {
     data.bb = big_blob[0 : 32*1024*1024-31]
 
     // Insert part of blob - Two packets are sended. All has maximum length.
-    rre.res, rre.err = ins.Execute()
+    rre.res, rre.err = ins.Run()
     checkResult(t, &rre, cmdOK(1, true))
 
     sel.BindParams(&id)
@@ -496,7 +496,7 @@ func TestBigBlob(t *testing.T) {
     tmr := "Too many rows"
 
     id = 1
-    res, err := sel.Execute()
+    res, err := sel.Run()
     checkErr(t, err, nil)
 
     row, err := res.GetRow()
@@ -513,7 +513,7 @@ func TestBigBlob(t *testing.T) {
 
     // Check second insert.
     id = 2
-    res, err = sel.Execute()
+    res, err = sel.Run()
     checkErr(t, err, nil)
 
     row, err = res.GetRow()
@@ -557,13 +557,13 @@ func TestReconnect(t *testing.T) {
 
     params.id = 1
     params.str = "Bla bla bla"
-    _, err = ins.Execute()
+    _, err = ins.Run()
     checkErr(t, err, nil)
 
     checkErr(t, db.Reconnect(), nil)
 
     sel_id = 1
-    res, err := sel.Execute()
+    res, err := sel.Run()
     checkErr(t, err, nil)
 
     row, err := res.GetRow()
@@ -616,10 +616,10 @@ func TestSendLongData(t *testing.T) {
     checkErr(t, ins.SendLongData(1, data,  512*1024), nil)
 
     id = 1
-    rre.res, rre.err = ins.Execute()
+    rre.res, rre.err = ins.Run()
     checkResult(t, &rre, cmdOK(1, true))
 
-    res, err := sel.Execute()
+    res, err := sel.Run()
     checkErr(t, err, nil)
 
     row, err := res.GetRow()
@@ -644,10 +644,10 @@ func TestSendLongData(t *testing.T) {
     checkErr(t, file.Close(), nil)
 
     id = 2
-    rre.res, rre.err = ins.Execute()
+    rre.res, rre.err = ins.Run()
     checkResult(t, &rre, cmdOK(1, true))
 
-    res, err = sel.Execute()
+    res, err = sel.Run()
     checkErr(t, err, nil)
 
     row, err = res.GetRow()
@@ -665,6 +665,50 @@ func TestSendLongData(t *testing.T) {
     }
 
     checkResult(t, query("drop table L"), cmdOK(0, false))
+    dbClose(t)
+}
+
+func TestMultipleResults(t *testing.T) {
+    dbConnect(t, true, 0)
+    query("drop table M") // Drop test table if exists
+    checkResult(t,
+        query("create table M (id int primary key, str varchar(20))"),
+        cmdOK(0, false),
+    )
+
+    str := []string{"zero", "jeden", "dwa"}
+
+    checkResult(t, query("insert M values (0, '%s')", str[0]), cmdOK(1, false))
+    checkResult(t, query("insert M values (1, '%s')", str[1]), cmdOK(1, false))
+    checkResult(t, query("insert M values (2, '%s')", str[2]), cmdOK(1, false))
+
+    res, err := db.Start("select id from M; select str from M")
+    checkErr(t, err, nil)
+
+    for ii := 0;; ii++ {
+        row, err := res.GetRow()
+        checkErr(t, err, nil)
+        if row == nil {
+            break
+        }
+        if row.Int(0) != ii {
+            t.Fatal("Bad result")
+        }
+    }
+    res, err = res.NextResult()
+    checkErr(t, err, nil)
+    for ii := 0;; ii++ {
+        row, err := res.GetRow()
+        checkErr(t, err, nil)
+        if row == nil {
+            break
+        }
+        if row.Str(0) != str[ii] {
+            t.Fatal("Bad result")
+        }
+    }
+
+    checkResult(t, query("drop table M"), cmdOK(0, false))
     dbClose(t)
 }
 

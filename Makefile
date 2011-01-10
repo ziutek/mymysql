@@ -15,6 +15,7 @@ GOFILES=\
 	prepared.go\
 	binding.go\
 	unsafe.go\
+	autoconnect.go\
 
 include $(GOROOT)/src/Make.pkg
 

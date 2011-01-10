@@ -46,6 +46,10 @@ type MySQL struct {
 
     // Debug logging. You may change it at any time.
     Debug bool
+
+    // Maximum reconnect retries - for XxxAC methods. Default is 5 which
+    // means 1+2+3+4+5 = 15 seconds before return an error.
+    MaxRetries int
 }
 
 // Create new MySQL handler. The first three arguments are passed to net.Bind
@@ -61,6 +65,7 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL) {
         mutex:      new(sync.Mutex),
         stmt_map:   make(map[uint32]*Statement),
         MaxPktSize: 16*1024*1024-1,
+        MaxRetries: 7,
     }
     if len(db) == 1 {
         my.dbname = db[0]
@@ -127,7 +132,7 @@ func (my *MySQL) Close() (err os.Error) {
     return my.close_conn()
 }
 
-// Close and reopen connection in one thread safe operation.
+// Close and reopen connection in one, thread safe operation.
 // Ignore unreaded rows, reprepare all prepared statements.
 func (my *MySQL) Reconnect() (err os.Error) {
     defer my.unlock()
@@ -185,6 +190,22 @@ func (my *MySQL) Use(dbname string) (err os.Error) {
     return
 }
 
+func (my *MySQL) getResponse() (res *Result) {
+    res, ok := my.getResult(nil).(*Result)
+    if !ok {
+        panic(BAD_RESULT_ERROR)
+    }
+    if res.FieldCount == 0 {
+        // This query was ended (OK result)
+        my.unlock()
+    } else {
+        // This query can return rows
+        res.db = my
+        my.unreaded_rows = true
+    }
+    return
+}
+
 // Start new query session.
 //
 // command can be SQL query (string) or a prepared statement (*Statement).
@@ -204,7 +225,7 @@ func (my *MySQL) Start(command interface{}, params ...interface{}) (
     case *Statement:
         // Prepared statement
         cmd.BindParams(params...)
-        return cmd.Execute()
+        return cmd.Run()
 
     case string:
         // Text SQL
@@ -232,7 +253,7 @@ func (my *MySQL) Start(command interface{}, params ...interface{}) (
     return nil, BAD_COMMAND_ERROR
 }
 
-// Get data row from a server. This method reads one row of result directly
+// Get the data row from a server. This method reads one row of result directly
 // from network connection (without rows buffering on client side).
 func (res *Result) GetRow() (row *Row, err os.Error) {
     if res.FieldCount == 0 {
@@ -249,18 +270,29 @@ func (res *Result) GetRow() (row *Row, err os.Error) {
 
     case *Result:
         // EOF result
+        if res.Status & _SERVER_MORE_RESULTS_EXISTS == 0 {
+            // There is no more results
+            res.db.unlock()
+        }
         res.db.unreaded_rows = false
-        res.db.unlock()
 
     default:
         err = BAD_RESULT_ERROR
     }
     return
-    // TODO: Check (res.Status & SERVER_MORE_RESULTS_EXISTS) for more results
 }
 
-// Read all unreaded rows and discard them. All rows must be read before next
-// query or other command.
+// Return the next result or nil if no more resuts exists.
+func (res *Result) NextResult() (next *Result, err os.Error) {
+    if res.Status & _SERVER_MORE_RESULTS_EXISTS == 0 {
+        return
+    }
+    next = res.db.getResponse()
+    return
+}
+
+// Read all unreaded rows and discard them. All the rows must be read before
+// next query or other command.
 func (res *Result) End() (err os.Error) {
     for err == nil && res.db.unreaded_rows {
         _, err = res.GetRow()
@@ -401,8 +433,8 @@ func (stmt *Statement) BindParams(params ...interface{}) {
 }
 
 // Execute prepared statement. If statement requires parameters you must
-// bind them first.
-func (stmt *Statement) Execute() (res *Result, err os.Error) {
+// bind them first. After this command you may use GetRow to retrieve data.
+func (stmt *Statement) Run() (res *Result, err os.Error) {
     if stmt.db.conn == nil {
         return nil, NOT_CONN_ERROR
     }
@@ -418,6 +450,27 @@ func (stmt *Statement) Execute() (res *Result, err os.Error) {
     // Get response
     res = stmt.db.getResponse()
     res.binary = true
+    return
+}
+
+// This call Run and next call GetRow once or more times. It read all rows
+// from connection and returns they as a slice.
+func (stmt *Statement) Exec(command interface{}, params ...interface{}) (
+        rows []*Row, res *Result, err os.Error) {
+
+    res, err = stmt.Run()
+    if err != nil {
+        return
+    }
+    // Read rows
+    var row *Row
+    for {
+        row, err = res.GetRow()
+        if err != nil || row == nil {
+            break
+        }
+        rows = append(rows, row)
+    }
     return
 }
 
@@ -466,7 +519,7 @@ func (stmt *Statement) Reset() (err os.Error) {
 }
 
 // Send long data to MySQL server in chunks.
-// You can call this method after Bind and before Execute. It can be called
+// You can call this method after Bind and before Run/Execute. It can be called
 // multiple times for one parameter to send TEXT or BLOB data in chunks.
 //
 // pnum     - Parameter number to associate the data with.

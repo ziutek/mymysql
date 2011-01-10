@@ -46,6 +46,8 @@ func (my *MySQL) auth() {
         _CLIENT_PROTOCOL_41 |
         _CLIENT_LONG_PASSWORD |
         _CLIENT_SECURE_CONN |
+        _CLIENT_MULTI_STATEMENTS |
+        _CLIENT_MULTI_RESULTS |
         _CLIENT_TRANSACTIONS,
     )
     if len(my.dbname) > 0 {

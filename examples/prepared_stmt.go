@@ -83,7 +83,7 @@ func main() {
             params.number = &ii
         }
         // Execute statement with modified data
-        _, err = ins.Execute()
+        _, err = ins.Run()
         checkError(err)
     }
     printOK()

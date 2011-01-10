@@ -437,19 +437,3 @@ func (my *MySQL) getBinRowPacket(pr *pktReader, res *Result) *Row {
     }
     return &row
 }
-
-func (my *MySQL) getResponse() (res *Result) {
-    res, ok := my.getResult(nil).(*Result)
-    if !ok {
-        panic(BAD_RESULT_ERROR)
-    }
-    if res.FieldCount == 0 {
-        // This query was ended (OK result)
-        my.unlock()
-    } else {
-        // This query can return rows
-        res.db = my
-        my.unreaded_rows = true
-    }
-    return
-}

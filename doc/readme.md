@@ -6,8 +6,8 @@ application (December 2010).
 
 The code of this package is carefuly written and has internal error handling
 using *panic()* exceptions, thus the probability of Go bugs or an unhandled
-internal errors should be very small. Unfortunately I'm not a MySQL expert, 
-so bugs in the protocol handling are possible.
+internal errors should be very small. Unfortunately I'm not a MySQL protocol
+expert, so bugs in the protocol handling are possible.
 
 ## Instaling
 
@@ -36,8 +36,9 @@ Next run tests:
 ## Interface
 
 There is one change in v0.3, which doesn't preserve backwards compatibility
-with v0.2: the name of *Execute* method was changed to *Run*.  *Exec* for
-Statement struct was added. It is similar in result to *Query* method.
+with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
+method for Statement struct was added. It is similar in result to *Query*
+method.
 
 In *GODOC.html* or *GODOC.txt* you can find the full documentation of this package in godoc format.
 
@@ -153,7 +154,7 @@ database.
 
 With *Start* and *Query* methods data are rebinded on every method call. It
 isn't efficient if statement is executer more than once. You can bind
-parameters and use *Execute* method to avoid these unnecessary rebinds. The
+parameters and use *Run* method to avoid these unnecessary rebinds. The
 simplest way to bind parameters is:
 
     stmt.BindParams(data.id, data.tax)
@@ -183,7 +184,7 @@ This is improved part of previous example:
         } else if err != nil {
             panic(err)
         }
-        _, err = stmt.Execute()
+        _, err = stmt.Run()
         if err != nil {
             panic(err)
         }
@@ -202,25 +203,29 @@ This is improved part of previous example:
     ins.BindParams(&url, nil)
 
     for  {
-        // Get URL from stdin
+        // Read URL from stdin
         url = ""
         fmt.Scanln(&url)
         if len(url) == 0 {
+            // Stop reading if URL is blank line
             break
         }
 
+        // Make connection
         resp, _, err := http.Get(url)
         checkError(err)
 
-        // Retrieve response directly into database (resp.Body is io.Reader)
+        // We can retrieve response directly into database because 
+        // the resp.Body implements io.Reader
         err = ins.SendLongData(1, resp.Body, 4092)
         checkError(err)
 
-        _, err = ins.Execute()
+        // Execute insert statement
+        _, err = ins.Run()
         checkError(err)
     }
 
-## Example 3 - multi statement / multi result
+## Example 4 - multi statement / multi result
 
     res, err := db.Start("select id from M; select name from M")
     checkError(err)
@@ -342,14 +347,14 @@ SEND_LONG_DATA command. If you want to use this feature you must set
 You can use this package in multithreading enviroment. All functions are thread
 safe.
 
-If one thread is calling *Query* method, other threads will be blocked if they
-call *Query*, *Start*, *Execute* or other method which send data to the server,
-until *Query* return in first thread.
+If one thread is calling *Query* or *Exec* method, other threads will be
+blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
+data to the server, until *Query*/*Exec* return in first thread.
 
-If one thread is calling *Start* or *Execute* method, other threads will be
-blocked if they call *Query*, *Start*, *Execute* or other method which send
-data to the server,  until all rows will be readed from a connection in first
-thread.
+If one thread is calling *Start* or *Run* method, other threads will be
+blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
+data to the server,  until all results and all rows  will be readed from
+a connection in first thread.
 
 ## TODO
 

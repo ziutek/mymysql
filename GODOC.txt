@@ -617,6 +617,9 @@ func EncodeU64(val uint64) *[]byte
 
 func IsDatetimeZero(dt *Datetime) bool
 
+func IsNetErr(err os.Error) bool
+Return true if error is network error or UnexpectedEOF.
+
 func NbinToNstr(nbin *[]byte) *string
 
 func NstrToNbin(nstr *string) *[]byte
@@ -668,6 +671,10 @@ type MySQL struct {
 
     // Debug logging. You may change it at any time.
     Debug bool
+
+    // Maximum reconnect retries - for XxxAC methods. Default is 5 which
+    // means 1+2+3+4+5 = 15 seconds before return an error.
+    MaxRetries int
     // contains unexported fields
 }
 MySQL connection handler
@@ -693,8 +700,11 @@ func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row,
 This call Start and next call GetRow once or more times. It read all rows
 from connection and returns they as a slice.
 
+func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+Autoconnect/reconnect version of Query
+
 func (my *MySQL) Reconnect() (err os.Error)
-Close and reopen connection in one thread safe operation.
+Close and reopen connection in one, thread safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 
 func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)
@@ -712,6 +722,9 @@ You must get all result rows (if they exists) before next query.
 
 func (my *MySQL) Use(dbname string) (err os.Error)
 Change database
+
+func (my *MySQL) UseAC(dbname string) (err os.Error)
+Autoconnect/reconnect version of USE
 
 type Raw struct {
     Typ uint16
@@ -732,12 +745,15 @@ type Result struct {
 }
 
 func (res *Result) End() (err os.Error)
-Read all unreaded rows and discard them. All rows must be read before next
-query or other command.
+Read all unreaded rows and discard them. All the rows must be read before
+next query or other command.
 
 func (res *Result) GetRow() (row *Row, err os.Error)
-Get data row from a server. This method reads one row of result directly
+Get the data row from a server. This method reads one row of result directly
 from network connection (without rows buffering on client side).
+
+func (res *Result) NextResult() (next *Result, err os.Error)
+Return the next result or nil if no more resuts exists.
 
 type Row struct {
     Data []interface{}
@@ -810,17 +826,21 @@ func (stmt *Statement) Delete() (err os.Error)
 Destroy statement on server side. Client side handler is invalid after this
 command.
 
-func (stmt *Statement) Execute() (res *Result, err os.Error)
-Execute prepared statement. If statement requires parameters you must
-bind them first.
+func (stmt *Statement) Exec(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+This call Run and next call GetRow once or more times. It read all rows
+from connection and returns they as a slice.
 
 func (stmt *Statement) Reset() (err os.Error)
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 
+func (stmt *Statement) Run() (res *Result, err os.Error)
+Execute prepared statement. If statement requires parameters you must
+bind them first. After this command you may use GetRow to retrieve data.
+
 func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)
 Send long data to MySQL server in chunks.
-You can call this method after Bind and before Execute. It can be called
+You can call this method after Bind and before Run/Execute. It can be called
 multiple times for one parameter to send TEXT or BLOB data in chunks.
 
 pnum     - Parameter number to associate the data with.

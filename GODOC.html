@@ -195,6 +195,7 @@ span.alert {
   <dt><a href='#EncodeU32'>func EncodeU32</a></dt>
   <dt><a href='#EncodeU64'>func EncodeU64</a></dt>
   <dt><a href='#IsDatetimeZero'>func IsDatetimeZero</a></dt>
+  <dt><a href='#IsNetErr'>func IsNetErr</a></dt>
   <dt><a href='#NbinToNstr'>func NbinToNstr</a></dt>
   <dt><a href='#NstrToNbin'>func NstrToNbin</a></dt>
   <dt><a href='#Blob'>type Blob</a></dt>
@@ -211,13 +212,16 @@ span.alert {
     <dd><a href='#MySQL.Ping'>func (*MySQL) Ping</a></dd>
     <dd><a href='#MySQL.Prepare'>func (*MySQL) Prepare</a></dd>
     <dd><a href='#MySQL.Query'>func (*MySQL) Query</a></dd>
+    <dd><a href='#MySQL.QueryAC'>func (*MySQL) QueryAC</a></dd>
     <dd><a href='#MySQL.Reconnect'>func (*MySQL) Reconnect</a></dd>
     <dd><a href='#MySQL.Start'>func (*MySQL) Start</a></dd>
     <dd><a href='#MySQL.Use'>func (*MySQL) Use</a></dd>
+    <dd><a href='#MySQL.UseAC'>func (*MySQL) UseAC</a></dd>
   <dt><a href='#Raw'>type Raw</a></dt>
   <dt><a href='#Result'>type Result</a></dt>
     <dd><a href='#Result.End'>func (*Result) End</a></dd>
     <dd><a href='#Result.GetRow'>func (*Result) GetRow</a></dd>
+    <dd><a href='#Result.NextResult'>func (*Result) NextResult</a></dd>
   <dt><a href='#Row'>type Row</a></dt>
     <dd><a href='#Row.Bin'>func (*Row) Bin</a></dd>
     <dd><a href='#Row.Int'>func (*Row) Int</a></dd>
@@ -231,8 +235,9 @@ span.alert {
   <dt><a href='#Statement'>type Statement</a></dt>
     <dd><a href='#Statement.BindParams'>func (*Statement) BindParams</a></dd>
     <dd><a href='#Statement.Delete'>func (*Statement) Delete</a></dd>
-    <dd><a href='#Statement.Execute'>func (*Statement) Execute</a></dd>
+    <dd><a href='#Statement.Exec'>func (*Statement) Exec</a></dd>
     <dd><a href='#Statement.Reset'>func (*Statement) Reset</a></dd>
+    <dd><a href='#Statement.Run'>func (*Statement) Run</a></dd>
     <dd><a href='#Statement.SendLongData'>func (*Statement) SendLongData</a></dd>
   <dt><a href='#Timestamp'>type Timestamp</a></dt>
     <dd><a href='#Timestamp.TimeToTimestamp'>func TimeToTimestamp</a></dd>
@@ -251,6 +256,7 @@ span.alert {
 			<h4>Package files</h4>
 			<span style="font-size:90%">
 				<a href="/mymysql/addons.go">addons.go</a>
+				<a href="/mymysql/autoconnect.go">autoconnect.go</a>
 				<a href="/mymysql/binding.go">binding.go</a>
 				<a href="/mymysql/codecs.go">codecs.go</a>
 				<a href="/mymysql/command.go">command.go</a>
@@ -891,6 +897,12 @@ better preformance use []byte.
 			<h2 id="IsDatetimeZero">func <a href="/mymysql/common.go#L86">IsDatetimeZero</a></h2>
 			<p><code>func IsDatetimeZero(dt *Datetime) bool</code></p>
 			
+			<h2 id="IsNetErr">func <a href="/mymysql/autoconnect.go#L12">IsNetErr</a></h2>
+			<p><code>func IsNetErr(err os.Error) bool</code></p>
+			<p>
+Return true if error is network error or UnexpectedEOF.
+</p>
+
 			<h2 id="NbinToNstr">func <a href="/mymysql/addons.go#L3">NbinToNstr</a></h2>
 			<p><code>func NbinToNstr(nbin *[]byte) *string</code></p>
 			
@@ -955,9 +967,13 @@ MySQL connection handler
 
     <span class="comment">// Debug logging. You may change it at any time.</span>
     Debug bool
+
+    <span class="comment">// Maximum reconnect retries - for XxxAC methods. Default is 5 which</span>
+    <span class="comment">// means 1+2+3+4+5 = 15 seconds before return an error.</span>
+    MaxRetries int
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-				<h3 id="MySQL.New">func <a href="/mymysql/mysql.go#L54">New</a></h3>
+				<h3 id="MySQL.New">func <a href="/mymysql/mysql.go#L58">New</a></h3>
 				<p><code>func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL)</code></p>
 				<p>
 Create new MySQL handler. The first three arguments are passed to net.Bind
@@ -965,45 +981,51 @@ for create connection. user and passwd are for authentication. Optional db
 is database name (you may not specifi it and use Use() method later).
 </p>
 
-				<h3 id="MySQL.Close">func (*MySQL) <a href="/mymysql/mysql.go#L117">Close</a></h3>
+				<h3 id="MySQL.Close">func (*MySQL) <a href="/mymysql/mysql.go#L122">Close</a></h3>
 				<p><code>func (my *MySQL) Close() (err os.Error)</code></p>
 				<p>
 Close connection to the server
 </p>
 
-				<h3 id="MySQL.Connect">func (*MySQL) <a href="/mymysql/mysql.go#L94">Connect</a></h3>
+				<h3 id="MySQL.Connect">func (*MySQL) <a href="/mymysql/mysql.go#L99">Connect</a></h3>
 				<p><code>func (my *MySQL) Connect() (err os.Error)</code></p>
 				<p>
 Establishes a connection with MySQL server version 4.1 or later.
 </p>
 
-				<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go#L293">Ping</a></h3>
+				<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go#L325">Ping</a></h3>
 				<p><code>func (my *MySQL) Ping() (err os.Error)</code></p>
 				<p>
 Send MySQL PING to the server.
 </p>
 
-				<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go#L334">Prepare</a></h3>
+				<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go#L366">Prepare</a></h3>
 				<p><code>func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)</code></p>
 				<p>
 Prepare server side statement. Return statement handler.
 </p>
 
-				<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go#L273">Query</a></h3>
+				<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go#L305">Query</a></h3>
 				<p><code>func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 				<p>
 This call Start and next call GetRow once or more times. It read all rows
 from connection and returns they as a slice.
 </p>
 
-				<h3 id="MySQL.Reconnect">func (*MySQL) <a href="/mymysql/mysql.go#L132">Reconnect</a></h3>
+				<h3 id="MySQL.QueryAC">func (*MySQL) <a href="/mymysql/autoconnect.go#L60">QueryAC</a></h3>
+				<p><code>func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
+				<p>
+Autoconnect/reconnect version of Query
+</p>
+
+				<h3 id="MySQL.Reconnect">func (*MySQL) <a href="/mymysql/mysql.go#L137">Reconnect</a></h3>
 				<p><code>func (my *MySQL) Reconnect() (err os.Error)</code></p>
 				<p>
-Close and reopen connection in one thread safe operation.
+Close and reopen connection in one, thread safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 </p>
 
-				<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go#L199">Start</a></h3>
+				<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go#L220">Start</a></h3>
 				<p><code>func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)</code></p>
 				<p>
 Start new query session.
@@ -1023,10 +1045,16 @@ statement before execution.
 You must get all result rows (if they exists) before next query.
 </p>
 
-				<h3 id="MySQL.Use">func (*MySQL) <a href="/mymysql/mysql.go#L167">Use</a></h3>
+				<h3 id="MySQL.Use">func (*MySQL) <a href="/mymysql/mysql.go#L172">Use</a></h3>
 				<p><code>func (my *MySQL) Use(dbname string) (err os.Error)</code></p>
 				<p>
 Change database
+</p>
+
+				<h3 id="MySQL.UseAC">func (*MySQL) <a href="/mymysql/autoconnect.go#L45">UseAC</a></h3>
+				<p><code>func (my *MySQL) UseAC(dbname string) (err os.Error)</code></p>
+				<p>
+Autoconnect/reconnect version of USE
 </p>
 
 			<h2 id="Raw">type <a href="/mymysql/binding.go#L48">Raw</a></h2>
@@ -1049,18 +1077,24 @@ Change database
     Status       uint16
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-				<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go#L264">End</a></h3>
+				<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go#L296">End</a></h3>
 				<p><code>func (res *Result) End() (err os.Error)</code></p>
 				<p>
-Read all unreaded rows and discard them. All rows must be read before next
-query or other command.
+Read all unreaded rows and discard them. All the rows must be read before
+next query or other command.
 </p>
 
-				<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go#L237">GetRow</a></h3>
+				<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go#L258">GetRow</a></h3>
 				<p><code>func (res *Result) GetRow() (row *Row, err os.Error)</code></p>
 				<p>
-Get data row from a server. This method reads one row of result directly
+Get the data row from a server. This method reads one row of result directly
 from network connection (without rows buffering on client side).
+</p>
+
+				<h3 id="Result.NextResult">func (*Result) <a href="/mymysql/mysql.go#L286">NextResult</a></h3>
+				<p><code>func (res *Result) NextResult() (next *Result, err os.Error)</code></p>
+				<p>
+Return the next result or nil if no more resuts exists.
 </p>
 
 			<h2 id="Row">type <a href="/mymysql/result.go#L49">Row</a></h2>
@@ -1151,7 +1185,7 @@ conversion is impossible.
     Status       uint16
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go#L365">BindParams</a></h3>
+				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go#L397">BindParams</a></h3>
 				<p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>
 				<p>
 Bind input data for the parameter markers in the SQL statement that was
@@ -1165,32 +1199,39 @@ Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 string, Datetime, Timestamp, Raw.
 </p>
 
-				<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go#L426">Delete</a></h3>
+				<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go#L479">Delete</a></h3>
 				<p><code>func (stmt *Statement) Delete() (err os.Error)</code></p>
 				<p>
 Destroy statement on server side. Client side handler is invalid after this
 command.
 </p>
 
-				<h3 id="Statement.Execute">func (*Statement) <a href="/mymysql/mysql.go#L405">Execute</a></h3>
-				<p><code>func (stmt *Statement) Execute() (res *Result, err os.Error)</code></p>
+				<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go#L458">Exec</a></h3>
+				<p><code>func (stmt *Statement) Exec(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 				<p>
-Execute prepared statement. If statement requires parameters you must
-bind them first.
+This call Run and next call GetRow once or more times. It read all rows
+from connection and returns they as a slice.
 </p>
 
-				<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go#L448">Reset</a></h3>
+				<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go#L501">Reset</a></h3>
 				<p><code>func (stmt *Statement) Reset() (err os.Error)</code></p>
 				<p>
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 </p>
 
-				<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go#L487">SendLongData</a></h3>
+				<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go#L437">Run</a></h3>
+				<p><code>func (stmt *Statement) Run() (res *Result, err os.Error)</code></p>
+				<p>
+Execute prepared statement. If statement requires parameters you must
+bind them first. After this command you may use GetRow to retrieve data.
+</p>
+
+				<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go#L540">SendLongData</a></h3>
 				<p><code>func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)</code></p>
 				<p>
 Send long data to MySQL server in chunks.
-You can call this method after Bind and before Execute. It can be called
+You can call this method after Bind and before Run/Execute. It can be called
 multiple times for one parameter to send TEXT or BLOB data in chunks.
 </p>
 <p>

@@ -1,13 +1,32 @@
-## MyMySQL v0.3
+## MyMySQL v0.3 (2011-01-11)
 
 This package contains MySQL client API written entirely in Go. It was created
-due to lack of properly working MySQL API package, ready for my production
-application (December 2010).
+due to lack of properly working MySQL client API package, ready for my
+production application (December 2010).
 
 The code of this package is carefuly written and has internal error handling
-using *panic()* exceptions, thus the probability of Go bugs or an unhandled
-internal errors should be very small. Unfortunately I'm not a MySQL protocol
-expert, so bugs in the protocol handling are possible.
+using *panic()* exceptions, thus the probability of bugs in Go code or an
+unhandled internal errors should be very small. Unfortunately I'm not a MySQL
+protocol expert, so bugs in the protocol handling are possible.
+
+## Differences betwen version 0.2 and 0.3
+
+1. There is one change in v0.3, which doesn't preserve backwards compatibility
+with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
+method was added. It is similar in result to *Query* method.
+method.
+2. *Reconnect* method was added. After reconnectio it re-prepare all prepared
+statements related to database handler that was reconectd.
+3. Auto connect / reconnect / repeat interface was added. It allows not worry
+about making the connection, and not wory about re-establish connection after
+network error or MySQL server restart.
+It is certainly safe to use it with *select* queries. As for the use of the
+*insert* queries, I'm not entirely sure, that they always can be repeated
+after network error. Repetition of the *Prepare* method call appears to be
+quite safe (at most it prepare unnecessary copy of statement). This interface
+does not appear to be useful with local transactions.
+4. Multi statements / multi results were added.
+5. Types ENUM and SET were added for prepared statements results.
 
 ## Instaling
 
@@ -34,11 +53,6 @@ Next run tests:
     $ gotest -v
 
 ## Interface
-
-There is one change in v0.3, which doesn't preserve backwards compatibility
-with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
-method for Statement struct was added. It is similar in result to *Query*
-method.
 
 In *GODOC.html* or *GODOC.txt* you can find the full documentation of this package in godoc format.
 
@@ -216,8 +230,8 @@ This is improved part of previous example:
         checkError(err)
 
         // We can retrieve response directly into database because 
-        // the resp.Body implements io.Reader
-        err = ins.SendLongData(1, resp.Body, 4092)
+        // the resp.Body implements io.Reader. Use 8 kB buffer.
+        err = ins.SendLongData(1, resp.Body, 8192)
         checkError(err)
 
         // Execute insert statement
@@ -260,6 +274,34 @@ This is improved part of previous example:
         // Do something with with the data
         functionThatUseName(row.Str(0))
     }
+
+## Example 5 - automatic connect/reconnect/repeat
+
+    db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+
+    // There is no need to explicity connect to the MySQL server
+    rows, res, err := db.QueryAC("SELECT * FROM R")
+    checkError(err)
+
+    // Now we are connected.
+
+    // It does not matter if connection will be interrupted during sleep, eg
+    // due to server reboot or network down.
+    time.Sleep(9e9)
+
+    // If we can reconnect in no more than db.MaxRetries attempts this
+    // statement will be prepared.
+    sel, err := db.PrepareAC("SELECT name FROM R where id > ?")
+    checkError(err)
+
+    // We can destroy our connection on server side
+    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    checkError(err)
+
+    // But it doesn't matter
+    sel.BindParams(2)
+    rows, res, err = sel.ExecAC()
+    checkError(err)
 
 More examples are in *examples* directory.
 
@@ -331,6 +373,7 @@ below:
      TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
     BLOB, TINYBLOB, MEDIUMBLOB, LONGBLOB  -->  []byte
                             DECIMAL, BIT  -->  []byte
+                               SET, ENUM  -->  []byte
                                     NULL  -->  nil
 
 ## Big packets
@@ -338,8 +381,8 @@ below:
 This package can send and receive MySQL data packets that are biger than 16 MB.
 This means that you can receive response rows biger than 16 MB and can execute
 prepared statements with parameter data biger than 16 MB without using
-SEND_LONG_DATA command. If you want to use this feature you must set
-*MySQL.MaxPktSize* to appropriate value before connect and change
+SendLongData method. If you want to use this feature you must set *MaxPktSize*
+field in database handler to appropriate value before connect, and change
 *max_allowed_packet* value in MySQL server configuration.
 
 ## Thread safety
@@ -354,7 +397,7 @@ data to the server, until *Query*/*Exec* return in first thread.
 If one thread is calling *Start* or *Run* method, other threads will be
 blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
 data to the server,  until all results and all rows  will be readed from
-a connection in first thread.
+the connection in first thread.
 
 ## TODO
 
@@ -364,2050 +407,1133 @@ a connection in first thread.
 
 # Package documentation generated by godoc
 
-It is converted to Markdown from GODOC.html. Unfortunately, after conversion
-links doesn't works. 
+<dl>
+<dt><a href='#DecodeU16'>func DecodeU16</a></dt>
+<dt><a href='#DecodeU24'>func DecodeU24</a></dt>
+<dt><a href='#DecodeU32'>func DecodeU32</a></dt>
+<dt><a href='#DecodeU64'>func DecodeU64</a></dt>
+<dt><a href='#EncodeDatetime'>func EncodeDatetime</a></dt>
+<dt><a href='#EncodeU16'>func EncodeU16</a></dt>
+<dt><a href='#EncodeU24'>func EncodeU24</a></dt>
+<dt><a href='#EncodeU32'>func EncodeU32</a></dt>
+<dt><a href='#EncodeU64'>func EncodeU64</a></dt>
+<dt><a href='#IsDatetimeZero'>func IsDatetimeZero</a></dt>
+<dt><a href='#IsNetErr'>func IsNetErr</a></dt>
+<dt><a href='#NbinToNstr'>func NbinToNstr</a></dt>
+<dt><a href='#NstrToNbin'>func NstrToNbin</a></dt>
+<dt><a href='#Blob'>type Blob</a></dt>
+<dt><a href='#Datetime'>type Datetime</a></dt>
+<dd><a href='#Datetime.TimeToDatetime'>func TimeToDatetime</a></dd>
+<dd><a href='#Datetime.String'>func (*Datetime) String</a></dd>
+<dt><a href='#Error'>type Error</a></dt>
+<dd><a href='#Error.String'>func (Error) String</a></dd>
+<dt><a href='#Field'>type Field</a></dt>
+<dt><a href='#MySQL'>type MySQL</a></dt>
+<dd><a href='#MySQL.New'>func New</a></dd>
+<dd><a href='#MySQL.Close'>func (*MySQL) Close</a></dd>
+<dd><a href='#MySQL.Connect'>func (*MySQL) Connect</a></dd>
+<dd><a href='#MySQL.Ping'>func (*MySQL) Ping</a></dd>
+<dd><a href='#MySQL.Prepare'>func (*MySQL) Prepare</a></dd>
+<dd><a href='#MySQL.PrepareAC'>func (*MySQL) PrepareAC</a></dd>
+<dd><a href='#MySQL.Query'>func (*MySQL) Query</a></dd>
+<dd><a href='#MySQL.QueryAC'>func (*MySQL) QueryAC</a></dd>
+<dd><a href='#MySQL.Reconnect'>func (*MySQL) Reconnect</a></dd>
+<dd><a href='#MySQL.Start'>func (*MySQL) Start</a></dd>
+<dd><a href='#MySQL.ThreadId'>func (*MySQL) ThreadId</a></dd>
+<dd><a href='#MySQL.Use'>func (*MySQL) Use</a></dd>
+<dd><a href='#MySQL.UseAC'>func (*MySQL) UseAC</a></dd>
+<dt><a href='#Raw'>type Raw</a></dt>
+<dt><a href='#Result'>type Result</a></dt>
+<dd><a href='#Result.End'>func (*Result) End</a></dd>
+<dd><a href='#Result.GetRow'>func (*Result) GetRow</a></dd>
+<dd><a href='#Result.NextResult'>func (*Result) NextResult</a></dd>
+<dt><a href='#Row'>type Row</a></dt>
+<dd><a href='#Row.Bin'>func (*Row) Bin</a></dd>
+<dd><a href='#Row.Int'>func (*Row) Int</a></dd>
+<dd><a href='#Row.IntErr'>func (*Row) IntErr</a></dd>
+<dd><a href='#Row.MustInt'>func (*Row) MustInt</a></dd>
+<dd><a href='#Row.MustUint'>func (*Row) MustUint</a></dd>
+<dd><a href='#Row.Str'>func (*Row) Str</a></dd>
+<dd><a href='#Row.Uint'>func (*Row) Uint</a></dd>
+<dd><a href='#Row.UintErr'>func (*Row) UintErr</a></dd>
+<dt><a href='#Statement'>type Statement</a></dt>
+<dd><a href='#Statement.BindParams'>func (*Statement) BindParams</a></dd>
+<dd><a href='#Statement.Delete'>func (*Statement) Delete</a></dd>
+<dd><a href='#Statement.Exec'>func (*Statement) Exec</a></dd>
+<dd><a href='#Statement.ExecAC'>func (*Statement) ExecAC</a></dd>
+<dd><a href='#Statement.Reset'>func (*Statement) Reset</a></dd>
+<dd><a href='#Statement.Run'>func (*Statement) Run</a></dd>
+<dd><a href='#Statement.SendLongData'>func (*Statement) SendLongData</a></dd>
+<dt><a href='#Timestamp'>type Timestamp</a></dt>
+<dd><a href='#Timestamp.TimeToTimestamp'>func TimeToTimestamp</a></dd>
+<dd><a href='#Timestamp.String'>func (*Timestamp) String</a></dd>
+</dl>
+<!--
+Copyright 2009 The Go Authors. All rights reserved.
+Use of this source code is governed by a BSD-style
+license that can be found in the LICENSE file.
+-->
 
-# Package mymy
+<!-- PackageName is printed as title by the top-level template -->
+<p><code>import "mymysql"</code></p>
 
-[func DecodeU16][1]
-
-[func DecodeU24][2]
-
-[func DecodeU32][3]
-
-[func DecodeU64][4]
-
-[func EncodeDatetime][5]
-
-[func EncodeU16][6]
-
-[func EncodeU24][7]
-
-[func EncodeU32][8]
-
-[func EncodeU64][9]
-
-[func IsDatetimeZero][10]
-
-[func IsNetErr][11]
-
-[func NbinToNstr][12]
-
-[func NstrToNbin][13]
-
-[type Blob][14]
-
-[type Datetime][15]
-
-> [func TimeToDatetime][16]
-
-> [func (*Datetime) String][17]
-
-[type Error][18]
-
-> [func (Error) String][19]
-
-[type Field][20]
-
-[type MySQL][21]
-
-> [func New][22]
-
-> [func (*MySQL) Close][23]
-
-> [func (*MySQL) Connect][24]
-
-> [func (*MySQL) Ping][25]
-
-> [func (*MySQL) Prepare][26]
-
-> [func (*MySQL) Query][27]
-
-> [func (*MySQL) QueryAC][28]
-
-> [func (*MySQL) Reconnect][29]
-
-> [func (*MySQL) Start][30]
-
-> [func (*MySQL) Use][31]
-
-> [func (*MySQL) UseAC][32]
-
-[type Raw][33]
-
-[type Result][34]
-
-> [func (*Result) End][35]
-
-> [func (*Result) GetRow][36]
-
-> [func (*Result) NextResult][37]
-
-[type Row][38]
-
-> [func (*Row) Bin][39]
-
-> [func (*Row) Int][40]
-
-> [func (*Row) IntErr][41]
-
-> [func (*Row) MustInt][42]
-
-> [func (*Row) MustUint][43]
-
-> [func (*Row) Str][44]
-
-> [func (*Row) Uint][45]
-
-> [func (*Row) UintErr][46]
-
-[type ServerInfo][47]
-
-[type Statement][48]
-
-> [func (*Statement) BindParams][49]
-
-> [func (*Statement) Delete][50]
-
-> [func (*Statement) Exec][51]
-
-> [func (*Statement) Reset][52]
-
-> [func (*Statement) Run][53]
-
-> [func (*Statement) SendLongData][54]
-
-[type Timestamp][55]
-
-> [func TimeToTimestamp][56]
-
-> [func (*Timestamp) String][57]
-
-`import "mymysql"`
-
-#### Package files
-
-[addons.go][58] [autoconnect.go][59] [binding.go][60] [codecs.go][61]
-[command.go][62] [common.go][63] [consts.go][64] [errors.go][65]
-[mysql.go][66] [packet.go][67] [prepared.go][68] [result.go][69]
-[unsafe.go][70] [utils.go][71]
-
-## Constants
-
+<p>
+<h4>Package files</h4>
+<span style="font-size:90%">
+<a href="/mymysql/addons.go">addons.go</a>
+<a href="/mymysql/autoconnect.go">autoconnect.go</a>
+<a href="/mymysql/binding.go">binding.go</a>
+<a href="/mymysql/codecs.go">codecs.go</a>
+<a href="/mymysql/command.go">command.go</a>
+<a href="/mymysql/common.go">common.go</a>
+<a href="/mymysql/consts.go">consts.go</a>
+<a href="/mymysql/errors.go">errors.go</a>
+<a href="/mymysql/mysql.go">mysql.go</a>
+<a href="/mymysql/packet.go">packet.go</a>
+<a href="/mymysql/prepared.go">prepared.go</a>
+<a href="/mymysql/result.go">result.go</a>
+<a href="/mymysql/unsafe.go">unsafe.go</a>
+<a href="/mymysql/utils.go">utils.go</a>
+</span>
+</p>
+<h2 id="Constants">Constants</h2>
+<p>
 MySQL error codes
-
-
-    const (
-
-        ER_HASHCHK                                 = 1000
-
-        ER_NISAMCHK                                = 1001
-
-        ER_NO                                      = 1002
-
-        ER_YES                                     = 1003
-
-        ER_CANT_CREATE_FILE                        = 1004
-
-        ER_CANT_CREATE_TABLE                       = 1005
-
-        ER_CANT_CREATE_DB                          = 1006
-
-        ER_DB_CREATE_EXISTS                        = 1007
-
-        ER_DB_DROP_EXISTS                          = 1008
-
-        ER_DB_DROP_DELETE                          = 1009
-
-        ER_DB_DROP_RMDIR                           = 1010
-
-        ER_CANT_DELETE_FILE                        = 1011
-
-        ER_CANT_FIND_SYSTEM_REC                    = 1012
-
-        ER_CANT_GET_STAT                           = 1013
-
-        ER_CANT_GET_WD                             = 1014
-
-        ER_CANT_LOCK                               = 1015
-
-        ER_CANT_OPEN_FILE                          = 1016
-
-        ER_FILE_NOT_FOUND                          = 1017
-
-        ER_CANT_READ_DIR                           = 1018
-
-        ER_CANT_SET_WD                             = 1019
-
-        ER_CHECKREAD                               = 1020
-
-        ER_DISK_FULL                               = 1021
-
-        ER_DUP_KEY                                 = 1022
-
-        ER_ERROR_ON_CLOSE                          = 1023
-
-        ER_ERROR_ON_READ                           = 1024
-
-        ER_ERROR_ON_RENAME                         = 1025
-
-        ER_ERROR_ON_WRITE                          = 1026
-
-        ER_FILE_USED                               = 1027
-
-        ER_FILSORT_ABORT                           = 1028
-
-        ER_FORM_NOT_FOUND                          = 1029
-
-        ER_GET_ERRNO                               = 1030
-
-        ER_ILLEGAL_HA                              = 1031
-
-        ER_KEY_NOT_FOUND                           = 1032
-
-        ER_NOT_FORM_FILE                           = 1033
-
-        ER_NOT_KEYFILE                             = 1034
-
-        ER_OLD_KEYFILE                             = 1035
-
-        ER_OPEN_AS_READONLY                        = 1036
-
-        ER_OUTOFMEMORY                             = 1037
-
-        ER_OUT_OF_SORTMEMORY                       = 1038
-
-        ER_UNEXPECTED_EOF                          = 1039
-
-        ER_CON_COUNT_ERROR                         = 1040
-
-        ER_OUT_OF_RESOURCES                        = 1041
-
-        ER_BAD_HOST_ERROR                          = 1042
-
-        ER_HANDSHAKE_ERROR                         = 1043
-
-        ER_DBACCESS_DENIED_ERROR                   = 1044
-
-        ER_ACCESS_DENIED_ERROR                     = 1045
-
-        ER_NO_DB_ERROR                             = 1046
-
-        ER_UNKNOWN_COM_ERROR                       = 1047
-
-        ER_BAD_NULL_ERROR                          = 1048
-
-        ER_BAD_DB_ERROR                            = 1049
-
-        ER_TABLE_EXISTS_ERROR                      = 1050
-
-        ER_BAD_TABLE_ERROR                         = 1051
-
-        ER_NON_UNIQ_ERROR                          = 1052
-
-        ER_SERVER_SHUTDOWN                         = 1053
-
-        ER_BAD_FIELD_ERROR                         = 1054
-
-        ER_WRONG_FIELD_WITH_GROUP                  = 1055
-
-        ER_WRONG_GROUP_FIELD                       = 1056
-
-        ER_WRONG_SUM_SELECT                        = 1057
-
-        ER_WRONG_VALUE_COUNT                       = 1058
-
-        ER_TOO_LONG_IDENT                          = 1059
-
-        ER_DUP_FIELDNAME                           = 1060
-
-        ER_DUP_KEYNAME                             = 1061
-
-        ER_DUP_ENTRY                               = 1062
-
-        ER_WRONG_FIELD_SPEC                        = 1063
-
-        ER_PARSE_ERROR                             = 1064
-
-        ER_EMPTY_QUERY                             = 1065
-
-        ER_NONUNIQ_TABLE                           = 1066
-
-        ER_INVALID_DEFAULT                         = 1067
-
-        ER_MULTIPLE_PRI_KEY                        = 1068
-
-        ER_TOO_MANY_KEYS                           = 1069
-
-        ER_TOO_MANY_KEY_PARTS                      = 1070
-
-        ER_TOO_LONG_KEY                            = 1071
-
-        ER_KEY_COLUMN_DOES_NOT_EXITS               = 1072
-
-        ER_BLOB_USED_AS_KEY                        = 1073
-
-        ER_TOO_BIG_FIELDLENGTH                     = 1074
-
-        ER_WRONG_AUTO_KEY                          = 1075
-
-        ER_READY                                   = 1076
-
-        ER_NORMAL_SHUTDOWN                         = 1077
-
-        ER_GOT_SIGNAL                              = 1078
-
-        ER_SHUTDOWN_COMPLETE                       = 1079
-
-        ER_FORCING_CLOSE                           = 1080
-
-        ER_IPSOCK_ERROR                            = 1081
-
-        ER_NO_SUCH_INDEX                           = 1082
-
-        ER_WRONG_FIELD_TERMINATORS                 = 1083
-
-        ER_BLOBS_AND_NO_TERMINATED                 = 1084
-
-        ER_TEXTFILE_NOT_READABLE                   = 1085
-
-        ER_FILE_EXISTS_ERROR                       = 1086
-
-        ER_LOAD_INFO                               = 1087
-
-        ER_ALTER_INFO                              = 1088
-
-        ER_WRONG_SUB_KEY                           = 1089
-
-        ER_CANT_REMOVE_ALL_FIELDS                  = 1090
-
-        ER_CANT_DROP_FIELD_OR_KEY                  = 1091
-
-        ER_INSERT_INFO                             = 1092
-
-        ER_UPDATE_TABLE_USED                       = 1093
-
-        ER_NO_SUCH_THREAD                          = 1094
-
-        ER_KILL_DENIED_ERROR                       = 1095
-
-        ER_NO_TABLES_USED                          = 1096
-
-        ER_TOO_BIG_SET                             = 1097
-
-        ER_NO_UNIQUE_LOGFILE                       = 1098
-
-        ER_TABLE_NOT_LOCKED_FOR_WRITE              = 1099
-
-        ER_TABLE_NOT_LOCKED                        = 1100
-
-        ER_BLOB_CANT_HAVE_DEFAULT                  = 1101
-
-        ER_WRONG_DB_NAME                           = 1102
-
-        ER_WRONG_TABLE_NAME                        = 1103
-
-        ER_TOO_BIG_SELECT                          = 1104
-
-        ER_UNKNOWN_ERROR                           = 1105
-
-        ER_UNKNOWN_PROCEDURE                       = 1106
-
-        ER_WRONG_PARAMCOUNT_TO_PROCEDURE           = 1107
-
-        ER_WRONG_PARAMETERS_TO_PROCEDURE           = 1108
-
-        ER_UNKNOWN_TABLE                           = 1109
-
-        ER_FIELD_SPECIFIED_TWICE                   = 1110
-
-        ER_INVALID_GROUP_FUNC_USE                  = 1111
-
-        ER_UNSUPPORTED_EXTENSION                   = 1112
-
-        ER_TABLE_MUST_HAVE_COLUMNS                 = 1113
-
-        ER_RECORD_FILE_FULL                        = 1114
-
-        ER_UNKNOWN_CHARACTER_SET                   = 1115
-
-        ER_TOO_MANY_TABLES                         = 1116
-
-        ER_TOO_MANY_FIELDS                         = 1117
-
-        ER_TOO_BIG_ROWSIZE                         = 1118
-
-        ER_STACK_OVERRUN                           = 1119
-
-        ER_WRONG_OUTER_JOIN                        = 1120
-
-        ER_NULL_COLUMN_IN_INDEX                    = 1121
-
-        ER_CANT_FIND_UDF                           = 1122
-
-        ER_CANT_INITIALIZE_UDF                     = 1123
-
-        ER_UDF_NO_PATHS                            = 1124
-
-        ER_UDF_EXISTS                              = 1125
-
-        ER_CANT_OPEN_LIBRARY                       = 1126
-
-        ER_CANT_FIND_DL_ENTRY                      = 1127
-
-        ER_FUNCTION_NOT_DEFINED                    = 1128
-
-        ER_HOST_IS_BLOCKED                         = 1129
-
-        ER_HOST_NOT_PRIVILEGED                     = 1130
-
-        ER_PASSWORD_ANONYMOUS_USER                 = 1131
-
-        ER_PASSWORD_NOT_ALLOWED                    = 1132
-
-        ER_PASSWORD_NO_MATCH                       = 1133
-
-        ER_UPDATE_INFO                             = 1134
-
-        ER_CANT_CREATE_THREAD                      = 1135
-
-        ER_WRONG_VALUE_COUNT_ON_ROW                = 1136
-
-        ER_CANT_REOPEN_TABLE                       = 1137
-
-        ER_INVALID_USE_OF_NULL                     = 1138
-
-        ER_REGEXP_ERROR                            = 1139
-
-        ER_MIX_OF_GROUP_FUNC_AND_FIELDS            = 1140
-
-        ER_NONEXISTING_GRANT                       = 1141
-
-        ER_TABLEACCESS_DENIED_ERROR                = 1142
-
-        ER_COLUMNACCESS_DENIED_ERROR               = 1143
-
-        ER_ILLEGAL_GRANT_FOR_TABLE                 = 1144
-
-        ER_GRANT_WRONG_HOST_OR_USER                = 1145
-
-        ER_NO_SUCH_TABLE                           = 1146
-
-        ER_NONEXISTING_TABLE_GRANT                 = 1147
-
-        ER_NOT_ALLOWED_COMMAND                     = 1148
-
-        ER_SYNTAX_ERROR                            = 1149
-
-        ER_DELAYED_CANT_CHANGE_LOCK                = 1150
-
-        ER_TOO_MANY_DELAYED_THREADS                = 1151
-
-        ER_ABORTING_CONNECTION                     = 1152
-
-        ER_NET_PACKET_TOO_LARGE                    = 1153
-
-        ER_NET_READ_ERROR_FROM_PIPE                = 1154
-
-        ER_NET_FCNTL_ERROR                         = 1155
-
-        ER_NET_PACKETS_OUT_OF_ORDER                = 1156
-
-        ER_NET_UNCOMPRESS_ERROR                    = 1157
-
-        ER_NET_READ_ERROR                          = 1158
-
-        ER_NET_READ_INTERRUPTED                    = 1159
-
-        ER_NET_ERROR_ON_WRITE                      = 1160
-
-        ER_NET_WRITE_INTERRUPTED                   = 1161
-
-        ER_TOO_LONG_STRING                         = 1162
-
-        ER_TABLE_CANT_HANDLE_BLOB                  = 1163
-
-        ER_TABLE_CANT_HANDLE_AUTO_INCREMENT        = 1164
-
-        ER_DELAYED_INSERT_TABLE_LOCKED             = 1165
-
-        ER_WRONG_COLUMN_NAME                       = 1166
-
-        ER_WRONG_KEY_COLUMN                        = 1167
-
-        ER_WRONG_MRG_TABLE                         = 1168
-
-        ER_DUP_UNIQUE                              = 1169
-
-        ER_BLOB_KEY_WITHOUT_LENGTH                 = 1170
-
-        ER_PRIMARY_CANT_HAVE_NULL                  = 1171
-
-        ER_TOO_MANY_ROWS                           = 1172
-
-        ER_REQUIRES_PRIMARY_KEY                    = 1173
-
-        ER_NO_RAID_COMPILED                        = 1174
-
-        ER_UPDATE_WITHOUT_KEY_IN_SAFE_MODE         = 1175
-
-        ER_KEY_DOES_NOT_EXITS                      = 1176
-
-        ER_CHECK_NO_SUCH_TABLE                     = 1177
-
-        ER_CHECK_NOT_IMPLEMENTED                   = 1178
-
-        ER_CANT_DO_THIS_DURING_AN_TRANSACTION      = 1179
-
-        ER_ERROR_DURING_COMMIT                     = 1180
-
-        ER_ERROR_DURING_ROLLBACK                   = 1181
-
-        ER_ERROR_DURING_FLUSH_LOGS                 = 1182
-
-        ER_ERROR_DURING_CHECKPOINT                 = 1183
-
-        ER_NEW_ABORTING_CONNECTION                 = 1184
-
-        ER_DUMP_NOT_IMPLEMENTED                    = 1185
-
-        ER_FLUSH_MASTER_BINLOG_CLOSED              = 1186
-
-        ER_INDEX_REBUILD                           = 1187
-
-        ER_MASTER                                  = 1188
-
-        ER_MASTER_NET_READ                         = 1189
-
-        ER_MASTER_NET_WRITE                        = 1190
-
-        ER_FT_MATCHING_KEY_NOT_FOUND               = 1191
-
-        ER_LOCK_OR_ACTIVE_TRANSACTION              = 1192
-
-        ER_UNKNOWN_SYSTEM_VARIABLE                 = 1193
-
-        ER_CRASHED_ON_USAGE                        = 1194
-
-        ER_CRASHED_ON_REPAIR                       = 1195
-
-        ER_WARNING_NOT_COMPLETE_ROLLBACK           = 1196
-
-        ER_TRANS_CACHE_FULL                        = 1197
-
-        ER_SLAVE_MUST_STOP                         = 1198
-
-        ER_SLAVE_NOT_RUNNING                       = 1199
-
-        ER_BAD_SLAVE                               = 1200
-
-        ER_MASTER_INFO                             = 1201
-
-        ER_SLAVE_THREAD                            = 1202
-
-        ER_TOO_MANY_USER_CONNECTIONS               = 1203
-
-        ER_SET_CONSTANTS_ONLY                      = 1204
-
-        ER_LOCK_WAIT_TIMEOUT                       = 1205
-
-        ER_LOCK_TABLE_FULL                         = 1206
-
-        ER_READ_ONLY_TRANSACTION                   = 1207
-
-        ER_DROP_DB_WITH_READ_LOCK                  = 1208
-
-        ER_CREATE_DB_WITH_READ_LOCK                = 1209
-
-        ER_WRONG_ARGUMENTS                         = 1210
-
-        ER_NO_PERMISSION_TO_CREATE_USER            = 1211
-
-        ER_UNION_TABLES_IN_DIFFERENT_DIR           = 1212
-
-        ER_LOCK_DEADLOCK                           = 1213
-
-        ER_TABLE_CANT_HANDLE_FT                    = 1214
-
-        ER_CANNOT_ADD_FOREIGN                      = 1215
-
-        ER_NO_REFERENCED_ROW                       = 1216
-
-        ER_ROW_IS_REFERENCED                       = 1217
-
-        ER_CONNECT_TO_MASTER                       = 1218
-
-        ER_QUERY_ON_MASTER                         = 1219
-
-        ER_ERROR_WHEN_EXECUTING_COMMAND            = 1220
-
-        ER_WRONG_USAGE                             = 1221
-
-        ER_WRONG_NUMBER_OF_COLUMNS_IN_SELECT       = 1222
-
-        ER_CANT_UPDATE_WITH_READLOCK               = 1223
-
-        ER_MIXING_NOT_ALLOWED                      = 1224
-
-        ER_DUP_ARGUMENT                            = 1225
-
-        ER_USER_LIMIT_REACHED                      = 1226
-
-        ER_SPECIFIC_ACCESS_DENIED_ERROR            = 1227
-
-        ER_LOCAL_VARIABLE                          = 1228
-
-        ER_GLOBAL_VARIABLE                         = 1229
-
-        ER_NO_DEFAULT                              = 1230
-
-        ER_WRONG_VALUE_FOR_VAR                     = 1231
-
-        ER_WRONG_TYPE_FOR_VAR                      = 1232
-
-        ER_VAR_CANT_BE_READ                        = 1233
-
-        ER_CANT_USE_OPTION_HERE                    = 1234
-
-        ER_NOT_SUPPORTED_YET                       = 1235
-
-        ER_MASTER_FATAL_ERROR_READING_BINLOG       = 1236
-
-        ER_SLAVE_IGNORED_TABLE                     = 1237
-
-        ER_INCORRECT_GLOBAL_LOCAL_VAR              = 1238
-
-        ER_WRONG_FK_DEF                            = 1239
-
-        ER_KEY_REF_DO_NOT_MATCH_TABLE_REF          = 1240
-
-        ER_OPERAND_COLUMNS                         = 1241
-
-        ER_SUBQUERY_NO_1_ROW                       = 1242
-
-        ER_UNKNOWN_STMT_HANDLER                    = 1243
-
-        ER_CORRUPT_HELP_DB                         = 1244
-
-        ER_CYCLIC_REFERENCE                        = 1245
-
-        ER_AUTO_CONVERT                            = 1246
-
-        ER_ILLEGAL_REFERENCE                       = 1247
-
-        ER_DERIVED_MUST_HAVE_ALIAS                 = 1248
-
-        ER_SELECT_REDUCED                          = 1249
-
-        ER_TABLENAME_NOT_ALLOWED_HERE              = 1250
-
-        ER_NOT_SUPPORTED_AUTH_MODE                 = 1251
-
-        ER_SPATIAL_CANT_HAVE_NULL                  = 1252
-
-        ER_COLLATION_CHARSET_MISMATCH              = 1253
-
-        ER_SLAVE_WAS_RUNNING                       = 1254
-
-        ER_SLAVE_WAS_NOT_RUNNING                   = 1255
-
-        ER_TOO_BIG_FOR_UNCOMPRESS                  = 1256
-
-        ER_ZLIB_Z_MEM_ERROR                        = 1257
-
-        ER_ZLIB_Z_BUF_ERROR                        = 1258
-
-        ER_ZLIB_Z_DATA_ERROR                       = 1259
-
-        ER_CUT_VALUE_GROUP_CONCAT                  = 1260
-
-        ER_WARN_TOO_FEW_RECORDS                    = 1261
-
-        ER_WARN_TOO_MANY_RECORDS                   = 1262
-
-        ER_WARN_NULL_TO_NOTNULL                    = 1263
-
-        ER_WARN_DATA_OUT_OF_RANGE                  = 1264
-
-        WARN_DATA_TRUNCATED                        = 1265
-
-        ER_WARN_USING_OTHER_HANDLER                = 1266
-
-        ER_CANT_AGGREGATE_2COLLATIONS              = 1267
-
-        ER_DROP_USER                               = 1268
-
-        ER_REVOKE_GRANTS                           = 1269
-
-        ER_CANT_AGGREGATE_3COLLATIONS              = 1270
-
-        ER_CANT_AGGREGATE_NCOLLATIONS              = 1271
-
-        ER_VARIABLE_IS_NOT_STRUCT                  = 1272
-
-        ER_UNKNOWN_COLLATION                       = 1273
-
-        ER_SLAVE_IGNORED_SSL_PARAMS                = 1274
-
-        ER_SERVER_IS_IN_SECURE_AUTH_MODE           = 1275
-
-        ER_WARN_FIELD_RESOLVED                     = 1276
-
-        ER_BAD_SLAVE_UNTIL_COND                    = 1277
-
-        ER_MISSING_SKIP_SLAVE                      = 1278
-
-        ER_UNTIL_COND_IGNORED                      = 1279
-
-        ER_WRONG_NAME_FOR_INDEX                    = 1280
-
-        ER_WRONG_NAME_FOR_CATALOG                  = 1281
-
-        ER_WARN_QC_RESIZE                          = 1282
-
-        ER_BAD_FT_COLUMN                           = 1283
-
-        ER_UNKNOWN_KEY_CACHE                       = 1284
-
-        ER_WARN_HOSTNAME_WONT_WORK                 = 1285
-
-        ER_UNKNOWN_STORAGE_ENGINE                  = 1286
-
-        ER_WARN_DEPRECATED_SYNTAX                  = 1287
-
-        ER_NON_UPDATABLE_TABLE                     = 1288
-
-        ER_FEATURE_DISABLED                        = 1289
-
-        ER_OPTION_PREVENTS_STATEMENT               = 1290
-
-        ER_DUPLICATED_VALUE_IN_TYPE                = 1291
-
-        ER_TRUNCATED_WRONG_VALUE                   = 1292
-
-        ER_TOO_MUCH_AUTO_TIMESTAMP_COLS            = 1293
-
-        ER_INVALID_ON_UPDATE                       = 1294
-
-        ER_UNSUPPORTED_PS                          = 1295
-
-        ER_GET_ERRMSG                              = 1296
-
-        ER_GET_TEMPORARY_ERRMSG                    = 1297
-
-        ER_UNKNOWN_TIME_ZONE                       = 1298
-
-        ER_WARN_INVALID_TIMESTAMP                  = 1299
-
-        ER_INVALID_CHARACTER_STRING                = 1300
-
-        ER_WARN_ALLOWED_PACKET_OVERFLOWED          = 1301
-
-        ER_CONFLICTING_DECLARATIONS                = 1302
-
-        ER_SP_NO_RECURSIVE_CREATE                  = 1303
-
-        ER_SP_ALREADY_EXISTS                       = 1304
-
-        ER_SP_DOES_NOT_EXIST                       = 1305
-
-        ER_SP_DROP_FAILED                          = 1306
-
-        ER_SP_STORE_FAILED                         = 1307
-
-        ER_SP_LILABEL_MISMATCH                     = 1308
-
-        ER_SP_LABEL_REDEFINE                       = 1309
-
-        ER_SP_LABEL_MISMATCH                       = 1310
-
-        ER_SP_UNINIT_VAR                           = 1311
-
-        ER_SP_BADSELECT                            = 1312
-
-        ER_SP_BADRETURN                            = 1313
-
-        ER_SP_BADSTATEMENT                         = 1314
-
-        ER_UPDATE_LOG_DEPRECATED_IGNORED           = 1315
-
-        ER_UPDATE_LOG_DEPRECATED_TRANSLATED        = 1316
-
-        ER_QUERY_INTERRUPTED                       = 1317
-
-        ER_SP_WRONG_NO_OF_ARGS                     = 1318
-
-        ER_SP_COND_MISMATCH                        = 1319
-
-        ER_SP_NORETURN                             = 1320
-
-        ER_SP_NORETURNEND                          = 1321
-
-        ER_SP_BAD_CURSOR_QUERY                     = 1322
-
-        ER_SP_BAD_CURSOR_SELECT                    = 1323
-
-        ER_SP_CURSOR_MISMATCH                      = 1324
-
-        ER_SP_CURSOR_ALREADY_OPEN                  = 1325
-
-        ER_SP_CURSOR_NOT_OPEN                      = 1326
-
-        ER_SP_UNDECLARED_VAR                       = 1327
-
-        ER_SP_WRONG_NO_OF_FETCH_ARGS               = 1328
-
-        ER_SP_FETCH_NO_DATA                        = 1329
-
-        ER_SP_DUP_PARAM                            = 1330
-
-        ER_SP_DUP_VAR                              = 1331
-
-        ER_SP_DUP_COND                             = 1332
-
-        ER_SP_DUP_CURS                             = 1333
-
-        ER_SP_CANT_ALTER                           = 1334
-
-        ER_SP_SUBSELECT_NYI                        = 1335
-
-        ER_STMT_NOT_ALLOWED_IN_SF_OR_TRG           = 1336
-
-        ER_SP_VARCOND_AFTER_CURSHNDLR              = 1337
-
-        ER_SP_CURSOR_AFTER_HANDLER                 = 1338
-
-        ER_SP_CASE_NOT_FOUND                       = 1339
-
-        ER_FPARSER_TOO_BIG_FILE                    = 1340
-
-        ER_FPARSER_BAD_HEADER                      = 1341
-
-        ER_FPARSER_EOF_IN_COMMENT                  = 1342
-
-        ER_FPARSER_ERROR_IN_PARAMETER              = 1343
-
-        ER_FPARSER_EOF_IN_UNKNOWN_PARAMETER        = 1344
-
-        ER_VIEW_NO_EXPLAIN                         = 1345
-
-        ER_FRM_UNKNOWN_TYPE                        = 1346
-
-        ER_WRONG_OBJECT                            = 1347
-
-        ER_NONUPDATEABLE_COLUMN                    = 1348
-
-        ER_VIEW_SELECT_DERIVED                     = 1349
-
-        ER_VIEW_SELECT_CLAUSE                      = 1350
-
-        ER_VIEW_SELECT_VARIABLE                    = 1351
-
-        ER_VIEW_SELECT_TMPTABLE                    = 1352
-
-        ER_VIEW_WRONG_LIST                         = 1353
-
-        ER_WARN_VIEW_MERGE                         = 1354
-
-        ER_WARN_VIEW_WITHOUT_KEY                   = 1355
-
-        ER_VIEW_INVALID                            = 1356
-
-        ER_SP_NO_DROP_SP                           = 1357
-
-        ER_SP_GOTO_IN_HNDLR                        = 1358
-
-        ER_TRG_ALREADY_EXISTS                      = 1359
-
-        ER_TRG_DOES_NOT_EXIST                      = 1360
-
-        ER_TRG_ON_VIEW_OR_TEMP_TABLE               = 1361
-
-        ER_TRG_CANT_CHANGE_ROW                     = 1362
-
-        ER_TRG_NO_SUCH_ROW_IN_TRG                  = 1363
-
-        ER_NO_DEFAULT_FOR_FIELD                    = 1364
-
-        ER_DIVISION_BY_ZERO                        = 1365
-
-        ER_TRUNCATED_WRONG_VALUE_FOR_FIELD         = 1366
-
-        ER_ILLEGAL_VALUE_FOR_TYPE                  = 1367
-
-        ER_VIEW_NONUPD_CHECK                       = 1368
-
-        ER_VIEW_CHECK_FAILED                       = 1369
-
-        ER_PROCACCESS_DENIED_ERROR                 = 1370
-
-        ER_RELAY_LOG_FAIL                          = 1371
-
-        ER_PASSWD_LENGTH                           = 1372
-
-        ER_UNKNOWN_TARGET_BINLOG                   = 1373
-
-        ER_IO_ERR_LOG_INDEX_READ                   = 1374
-
-        ER_BINLOG_PURGE_PROHIBITED                 = 1375
-
-        ER_FSEEK_FAIL                              = 1376
-
-        ER_BINLOG_PURGE_FATAL_ERR                  = 1377
-
-        ER_LOG_IN_USE                              = 1378
-
-        ER_LOG_PURGE_UNKNOWN_ERR                   = 1379
-
-        ER_RELAY_LOG_INIT                          = 1380
-
-        ER_NO_BINARY_LOGGING                       = 1381
-
-        ER_RESERVED_SYNTAX                         = 1382
-
-        ER_WSAS_FAILED                             = 1383
-
-        ER_DIFF_GROUPS_PROC                        = 1384
-
-        ER_NO_GROUP_FOR_PROC                       = 1385
-
-        ER_ORDER_WITH_PROC                         = 1386
-
-        ER_LOGGING_PROHIBIT_CHANGING_OF            = 1387
-
-        ER_NO_FILE_MAPPING                         = 1388
-
-        ER_WRONG_MAGIC                             = 1389
-
-        ER_PS_MANY_PARAM                           = 1390
-
-        ER_KEY_PART_0                              = 1391
-
-        ER_VIEW_CHECKSUM                           = 1392
-
-        ER_VIEW_MULTIUPDATE                        = 1393
-
-        ER_VIEW_NO_INSERT_FIELD_LIST               = 1394
-
-        ER_VIEW_DELETE_MERGE_VIEW                  = 1395
-
-        ER_CANNOT_USER                             = 1396
-
-        ER_XAER_NOTA                               = 1397
-
-        ER_XAER_INVAL                              = 1398
-
-        ER_XAER_RMFAIL                             = 1399
-
-        ER_XAER_OUTSIDE                            = 1400
-
-        ER_XAER_RMERR                              = 1401
-
-        ER_XA_RBROLLBACK                           = 1402
-
-        ER_NONEXISTING_PROC_GRANT                  = 1403
-
-        ER_PROC_AUTO_GRANT_FAIL                    = 1404
-
-        ER_PROC_AUTO_REVOKE_FAIL                   = 1405
-
-        ER_DATA_TOO_LONG                           = 1406
-
-        ER_SP_BAD_SQLSTATE                         = 1407
-
-        ER_STARTUP                                 = 1408
-
-        ER_LOAD_FROM_FIXED_SIZE_ROWS_TO_VAR        = 1409
-
-        ER_CANT_CREATE_USER_WITH_GRANT             = 1410
-
-        ER_WRONG_VALUE_FOR_TYPE                    = 1411
-
-        ER_TABLE_DEF_CHANGED                       = 1412
-
-        ER_SP_DUP_HANDLER                          = 1413
-
-        ER_SP_NOT_VAR_ARG                          = 1414
-
-        ER_SP_NO_RETSET                            = 1415
-
-        ER_CANT_CREATE_GEOMETRY_OBJECT             = 1416
-
-        ER_FAILED_ROUTINE_BREAK_BINLOG             = 1417
-
-        ER_BINLOG_UNSAFE_ROUTINE                   = 1418
-
-        ER_BINLOG_CREATE_ROUTINE_NEED_SUPER        = 1419
-
-        ER_EXEC_STMT_WITH_OPEN_CURSOR              = 1420
-
-        ER_STMT_HAS_NO_OPEN_CURSOR                 = 1421
-
-        ER_COMMIT_NOT_ALLOWED_IN_SF_OR_TRG         = 1422
-
-        ER_NO_DEFAULT_FOR_VIEW_FIELD               = 1423
-
-        ER_SP_NO_RECURSION                         = 1424
-
-        ER_TOO_BIG_SCALE                           = 1425
-
-        ER_TOO_BIG_PRECISION                       = 1426
-
-        ER_M_BIGGER_THAN_D                         = 1427
-
-        ER_WRONG_LOCK_OF_SYSTEM_TABLE              = 1428
-
-        ER_CONNECT_TO_FOREIGN_DATA_SOURCE          = 1429
-
-        ER_QUERY_ON_FOREIGN_DATA_SOURCE            = 1430
-
-        ER_FOREIGN_DATA_SOURCE_DOESNT_EXIST        = 1431
-
-        ER_FOREIGN_DATA_STRING_INVALID_CANT_CREATE = 1432
-
-        ER_FOREIGN_DATA_STRING_INVALID             = 1433
-
-        ER_CANT_CREATE_FEDERATED_TABLE             = 1434
-
-        ER_TRG_IN_WRONG_SCHEMA                     = 1435
-
-        ER_STACK_OVERRUN_NEED_MORE                 = 1436
-
-        ER_TOO_LONG_BODY                           = 1437
-
-        ER_WARN_CANT_DROP_DEFAULT_KEYCACHE         = 1438
-
-        ER_TOO_BIG_DISPLAYWIDTH                    = 1439
-
-        ER_XAER_DUPID                              = 1440
-
-        ER_DATETIME_FUNCTION_OVERFLOW              = 1441
-
-        ER_CANT_UPDATE_USED_TABLE_IN_SF_OR_TRG     = 1442
-
-        ER_VIEW_PREVENT_UPDATE                     = 1443
-
-        ER_PS_NO_RECURSION                         = 1444
-
-        ER_SP_CANT_SET_AUTOCOMMIT                  = 1445
-
-        ER_MALFORMED_DEFINER                       = 1446
-
-        ER_VIEW_FRM_NO_USER                        = 1447
-
-        ER_VIEW_OTHER_USER                         = 1448
-
-        ER_NO_SUCH_USER                            = 1449
-
-        ER_FORBID_SCHEMA_CHANGE                    = 1450
-
-        ER_ROW_IS_REFERENCED_2                     = 1451
-
-        ER_NO_REFERENCED_ROW_2                     = 1452
-
-        ER_SP_BAD_VAR_SHADOW                       = 1453
-
-        ER_TRG_NO_DEFINER                          = 1454
-
-        ER_OLD_FILE_FORMAT                         = 1455
-
-        ER_SP_RECURSION_LIMIT                      = 1456
-
-        ER_SP_PROC_TABLE_CORRUPT                   = 1457
-
-        ER_SP_WRONG_NAME                           = 1458
-
-        ER_TABLE_NEEDS_UPGRADE                     = 1459
-
-        ER_SP_NO_AGGREGATE                         = 1460
-
-        ER_MAX_PREPARED_STMT_COUNT_REACHED         = 1461
-
-        ER_VIEW_RECURSIVE                          = 1462
-
-        ER_NON_GROUPING_FIELD_USED                 = 1463
-
-        ER_TABLE_CANT_HANDLE_SPKEYS                = 1464
-
-        ER_NO_TRIGGERS_ON_SYSTEM_SCHEMA            = 1465
-
-        ER_REMOVED_SPACES                          = 1466
-
-        ER_AUTOINC_READ_FAILED                     = 1467
-
-        ER_USERNAME                                = 1468
-
-        ER_HOSTNAME                                = 1469
-
-        ER_WRONG_STRING_LENGTH                     = 1470
-
-        ER_NON_INSERTABLE_TABLE                    = 1471
-
-    )
-
+</p>
+
+<pre>const (
+ER_HASHCHK                                 = 1000
+ER_NISAMCHK                                = 1001
+ER_NO                                      = 1002
+ER_YES                                     = 1003
+ER_CANT_CREATE_FILE                        = 1004
+ER_CANT_CREATE_TABLE                       = 1005
+ER_CANT_CREATE_DB                          = 1006
+ER_DB_CREATE_EXISTS                        = 1007
+ER_DB_DROP_EXISTS                          = 1008
+ER_DB_DROP_DELETE                          = 1009
+ER_DB_DROP_RMDIR                           = 1010
+ER_CANT_DELETE_FILE                        = 1011
+ER_CANT_FIND_SYSTEM_REC                    = 1012
+ER_CANT_GET_STAT                           = 1013
+ER_CANT_GET_WD                             = 1014
+ER_CANT_LOCK                               = 1015
+ER_CANT_OPEN_FILE                          = 1016
+ER_FILE_NOT_FOUND                          = 1017
+ER_CANT_READ_DIR                           = 1018
+ER_CANT_SET_WD                             = 1019
+ER_CHECKREAD                               = 1020
+ER_DISK_FULL                               = 1021
+ER_DUP_KEY                                 = 1022
+ER_ERROR_ON_CLOSE                          = 1023
+ER_ERROR_ON_READ                           = 1024
+ER_ERROR_ON_RENAME                         = 1025
+ER_ERROR_ON_WRITE                          = 1026
+ER_FILE_USED                               = 1027
+ER_FILSORT_ABORT                           = 1028
+ER_FORM_NOT_FOUND                          = 1029
+ER_GET_ERRNO                               = 1030
+ER_ILLEGAL_HA                              = 1031
+ER_KEY_NOT_FOUND                           = 1032
+ER_NOT_FORM_FILE                           = 1033
+ER_NOT_KEYFILE                             = 1034
+ER_OLD_KEYFILE                             = 1035
+ER_OPEN_AS_READONLY                        = 1036
+ER_OUTOFMEMORY                             = 1037
+ER_OUT_OF_SORTMEMORY                       = 1038
+ER_UNEXPECTED_EOF                          = 1039
+ER_CON_COUNT_ERROR                         = 1040
+ER_OUT_OF_RESOURCES                        = 1041
+ER_BAD_HOST_ERROR                          = 1042
+ER_HANDSHAKE_ERROR                         = 1043
+ER_DBACCESS_DENIED_ERROR                   = 1044
+ER_ACCESS_DENIED_ERROR                     = 1045
+ER_NO_DB_ERROR                             = 1046
+ER_UNKNOWN_COM_ERROR                       = 1047
+ER_BAD_NULL_ERROR                          = 1048
+ER_BAD_DB_ERROR                            = 1049
+ER_TABLE_EXISTS_ERROR                      = 1050
+ER_BAD_TABLE_ERROR                         = 1051
+ER_NON_UNIQ_ERROR                          = 1052
+ER_SERVER_SHUTDOWN                         = 1053
+ER_BAD_FIELD_ERROR                         = 1054
+ER_WRONG_FIELD_WITH_GROUP                  = 1055
+ER_WRONG_GROUP_FIELD                       = 1056
+ER_WRONG_SUM_SELECT                        = 1057
+ER_WRONG_VALUE_COUNT                       = 1058
+ER_TOO_LONG_IDENT                          = 1059
+ER_DUP_FIELDNAME                           = 1060
+ER_DUP_KEYNAME                             = 1061
+ER_DUP_ENTRY                               = 1062
+ER_WRONG_FIELD_SPEC                        = 1063
+ER_PARSE_ERROR                             = 1064
+ER_EMPTY_QUERY                             = 1065
+ER_NONUNIQ_TABLE                           = 1066
+ER_INVALID_DEFAULT                         = 1067
+ER_MULTIPLE_PRI_KEY                        = 1068
+ER_TOO_MANY_KEYS                           = 1069
+ER_TOO_MANY_KEY_PARTS                      = 1070
+ER_TOO_LONG_KEY                            = 1071
+ER_KEY_COLUMN_DOES_NOT_EXITS               = 1072
+ER_BLOB_USED_AS_KEY                        = 1073
+ER_TOO_BIG_FIELDLENGTH                     = 1074
+ER_WRONG_AUTO_KEY                          = 1075
+ER_READY                                   = 1076
+ER_NORMAL_SHUTDOWN                         = 1077
+ER_GOT_SIGNAL                              = 1078
+ER_SHUTDOWN_COMPLETE                       = 1079
+ER_FORCING_CLOSE                           = 1080
+ER_IPSOCK_ERROR                            = 1081
+ER_NO_SUCH_INDEX                           = 1082
+ER_WRONG_FIELD_TERMINATORS                 = 1083
+ER_BLOBS_AND_NO_TERMINATED                 = 1084
+ER_TEXTFILE_NOT_READABLE                   = 1085
+ER_FILE_EXISTS_ERROR                       = 1086
+ER_LOAD_INFO                               = 1087
+ER_ALTER_INFO                              = 1088
+ER_WRONG_SUB_KEY                           = 1089
+ER_CANT_REMOVE_ALL_FIELDS                  = 1090
+ER_CANT_DROP_FIELD_OR_KEY                  = 1091
+ER_INSERT_INFO                             = 1092
+ER_UPDATE_TABLE_USED                       = 1093
+ER_NO_SUCH_THREAD                          = 1094
+ER_KILL_DENIED_ERROR                       = 1095
+ER_NO_TABLES_USED                          = 1096
+ER_TOO_BIG_SET                             = 1097
+ER_NO_UNIQUE_LOGFILE                       = 1098
+ER_TABLE_NOT_LOCKED_FOR_WRITE              = 1099
+ER_TABLE_NOT_LOCKED                        = 1100
+ER_BLOB_CANT_HAVE_DEFAULT                  = 1101
+ER_WRONG_DB_NAME                           = 1102
+ER_WRONG_TABLE_NAME                        = 1103
+ER_TOO_BIG_SELECT                          = 1104
+ER_UNKNOWN_ERROR                           = 1105
+ER_UNKNOWN_PROCEDURE                       = 1106
+ER_WRONG_PARAMCOUNT_TO_PROCEDURE           = 1107
+ER_WRONG_PARAMETERS_TO_PROCEDURE           = 1108
+ER_UNKNOWN_TABLE                           = 1109
+ER_FIELD_SPECIFIED_TWICE                   = 1110
+ER_INVALID_GROUP_FUNC_USE                  = 1111
+ER_UNSUPPORTED_EXTENSION                   = 1112
+ER_TABLE_MUST_HAVE_COLUMNS                 = 1113
+ER_RECORD_FILE_FULL                        = 1114
+ER_UNKNOWN_CHARACTER_SET                   = 1115
+ER_TOO_MANY_TABLES                         = 1116
+ER_TOO_MANY_FIELDS                         = 1117
+ER_TOO_BIG_ROWSIZE                         = 1118
+ER_STACK_OVERRUN                           = 1119
+ER_WRONG_OUTER_JOIN                        = 1120
+ER_NULL_COLUMN_IN_INDEX                    = 1121
+ER_CANT_FIND_UDF                           = 1122
+ER_CANT_INITIALIZE_UDF                     = 1123
+ER_UDF_NO_PATHS                            = 1124
+ER_UDF_EXISTS                              = 1125
+ER_CANT_OPEN_LIBRARY                       = 1126
+ER_CANT_FIND_DL_ENTRY                      = 1127
+ER_FUNCTION_NOT_DEFINED                    = 1128
+ER_HOST_IS_BLOCKED                         = 1129
+ER_HOST_NOT_PRIVILEGED                     = 1130
+ER_PASSWORD_ANONYMOUS_USER                 = 1131
+ER_PASSWORD_NOT_ALLOWED                    = 1132
+ER_PASSWORD_NO_MATCH                       = 1133
+ER_UPDATE_INFO                             = 1134
+ER_CANT_CREATE_THREAD                      = 1135
+ER_WRONG_VALUE_COUNT_ON_ROW                = 1136
+ER_CANT_REOPEN_TABLE                       = 1137
+ER_INVALID_USE_OF_NULL                     = 1138
+ER_REGEXP_ERROR                            = 1139
+ER_MIX_OF_GROUP_FUNC_AND_FIELDS            = 1140
+ER_NONEXISTING_GRANT                       = 1141
+ER_TABLEACCESS_DENIED_ERROR                = 1142
+ER_COLUMNACCESS_DENIED_ERROR               = 1143
+ER_ILLEGAL_GRANT_FOR_TABLE                 = 1144
+ER_GRANT_WRONG_HOST_OR_USER                = 1145
+ER_NO_SUCH_TABLE                           = 1146
+ER_NONEXISTING_TABLE_GRANT                 = 1147
+ER_NOT_ALLOWED_COMMAND                     = 1148
+ER_SYNTAX_ERROR                            = 1149
+ER_DELAYED_CANT_CHANGE_LOCK                = 1150
+ER_TOO_MANY_DELAYED_THREADS                = 1151
+ER_ABORTING_CONNECTION                     = 1152
+ER_NET_PACKET_TOO_LARGE                    = 1153
+ER_NET_READ_ERROR_FROM_PIPE                = 1154
+ER_NET_FCNTL_ERROR                         = 1155
+ER_NET_PACKETS_OUT_OF_ORDER                = 1156
+ER_NET_UNCOMPRESS_ERROR                    = 1157
+ER_NET_READ_ERROR                          = 1158
+ER_NET_READ_INTERRUPTED                    = 1159
+ER_NET_ERROR_ON_WRITE                      = 1160
+ER_NET_WRITE_INTERRUPTED                   = 1161
+ER_TOO_LONG_STRING                         = 1162
+ER_TABLE_CANT_HANDLE_BLOB                  = 1163
+ER_TABLE_CANT_HANDLE_AUTO_INCREMENT        = 1164
+ER_DELAYED_INSERT_TABLE_LOCKED             = 1165
+ER_WRONG_COLUMN_NAME                       = 1166
+ER_WRONG_KEY_COLUMN                        = 1167
+ER_WRONG_MRG_TABLE                         = 1168
+ER_DUP_UNIQUE                              = 1169
+ER_BLOB_KEY_WITHOUT_LENGTH                 = 1170
+ER_PRIMARY_CANT_HAVE_NULL                  = 1171
+ER_TOO_MANY_ROWS                           = 1172
+ER_REQUIRES_PRIMARY_KEY                    = 1173
+ER_NO_RAID_COMPILED                        = 1174
+ER_UPDATE_WITHOUT_KEY_IN_SAFE_MODE         = 1175
+ER_KEY_DOES_NOT_EXITS                      = 1176
+ER_CHECK_NO_SUCH_TABLE                     = 1177
+ER_CHECK_NOT_IMPLEMENTED                   = 1178
+ER_CANT_DO_THIS_DURING_AN_TRANSACTION      = 1179
+ER_ERROR_DURING_COMMIT                     = 1180
+ER_ERROR_DURING_ROLLBACK                   = 1181
+ER_ERROR_DURING_FLUSH_LOGS                 = 1182
+ER_ERROR_DURING_CHECKPOINT                 = 1183
+ER_NEW_ABORTING_CONNECTION                 = 1184
+ER_DUMP_NOT_IMPLEMENTED                    = 1185
+ER_FLUSH_MASTER_BINLOG_CLOSED              = 1186
+ER_INDEX_REBUILD                           = 1187
+ER_MASTER                                  = 1188
+ER_MASTER_NET_READ                         = 1189
+ER_MASTER_NET_WRITE                        = 1190
+ER_FT_MATCHING_KEY_NOT_FOUND               = 1191
+ER_LOCK_OR_ACTIVE_TRANSACTION              = 1192
+ER_UNKNOWN_SYSTEM_VARIABLE                 = 1193
+ER_CRASHED_ON_USAGE                        = 1194
+ER_CRASHED_ON_REPAIR                       = 1195
+ER_WARNING_NOT_COMPLETE_ROLLBACK           = 1196
+ER_TRANS_CACHE_FULL                        = 1197
+ER_SLAVE_MUST_STOP                         = 1198
+ER_SLAVE_NOT_RUNNING                       = 1199
+ER_BAD_SLAVE                               = 1200
+ER_MASTER_INFO                             = 1201
+ER_SLAVE_THREAD                            = 1202
+ER_TOO_MANY_USER_CONNECTIONS               = 1203
+ER_SET_CONSTANTS_ONLY                      = 1204
+ER_LOCK_WAIT_TIMEOUT                       = 1205
+ER_LOCK_TABLE_FULL                         = 1206
+ER_READ_ONLY_TRANSACTION                   = 1207
+ER_DROP_DB_WITH_READ_LOCK                  = 1208
+ER_CREATE_DB_WITH_READ_LOCK                = 1209
+ER_WRONG_ARGUMENTS                         = 1210
+ER_NO_PERMISSION_TO_CREATE_USER            = 1211
+ER_UNION_TABLES_IN_DIFFERENT_DIR           = 1212
+ER_LOCK_DEADLOCK                           = 1213
+ER_TABLE_CANT_HANDLE_FT                    = 1214
+ER_CANNOT_ADD_FOREIGN                      = 1215
+ER_NO_REFERENCED_ROW                       = 1216
+ER_ROW_IS_REFERENCED                       = 1217
+ER_CONNECT_TO_MASTER                       = 1218
+ER_QUERY_ON_MASTER                         = 1219
+ER_ERROR_WHEN_EXECUTING_COMMAND            = 1220
+ER_WRONG_USAGE                             = 1221
+ER_WRONG_NUMBER_OF_COLUMNS_IN_SELECT       = 1222
+ER_CANT_UPDATE_WITH_READLOCK               = 1223
+ER_MIXING_NOT_ALLOWED                      = 1224
+ER_DUP_ARGUMENT                            = 1225
+ER_USER_LIMIT_REACHED                      = 1226
+ER_SPECIFIC_ACCESS_DENIED_ERROR            = 1227
+ER_LOCAL_VARIABLE                          = 1228
+ER_GLOBAL_VARIABLE                         = 1229
+ER_NO_DEFAULT                              = 1230
+ER_WRONG_VALUE_FOR_VAR                     = 1231
+ER_WRONG_TYPE_FOR_VAR                      = 1232
+ER_VAR_CANT_BE_READ                        = 1233
+ER_CANT_USE_OPTION_HERE                    = 1234
+ER_NOT_SUPPORTED_YET                       = 1235
+ER_MASTER_FATAL_ERROR_READING_BINLOG       = 1236
+ER_SLAVE_IGNORED_TABLE                     = 1237
+ER_INCORRECT_GLOBAL_LOCAL_VAR              = 1238
+ER_WRONG_FK_DEF                            = 1239
+ER_KEY_REF_DO_NOT_MATCH_TABLE_REF          = 1240
+ER_OPERAND_COLUMNS                         = 1241
+ER_SUBQUERY_NO_1_ROW                       = 1242
+ER_UNKNOWN_STMT_HANDLER                    = 1243
+ER_CORRUPT_HELP_DB                         = 1244
+ER_CYCLIC_REFERENCE                        = 1245
+ER_AUTO_CONVERT                            = 1246
+ER_ILLEGAL_REFERENCE                       = 1247
+ER_DERIVED_MUST_HAVE_ALIAS                 = 1248
+ER_SELECT_REDUCED                          = 1249
+ER_TABLENAME_NOT_ALLOWED_HERE              = 1250
+ER_NOT_SUPPORTED_AUTH_MODE                 = 1251
+ER_SPATIAL_CANT_HAVE_NULL                  = 1252
+ER_COLLATION_CHARSET_MISMATCH              = 1253
+ER_SLAVE_WAS_RUNNING                       = 1254
+ER_SLAVE_WAS_NOT_RUNNING                   = 1255
+ER_TOO_BIG_FOR_UNCOMPRESS                  = 1256
+ER_ZLIB_Z_MEM_ERROR                        = 1257
+ER_ZLIB_Z_BUF_ERROR                        = 1258
+ER_ZLIB_Z_DATA_ERROR                       = 1259
+ER_CUT_VALUE_GROUP_CONCAT                  = 1260
+ER_WARN_TOO_FEW_RECORDS                    = 1261
+ER_WARN_TOO_MANY_RECORDS                   = 1262
+ER_WARN_NULL_TO_NOTNULL                    = 1263
+ER_WARN_DATA_OUT_OF_RANGE                  = 1264
+WARN_DATA_TRUNCATED                        = 1265
+ER_WARN_USING_OTHER_HANDLER                = 1266
+ER_CANT_AGGREGATE_2COLLATIONS              = 1267
+ER_DROP_USER                               = 1268
+ER_REVOKE_GRANTS                           = 1269
+ER_CANT_AGGREGATE_3COLLATIONS              = 1270
+ER_CANT_AGGREGATE_NCOLLATIONS              = 1271
+ER_VARIABLE_IS_NOT_STRUCT                  = 1272
+ER_UNKNOWN_COLLATION                       = 1273
+ER_SLAVE_IGNORED_SSL_PARAMS                = 1274
+ER_SERVER_IS_IN_SECURE_AUTH_MODE           = 1275
+ER_WARN_FIELD_RESOLVED                     = 1276
+ER_BAD_SLAVE_UNTIL_COND                    = 1277
+ER_MISSING_SKIP_SLAVE                      = 1278
+ER_UNTIL_COND_IGNORED                      = 1279
+ER_WRONG_NAME_FOR_INDEX                    = 1280
+ER_WRONG_NAME_FOR_CATALOG                  = 1281
+ER_WARN_QC_RESIZE                          = 1282
+ER_BAD_FT_COLUMN                           = 1283
+ER_UNKNOWN_KEY_CACHE                       = 1284
+ER_WARN_HOSTNAME_WONT_WORK                 = 1285
+ER_UNKNOWN_STORAGE_ENGINE                  = 1286
+ER_WARN_DEPRECATED_SYNTAX                  = 1287
+ER_NON_UPDATABLE_TABLE                     = 1288
+ER_FEATURE_DISABLED                        = 1289
+ER_OPTION_PREVENTS_STATEMENT               = 1290
+ER_DUPLICATED_VALUE_IN_TYPE                = 1291
+ER_TRUNCATED_WRONG_VALUE                   = 1292
+ER_TOO_MUCH_AUTO_TIMESTAMP_COLS            = 1293
+ER_INVALID_ON_UPDATE                       = 1294
+ER_UNSUPPORTED_PS                          = 1295
+ER_GET_ERRMSG                              = 1296
+ER_GET_TEMPORARY_ERRMSG                    = 1297
+ER_UNKNOWN_TIME_ZONE                       = 1298
+ER_WARN_INVALID_TIMESTAMP                  = 1299
+ER_INVALID_CHARACTER_STRING                = 1300
+ER_WARN_ALLOWED_PACKET_OVERFLOWED          = 1301
+ER_CONFLICTING_DECLARATIONS                = 1302
+ER_SP_NO_RECURSIVE_CREATE                  = 1303
+ER_SP_ALREADY_EXISTS                       = 1304
+ER_SP_DOES_NOT_EXIST                       = 1305
+ER_SP_DROP_FAILED                          = 1306
+ER_SP_STORE_FAILED                         = 1307
+ER_SP_LILABEL_MISMATCH                     = 1308
+ER_SP_LABEL_REDEFINE                       = 1309
+ER_SP_LABEL_MISMATCH                       = 1310
+ER_SP_UNINIT_VAR                           = 1311
+ER_SP_BADSELECT                            = 1312
+ER_SP_BADRETURN                            = 1313
+ER_SP_BADSTATEMENT                         = 1314
+ER_UPDATE_LOG_DEPRECATED_IGNORED           = 1315
+ER_UPDATE_LOG_DEPRECATED_TRANSLATED        = 1316
+ER_QUERY_INTERRUPTED                       = 1317
+ER_SP_WRONG_NO_OF_ARGS                     = 1318
+ER_SP_COND_MISMATCH                        = 1319
+ER_SP_NORETURN                             = 1320
+ER_SP_NORETURNEND                          = 1321
+ER_SP_BAD_CURSOR_QUERY                     = 1322
+ER_SP_BAD_CURSOR_SELECT                    = 1323
+ER_SP_CURSOR_MISMATCH                      = 1324
+ER_SP_CURSOR_ALREADY_OPEN                  = 1325
+ER_SP_CURSOR_NOT_OPEN                      = 1326
+ER_SP_UNDECLARED_VAR                       = 1327
+ER_SP_WRONG_NO_OF_FETCH_ARGS               = 1328
+ER_SP_FETCH_NO_DATA                        = 1329
+ER_SP_DUP_PARAM                            = 1330
+ER_SP_DUP_VAR                              = 1331
+ER_SP_DUP_COND                             = 1332
+ER_SP_DUP_CURS                             = 1333
+ER_SP_CANT_ALTER                           = 1334
+ER_SP_SUBSELECT_NYI                        = 1335
+ER_STMT_NOT_ALLOWED_IN_SF_OR_TRG           = 1336
+ER_SP_VARCOND_AFTER_CURSHNDLR              = 1337
+ER_SP_CURSOR_AFTER_HANDLER                 = 1338
+ER_SP_CASE_NOT_FOUND                       = 1339
+ER_FPARSER_TOO_BIG_FILE                    = 1340
+ER_FPARSER_BAD_HEADER                      = 1341
+ER_FPARSER_EOF_IN_COMMENT                  = 1342
+ER_FPARSER_ERROR_IN_PARAMETER              = 1343
+ER_FPARSER_EOF_IN_UNKNOWN_PARAMETER        = 1344
+ER_VIEW_NO_EXPLAIN                         = 1345
+ER_FRM_UNKNOWN_TYPE                        = 1346
+ER_WRONG_OBJECT                            = 1347
+ER_NONUPDATEABLE_COLUMN                    = 1348
+ER_VIEW_SELECT_DERIVED                     = 1349
+ER_VIEW_SELECT_CLAUSE                      = 1350
+ER_VIEW_SELECT_VARIABLE                    = 1351
+ER_VIEW_SELECT_TMPTABLE                    = 1352
+ER_VIEW_WRONG_LIST                         = 1353
+ER_WARN_VIEW_MERGE                         = 1354
+ER_WARN_VIEW_WITHOUT_KEY                   = 1355
+ER_VIEW_INVALID                            = 1356
+ER_SP_NO_DROP_SP                           = 1357
+ER_SP_GOTO_IN_HNDLR                        = 1358
+ER_TRG_ALREADY_EXISTS                      = 1359
+ER_TRG_DOES_NOT_EXIST                      = 1360
+ER_TRG_ON_VIEW_OR_TEMP_TABLE               = 1361
+ER_TRG_CANT_CHANGE_ROW                     = 1362
+ER_TRG_NO_SUCH_ROW_IN_TRG                  = 1363
+ER_NO_DEFAULT_FOR_FIELD                    = 1364
+ER_DIVISION_BY_ZERO                        = 1365
+ER_TRUNCATED_WRONG_VALUE_FOR_FIELD         = 1366
+ER_ILLEGAL_VALUE_FOR_TYPE                  = 1367
+ER_VIEW_NONUPD_CHECK                       = 1368
+ER_VIEW_CHECK_FAILED                       = 1369
+ER_PROCACCESS_DENIED_ERROR                 = 1370
+ER_RELAY_LOG_FAIL                          = 1371
+ER_PASSWD_LENGTH                           = 1372
+ER_UNKNOWN_TARGET_BINLOG                   = 1373
+ER_IO_ERR_LOG_INDEX_READ                   = 1374
+ER_BINLOG_PURGE_PROHIBITED                 = 1375
+ER_FSEEK_FAIL                              = 1376
+ER_BINLOG_PURGE_FATAL_ERR                  = 1377
+ER_LOG_IN_USE                              = 1378
+ER_LOG_PURGE_UNKNOWN_ERR                   = 1379
+ER_RELAY_LOG_INIT                          = 1380
+ER_NO_BINARY_LOGGING                       = 1381
+ER_RESERVED_SYNTAX                         = 1382
+ER_WSAS_FAILED                             = 1383
+ER_DIFF_GROUPS_PROC                        = 1384
+ER_NO_GROUP_FOR_PROC                       = 1385
+ER_ORDER_WITH_PROC                         = 1386
+ER_LOGGING_PROHIBIT_CHANGING_OF            = 1387
+ER_NO_FILE_MAPPING                         = 1388
+ER_WRONG_MAGIC                             = 1389
+ER_PS_MANY_PARAM                           = 1390
+ER_KEY_PART_0                              = 1391
+ER_VIEW_CHECKSUM                           = 1392
+ER_VIEW_MULTIUPDATE                        = 1393
+ER_VIEW_NO_INSERT_FIELD_LIST               = 1394
+ER_VIEW_DELETE_MERGE_VIEW                  = 1395
+ER_CANNOT_USER                             = 1396
+ER_XAER_NOTA                               = 1397
+ER_XAER_INVAL                              = 1398
+ER_XAER_RMFAIL                             = 1399
+ER_XAER_OUTSIDE                            = 1400
+ER_XAER_RMERR                              = 1401
+ER_XA_RBROLLBACK                           = 1402
+ER_NONEXISTING_PROC_GRANT                  = 1403
+ER_PROC_AUTO_GRANT_FAIL                    = 1404
+ER_PROC_AUTO_REVOKE_FAIL                   = 1405
+ER_DATA_TOO_LONG                           = 1406
+ER_SP_BAD_SQLSTATE                         = 1407
+ER_STARTUP                                 = 1408
+ER_LOAD_FROM_FIXED_SIZE_ROWS_TO_VAR        = 1409
+ER_CANT_CREATE_USER_WITH_GRANT             = 1410
+ER_WRONG_VALUE_FOR_TYPE                    = 1411
+ER_TABLE_DEF_CHANGED                       = 1412
+ER_SP_DUP_HANDLER                          = 1413
+ER_SP_NOT_VAR_ARG                          = 1414
+ER_SP_NO_RETSET                            = 1415
+ER_CANT_CREATE_GEOMETRY_OBJECT             = 1416
+ER_FAILED_ROUTINE_BREAK_BINLOG             = 1417
+ER_BINLOG_UNSAFE_ROUTINE                   = 1418
+ER_BINLOG_CREATE_ROUTINE_NEED_SUPER        = 1419
+ER_EXEC_STMT_WITH_OPEN_CURSOR              = 1420
+ER_STMT_HAS_NO_OPEN_CURSOR                 = 1421
+ER_COMMIT_NOT_ALLOWED_IN_SF_OR_TRG         = 1422
+ER_NO_DEFAULT_FOR_VIEW_FIELD               = 1423
+ER_SP_NO_RECURSION                         = 1424
+ER_TOO_BIG_SCALE                           = 1425
+ER_TOO_BIG_PRECISION                       = 1426
+ER_M_BIGGER_THAN_D                         = 1427
+ER_WRONG_LOCK_OF_SYSTEM_TABLE              = 1428
+ER_CONNECT_TO_FOREIGN_DATA_SOURCE          = 1429
+ER_QUERY_ON_FOREIGN_DATA_SOURCE            = 1430
+ER_FOREIGN_DATA_SOURCE_DOESNT_EXIST        = 1431
+ER_FOREIGN_DATA_STRING_INVALID_CANT_CREATE = 1432
+ER_FOREIGN_DATA_STRING_INVALID             = 1433
+ER_CANT_CREATE_FEDERATED_TABLE             = 1434
+ER_TRG_IN_WRONG_SCHEMA                     = 1435
+ER_STACK_OVERRUN_NEED_MORE                 = 1436
+ER_TOO_LONG_BODY                           = 1437
+ER_WARN_CANT_DROP_DEFAULT_KEYCACHE         = 1438
+ER_TOO_BIG_DISPLAYWIDTH                    = 1439
+ER_XAER_DUPID                              = 1440
+ER_DATETIME_FUNCTION_OVERFLOW              = 1441
+ER_CANT_UPDATE_USED_TABLE_IN_SF_OR_TRG     = 1442
+ER_VIEW_PREVENT_UPDATE                     = 1443
+ER_PS_NO_RECURSION                         = 1444
+ER_SP_CANT_SET_AUTOCOMMIT                  = 1445
+ER_MALFORMED_DEFINER                       = 1446
+ER_VIEW_FRM_NO_USER                        = 1447
+ER_VIEW_OTHER_USER                         = 1448
+ER_NO_SUCH_USER                            = 1449
+ER_FORBID_SCHEMA_CHANGE                    = 1450
+ER_ROW_IS_REFERENCED_2                     = 1451
+ER_NO_REFERENCED_ROW_2                     = 1452
+ER_SP_BAD_VAR_SHADOW                       = 1453
+ER_TRG_NO_DEFINER                          = 1454
+ER_OLD_FILE_FORMAT                         = 1455
+ER_SP_RECURSION_LIMIT                      = 1456
+ER_SP_PROC_TABLE_CORRUPT                   = 1457
+ER_SP_WRONG_NAME                           = 1458
+ER_TABLE_NEEDS_UPGRADE                     = 1459
+ER_SP_NO_AGGREGATE                         = 1460
+ER_MAX_PREPARED_STMT_COUNT_REACHED         = 1461
+ER_VIEW_RECURSIVE                          = 1462
+ER_NON_GROUPING_FIELD_USED                 = 1463
+ER_TABLE_CANT_HANDLE_SPKEYS                = 1464
+ER_NO_TRIGGERS_ON_SYSTEM_SCHEMA            = 1465
+ER_REMOVED_SPACES                          = 1466
+ER_AUTOINC_READ_FAILED                     = 1467
+ER_USERNAME                                = 1468
+ER_HOSTNAME                                = 1469
+ER_WRONG_STRING_LENGTH                     = 1470
+ER_NON_INSERTABLE_TABLE                    = 1471
+)</pre>
+<p>
 MySQL protocol types.
+</p>
+<p>
+mymysql uses only some of them for send data to the MySQL server. Used
+MySQL types are marked with a comment contains mymysql type that uses it.
+</p>
 
-mymysql uses only some of them for send data to the MySQL server. Used MySQL
-types are marked with a comment contains mymysql type that uses it.
+<pre>const (
+MYSQL_TYPE_DECIMAL     = 0x00
+MYSQL_TYPE_TINY        = 0x01 <span class="comment">// int8, uint8</span>
+MYSQL_TYPE_SHORT       = 0x02 <span class="comment">// int16, uint16</span>
+MYSQL_TYPE_LONG        = 0x03 <span class="comment">// int32, uint32</span>
+MYSQL_TYPE_FLOAT       = 0x04 <span class="comment">// float32</span>
+MYSQL_TYPE_DOUBLE      = 0x05 <span class="comment">// float64</span>
+MYSQL_TYPE_NULL        = 0x06 <span class="comment">// nil</span>
+MYSQL_TYPE_TIMESTAMP   = 0x07 <span class="comment">// *Timestamp</span>
+MYSQL_TYPE_LONGLONG    = 0x08 <span class="comment">// int64, uint64</span>
+MYSQL_TYPE_INT24       = 0x09
+MYSQL_TYPE_DATE        = 0x0a
+MYSQL_TYPE_TIME        = 0x0b
+MYSQL_TYPE_DATETIME    = 0x0c <span class="comment">// *Datetime</span>
+MYSQL_TYPE_YEAR        = 0x0d
+MYSQL_TYPE_NEWDATE     = 0x0e
+MYSQL_TYPE_VARCHAR     = 0x0f
+MYSQL_TYPE_BIT         = 0x10
+MYSQL_TYPE_NEWDECIMAL  = 0xf6
+MYSQL_TYPE_ENUM        = 0xf7
+MYSQL_TYPE_SET         = 0xf8
+MYSQL_TYPE_TINY_BLOB   = 0xf9
+MYSQL_TYPE_MEDIUM_BLOB = 0xfa
+MYSQL_TYPE_LONG_BLOB   = 0xfb
+MYSQL_TYPE_BLOB        = 0xfc <span class="comment">// Blob</span>
+MYSQL_TYPE_VAR_STRING  = 0xfd <span class="comment">// []byte</span>
+MYSQL_TYPE_STRING      = 0xfe <span class="comment">// string</span>
+MYSQL_TYPE_GEOMETRY    = 0xff
 
-
-    const (
-
-        MYSQL_TYPE_DECIMAL     = 0x00
-
-        MYSQL_TYPE_TINY        = 0x01 // int8, uint8
-
-        MYSQL_TYPE_SHORT       = 0x02 // int16, uint16
-
-        MYSQL_TYPE_LONG        = 0x03 // int32, uint32
-
-        MYSQL_TYPE_FLOAT       = 0x04 // float32
-
-        MYSQL_TYPE_DOUBLE      = 0x05 // float64
-
-        MYSQL_TYPE_NULL        = 0x06 // nil
-
-        MYSQL_TYPE_TIMESTAMP   = 0x07 // *Timestamp
-
-        MYSQL_TYPE_LONGLONG    = 0x08 // int64, uint64
-
-        MYSQL_TYPE_INT24       = 0x09
-
-        MYSQL_TYPE_DATE        = 0x0a
-
-        MYSQL_TYPE_TIME        = 0x0b
-
-        MYSQL_TYPE_DATETIME    = 0x0c // *Datetime
-
-        MYSQL_TYPE_YEAR        = 0x0d
-
-        MYSQL_TYPE_NEWDATE     = 0x0e
-
-        MYSQL_TYPE_VARCHAR     = 0x0f
-
-        MYSQL_TYPE_BIT         = 0x10
-
-        MYSQL_TYPE_NEWDECIMAL  = 0xf6
-
-        MYSQL_TYPE_ENUM        = 0xf7
-
-        MYSQL_TYPE_SET         = 0xf8
-
-        MYSQL_TYPE_TINY_BLOB   = 0xf9
-
-        MYSQL_TYPE_MEDIUM_BLOB = 0xfa
-
-        MYSQL_TYPE_LONG_BLOB   = 0xfb
-
-        MYSQL_TYPE_BLOB        = 0xfc // Blob
-
-        MYSQL_TYPE_VAR_STRING  = 0xfd // []byte
-
-        MYSQL_TYPE_STRING      = 0xfe // string
-
-        MYSQL_TYPE_GEOMETRY    = 0xff
-
-
-        MYSQL_UNSIGNED_MASK = uint16(1 << 15)
-
-    )
-
-Mapping of MySQL types to (prefered) protocol types. Use it if you create your
-own Raw value.
-
+MYSQL_UNSIGNED_MASK = uint16(1 &lt;&lt; 15)
+)</pre>
+<p>
+Mapping of MySQL types to (prefered) protocol types. Use it if you create
+your own Raw value.
+</p>
+<p>
 Comments contains corresponding types used by mymysql. string type may be
-replaced by []byte type and vice versa. []byte type is native for sending on a
-network, so any string is converted to it before sending. Than for better
-preformance use []byte.
-
-
-    const (
-
-        // Client send and receive, mymysql representation for send / receive
-
-        TINYINT   = MYSQL_TYPE_TINY      // int8 / int8
-
-        SMALLINT  = MYSQL_TYPE_SHORT     // int16 / int16
-
-        INT       = MYSQL_TYPE_LONG      // int32 / int32
-
-        BIGINT    = MYSQL_TYPE_LONGLONG  // int64 / int64
-
-        FLOAT     = MYSQL_TYPE_FLOAT     // float32 / float32
-
-        DOUBLE    = MYSQL_TYPE_DOUBLE    // float64 / float32
-
-        TIME      = MYSQL_TYPE_TIME      // *Datetime / *Datetime
-
-        DATE      = MYSQL_TYPE_DATE      // *Datetime / *Datetime
-
-        DATETIME  = MYSQL_TYPE_DATETIME  // *Datetime / *Datetime
-
-        TIMESTAMP = MYSQL_TYPE_TIMESTAMP // *Timestamp / *Datetime
-
-        CHAR      = MYSQL_TYPE_STRING    // string / []byte
-
-        BLOB      = MYSQL_TYPE_BLOB      // Blob / []byte
-
-        NULL      = MYSQL_TYPE_NULL      // nil
-
-
-
-        // Client send only, mymysql representation for send
-
-        OUT_TEXT      = MYSQL_TYPE_STRING // string
-
-        OUT_VARCHAR   = MYSQL_TYPE_STRING // string
-
-        OUT_BINARY    = MYSQL_TYPE_BLOB   // Blob
-
-        OUT_VARBINARY = MYSQL_TYPE_BLOB   // Blob
-
-
-
-        // Client receive only, mymysql representation for receive
-
-        IN_MEDIUMINT  = MYSQL_TYPE_INT24       // int32
-
-        IN_YEAR       = MYSQL_TYPE_SHORT       // int16
-
-        IN_BINARY     = MYSQL_TYPE_STRING      // []byte
-
-        IN_VARCHAR    = MYSQL_TYPE_VAR_STRING  // []byte
-
-        IN_VARBINARY  = MYSQL_TYPE_VAR_STRING  // []byte
-
-        IN_TINYBLOB   = MYSQL_TYPE_TINY_BLOB   // []byte
-
-        IN_TINYTEXT   = MYSQL_TYPE_TINY_BLOB   // []byte
-
-        IN_TEXT       = MYSQL_TYPE_BLOB        // []byte
-
-        IN_MEDIUMBLOB = MYSQL_TYPE_MEDIUM_BLOB // []byte
-
-        IN_MEDIUMTEXT = MYSQL_TYPE_MEDIUM_BLOB // []byte
-
-        IN_LONGBLOB   = MYSQL_TYPE_LONG_BLOB   // []byte
-
-        IN_LONGTEXT   = MYSQL_TYPE_LONG_BLOB   // []byte
-
-
-
-        // MySQL 5.x specific
-
-        IN_DECIMAL = MYSQL_TYPE_NEWDECIMAL // TODO
-
-        IN_BIT     = MYSQL_TYPE_BIT        // []byte
-
-    )
-
-## Variables
-
-
-    var (
-
-        SEQ_ERROR             = os.NewError("packet sequence error")
-
-        PKT_ERROR             = os.NewError("malformed packet")
-
-        PKT_LONG_ERROR        = os.NewError("packet too long")
-
-        UNEXP_NULL_LCS_ERROR  = os.NewError("unexpected null LCS")
-
-        UNEXP_NULL_LCB_ERROR  = os.NewError("unexpected null LCB")
-
-        UNEXP_NULL_DATE_ERROR = os.NewError("unexpected null datetime")
-
-        UNK_RESULT_PKT_ERROR  = os.NewError("unexpected or unknown result
-packet")
-
-        NOT_CONN_ERROR        = os.NewError("not connected")
-
-        ALREDY_CONN_ERROR     = os.NewError("not connected")
-
-        BAD_RESULT_ERROR      = os.NewError("unexpected result")
-
-        UNREADED_ROWS_ERROR   = os.NewError("there are unreaded rows")
-
-        BIND_COUNT_ERROR      = os.NewError("wrong number of values for bind")
-
-        BIND_UNK_TYPE         = os.NewError("unknown value type for bind")
-
-        RESULT_COUNT_ERROR    = os.NewError("wrong number of result columns")
-
-        BAD_COMMAND_ERROR     = os.NewError("comand isn't text SQL nor
-*Statement")
-
-        WRONG_DATE_LEN_ERROR  = os.NewError("wrong datetime/timestamp length")
-
-        UNK_MYSQL_TYPE_ERROR  = os.NewError("unknown MySQL type")
-
-        WRONG_PARAM_NUM_ERROR = os.NewError("wrong parameter number")
-
-        UNK_DATA_TYPE_ERROR   = os.NewError("unknown data source type")
-
-        SMALL_PKT_SIZE_ERROR  = os.NewError("specified packet size is to
-small")
-
-    )
-
-## func [DecodeU16][72]
-
-`func DecodeU16(buf []byte) uint16`
-
-## func [DecodeU24][73]
-
-`func DecodeU24(buf []byte) uint32`
-
-## func [DecodeU32][74]
-
-`func DecodeU32(buf []byte) uint32`
-
-## func [DecodeU64][75]
-
-`func DecodeU64(buf []byte) (rv uint64)`
-
-## func [EncodeDatetime][76]
-
-`func EncodeDatetime(dt *Datetime) *[]byte`
-
-## func [EncodeU16][77]
-
-`func EncodeU16(val uint16) *[]byte`
-
-## func [EncodeU24][78]
-
-`func EncodeU24(val uint32) *[]byte`
-
-## func [EncodeU32][79]
-
-`func EncodeU32(val uint32) *[]byte`
-
-## func [EncodeU64][80]
-
-`func EncodeU64(val uint64) *[]byte`
-
-## func [IsDatetimeZero][81]
-
-`func IsDatetimeZero(dt *Datetime) bool`
-
-## func [IsNetErr][82]
-
-`func IsNetErr(err os.Error) bool`
-
+replaced by []byte type and vice versa. []byte type is native for sending
+on a network, so any string is converted to it before sending. Than for
+better preformance use []byte.
+</p>
+
+<pre>const (
+<span class="comment">// Client send and receive, mymysql representation for send / receive</span>
+TINYINT   = MYSQL_TYPE_TINY      <span class="comment">// int8 / int8</span>
+SMALLINT  = MYSQL_TYPE_SHORT     <span class="comment">// int16 / int16</span>
+INT       = MYSQL_TYPE_LONG      <span class="comment">// int32 / int32</span>
+BIGINT    = MYSQL_TYPE_LONGLONG  <span class="comment">// int64 / int64</span>
+FLOAT     = MYSQL_TYPE_FLOAT     <span class="comment">// float32 / float32</span>
+DOUBLE    = MYSQL_TYPE_DOUBLE    <span class="comment">// float64 / float32</span>
+TIME      = MYSQL_TYPE_TIME      <span class="comment">// *Datetime / *Datetime</span>
+DATE      = MYSQL_TYPE_DATE      <span class="comment">// *Datetime / *Datetime</span>
+DATETIME  = MYSQL_TYPE_DATETIME  <span class="comment">// *Datetime / *Datetime</span>
+TIMESTAMP = MYSQL_TYPE_TIMESTAMP <span class="comment">// *Timestamp / *Datetime</span>
+CHAR      = MYSQL_TYPE_STRING    <span class="comment">// string / []byte</span>
+BLOB      = MYSQL_TYPE_BLOB      <span class="comment">// Blob / []byte</span>
+NULL      = MYSQL_TYPE_NULL      <span class="comment">// nil</span>
+
+
+<span class="comment">// Client send only, mymysql representation for send</span>
+OUT_TEXT      = MYSQL_TYPE_STRING <span class="comment">// string</span>
+OUT_VARCHAR   = MYSQL_TYPE_STRING <span class="comment">// string</span>
+OUT_BINARY    = MYSQL_TYPE_BLOB   <span class="comment">// Blob</span>
+OUT_VARBINARY = MYSQL_TYPE_BLOB   <span class="comment">// Blob</span>
+
+
+<span class="comment">// Client receive only, mymysql representation for receive</span>
+IN_MEDIUMINT  = MYSQL_TYPE_INT24       <span class="comment">// int32</span>
+IN_YEAR       = MYSQL_TYPE_SHORT       <span class="comment">// int16</span>
+IN_BINARY     = MYSQL_TYPE_STRING      <span class="comment">// []byte</span>
+IN_VARCHAR    = MYSQL_TYPE_VAR_STRING  <span class="comment">// []byte</span>
+IN_VARBINARY  = MYSQL_TYPE_VAR_STRING  <span class="comment">// []byte</span>
+IN_TINYBLOB   = MYSQL_TYPE_TINY_BLOB   <span class="comment">// []byte</span>
+IN_TINYTEXT   = MYSQL_TYPE_TINY_BLOB   <span class="comment">// []byte</span>
+IN_TEXT       = MYSQL_TYPE_BLOB        <span class="comment">// []byte</span>
+IN_MEDIUMBLOB = MYSQL_TYPE_MEDIUM_BLOB <span class="comment">// []byte</span>
+IN_MEDIUMTEXT = MYSQL_TYPE_MEDIUM_BLOB <span class="comment">// []byte</span>
+IN_LONGBLOB   = MYSQL_TYPE_LONG_BLOB   <span class="comment">// []byte</span>
+IN_LONGTEXT   = MYSQL_TYPE_LONG_BLOB   <span class="comment">// []byte</span>
+
+
+<span class="comment">// MySQL 5.x specific</span>
+IN_DECIMAL = MYSQL_TYPE_NEWDECIMAL <span class="comment">// TODO</span>
+IN_BIT     = MYSQL_TYPE_BIT        <span class="comment">// []byte</span>
+)</pre>
+<h2 id="Variables">Variables</h2>
+
+<pre>var (
+SEQ_ERROR             = os.NewError(&#34;packet sequence error&#34;)
+PKT_ERROR             = os.NewError(&#34;malformed packet&#34;)
+PKT_LONG_ERROR        = os.NewError(&#34;packet too long&#34;)
+UNEXP_NULL_LCS_ERROR  = os.NewError(&#34;unexpected null LCS&#34;)
+UNEXP_NULL_LCB_ERROR  = os.NewError(&#34;unexpected null LCB&#34;)
+UNEXP_NULL_DATE_ERROR = os.NewError(&#34;unexpected null datetime&#34;)
+UNK_RESULT_PKT_ERROR  = os.NewError(&#34;unexpected or unknown result packet&#34;)
+NOT_CONN_ERROR        = os.NewError(&#34;not connected&#34;)
+ALREDY_CONN_ERROR     = os.NewError(&#34;not connected&#34;)
+BAD_RESULT_ERROR      = os.NewError(&#34;unexpected result&#34;)
+UNREADED_ROWS_ERROR   = os.NewError(&#34;there are unreaded rows&#34;)
+BIND_COUNT_ERROR      = os.NewError(&#34;wrong number of values for bind&#34;)
+BIND_UNK_TYPE         = os.NewError(&#34;unknown value type for bind&#34;)
+RESULT_COUNT_ERROR    = os.NewError(&#34;wrong number of result columns&#34;)
+BAD_COMMAND_ERROR     = os.NewError(&#34;comand isn&#39;t text SQL nor *Statement&#34;)
+WRONG_DATE_LEN_ERROR  = os.NewError(&#34;wrong datetime/timestamp length&#34;)
+UNK_MYSQL_TYPE_ERROR  = os.NewError(&#34;unknown MySQL type&#34;)
+WRONG_PARAM_NUM_ERROR = os.NewError(&#34;wrong parameter number&#34;)
+UNK_DATA_TYPE_ERROR   = os.NewError(&#34;unknown data source type&#34;)
+SMALL_PKT_SIZE_ERROR  = os.NewError(&#34;specified packet size is to small&#34;)
+)</pre>
+<h2 id="DecodeU16">func <a href="/mymysql/codecs.go#L9">DecodeU16</a></h2>
+<p><code>func DecodeU16(buf []byte) uint16</code></p>
+
+<h2 id="DecodeU24">func <a href="/mymysql/codecs.go#L18">DecodeU24</a></h2>
+<p><code>func DecodeU24(buf []byte) uint32</code></p>
+
+<h2 id="DecodeU32">func <a href="/mymysql/codecs.go#L27">DecodeU32</a></h2>
+<p><code>func DecodeU32(buf []byte) uint32</code></p>
+
+<h2 id="DecodeU64">func <a href="/mymysql/codecs.go#L37">DecodeU64</a></h2>
+<p><code>func DecodeU64(buf []byte) (rv uint64)</code></p>
+
+<h2 id="EncodeDatetime">func <a href="/mymysql/codecs.go#L324">EncodeDatetime</a></h2>
+<p><code>func EncodeDatetime(dt *Datetime) *[]byte</code></p>
+
+<h2 id="EncodeU16">func <a href="/mymysql/codecs.go#L49">EncodeU16</a></h2>
+<p><code>func EncodeU16(val uint16) *[]byte</code></p>
+
+<h2 id="EncodeU24">func <a href="/mymysql/codecs.go#L56">EncodeU24</a></h2>
+<p><code>func EncodeU24(val uint32) *[]byte</code></p>
+
+<h2 id="EncodeU32">func <a href="/mymysql/codecs.go#L63">EncodeU32</a></h2>
+<p><code>func EncodeU32(val uint32) *[]byte</code></p>
+
+<h2 id="EncodeU64">func <a href="/mymysql/codecs.go#L70">EncodeU64</a></h2>
+<p><code>func EncodeU64(val uint64) *[]byte</code></p>
+
+<h2 id="IsDatetimeZero">func <a href="/mymysql/common.go#L86">IsDatetimeZero</a></h2>
+<p><code>func IsDatetimeZero(dt *Datetime) bool</code></p>
+
+<h2 id="IsNetErr">func <a href="/mymysql/autoconnect.go#L12">IsNetErr</a></h2>
+<p><code>func IsNetErr(err os.Error) bool</code></p>
+<p>
 Return true if error is network error or UnexpectedEOF.
+</p>
 
-## func [NbinToNstr][83]
+<h2 id="NbinToNstr">func <a href="/mymysql/addons.go#L3">NbinToNstr</a></h2>
+<p><code>func NbinToNstr(nbin *[]byte) *string</code></p>
 
-`func NbinToNstr(nbin *[]byte) *string`
+<h2 id="NstrToNbin">func <a href="/mymysql/addons.go#L11">NstrToNbin</a></h2>
+<p><code>func NstrToNbin(nstr *string) *[]byte</code></p>
 
-## func [NstrToNbin][84]
+<h2 id="Blob">type <a href="/mymysql/binding.go#L46">Blob</a></h2>
 
-`func NstrToNbin(nstr *string) *[]byte`
+<p><pre>type Blob []byte</pre></p>
+<h2 id="Datetime">type <a href="/mymysql/binding.go#L16">Datetime</a></h2>
 
-## type [Blob][85]
+<p><pre>type Datetime struct {
+Year                             int16
+Month, Day, Hour, Minute, Second uint8
+Nanosec                          uint32
+}</pre></p>
+<h3 id="Datetime.TimeToDatetime">func <a href="/mymysql/common.go#L91">TimeToDatetime</a></h3>
+<p><code>func TimeToDatetime(tt *time.Time) *Datetime</code></p>
 
+<h3 id="Datetime.String">func (*Datetime) <a href="/mymysql/binding.go#L21">String</a></h3>
+<p><code>func (dt *Datetime) String() string</code></p>
 
-    type Blob []byte
+<h2 id="Error">type <a href="/mymysql/errors.go#L34">Error</a></h2>
+<p>
+If function/method returns error you can check returned error type, and if
+it is *mymy.Error it is error received from MySQL server. Next you can check
+Code for error number.
+</p>
 
-## type [Datetime][86]
+<p><pre>type Error struct {
+Code uint16
+Msg  []byte
+}</pre></p>
+<h3 id="Error.String">func (Error) <a href="/mymysql/errors.go#L39">String</a></h3>
+<p><code>func (err Error) String() string</code></p>
 
+<h2 id="Field">type <a href="/mymysql/result.go#L12">Field</a></h2>
 
-    type Datetime struct {
-
-        Year                             int16
-
-        Month, Day, Hour, Minute, Second uint8
-
-        Nanosec                          uint32
-
-    }
-
-### func [TimeToDatetime][87]
-
-`func TimeToDatetime(tt *time.Time) *Datetime`
-
-### func (*Datetime) [String][88]
-
-`func (dt *Datetime) String() string`
-
-## type [Error][89]
-
-If function/method returns error you can check returned error type, and if it
-is *mymy.Error it is error received from MySQL server. Next you can check Code
-for error number.
-
-
-    type Error struct {
-
-        Code uint16
-
-        Msg  []byte
-
-    }
-
-### func (Error) [String][90]
-
-`func (err Error) String() string`
-
-## type [Field][91]
-
-
-    type Field struct {
-
-        Catalog  string
-
-        Db       string
-
-        Table    string
-
-        OrgTable string
-
-        Name     string
-
-        OrgName  string
-
-        DispLen  uint32
-
-        //  Charset  uint16
-
-        Flags uint16
-
-        Type  byte
-
-        Scale byte
-
-    }
-
-## type [MySQL][92]
-
+<p><pre>type Field struct {
+Catalog  string
+Db       string
+Table    string
+OrgTable string
+Name     string
+OrgName  string
+DispLen  uint32
+<span class="comment">//  Charset  uint16</span>
+Flags uint16
+Type  byte
+Scale byte
+}</pre></p>
+<h2 id="MySQL">type <a href="/mymysql/mysql.go#L23">MySQL</a></h2>
+<p>
 MySQL connection handler
+</p>
 
+<p><pre>type MySQL struct {
 
-    type MySQL struct {
+<span class="comment">// Maximum packet size that client can accept from server.</span>
+<span class="comment">// Default 16*1024*1024-1. You may change it before connect.</span>
+MaxPktSize int
 
+<span class="comment">// Debug logging. You may change it at any time.</span>
+Debug bool
 
-        // Maximum packet size that client can accept from server.
+<span class="comment">// Maximum reconnect retries - for XxxAC methods. Default is 5 which</span>
+<span class="comment">// means 1+2+3+4+5 = 15 seconds before return an error.</span>
+MaxRetries int
+<span class="comment">// contains unexported fields</span>
+}</pre></p>
+<h3 id="MySQL.New">func <a href="/mymysql/mysql.go#L58">New</a></h3>
+<p><code>func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL)</code></p>
+<p>
+Create new MySQL handler. The first three arguments are passed to net.Bind
+for create connection. user and passwd are for authentication. Optional db
+is database name (you may not specifi it and use Use() method later).
+</p>
 
-        // Default 16*1024*1024-1. You may change it before connect.
-
-        MaxPktSize int
-
-
-        // Debug logging. You may change it at any time.
-
-        Debug bool
-
-
-        // Maximum reconnect retries - for XxxAC methods. Default is 5 which
-
-        // means 1+2+3+4+5 = 15 seconds before return an error.
-
-        MaxRetries int
-
-        // contains unexported fields
-
-    }
-
-### func [New][93]
-
-`func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL)`
-
-Create new MySQL handler. The first three arguments are passed to net.Bind for
-create connection. user and passwd are for authentication. Optional db is
-database name (you may not specifi it and use Use() method later).
-
-### func (*MySQL) [Close][94]
-
-`func (my *MySQL) Close() (err os.Error)`
-
+<h3 id="MySQL.Close">func (*MySQL) <a href="/mymysql/mysql.go#L126">Close</a></h3>
+<p><code>func (my *MySQL) Close() (err os.Error)</code></p>
+<p>
 Close connection to the server
+</p>
 
-### func (*MySQL) [Connect][95]
-
-`func (my *MySQL) Connect() (err os.Error)`
-
+<h3 id="MySQL.Connect">func (*MySQL) <a href="/mymysql/mysql.go#L99">Connect</a></h3>
+<p><code>func (my *MySQL) Connect() (err os.Error)</code></p>
+<p>
 Establishes a connection with MySQL server version 4.1 or later.
+</p>
 
-### func (*MySQL) [Ping][96]
-
-`func (my *MySQL) Ping() (err os.Error)`
-
+<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go#L333">Ping</a></h3>
+<p><code>func (my *MySQL) Ping() (err os.Error)</code></p>
+<p>
 Send MySQL PING to the server.
+</p>
 
-### func (*MySQL) [Prepare][97]
-
-`func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)`
-
+<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go#L374">Prepare</a></h3>
+<p><code>func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)</code></p>
+<p>
 Prepare server side statement. Return statement handler.
+</p>
 
-### func (*MySQL) [Query][98]
+<h3 id="MySQL.PrepareAC">func (*MySQL) <a href="/mymysql/autoconnect.go#L83">PrepareAC</a></h3>
+<p><code>func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error)</code></p>
+<p>
+Automatic connect/reconnect/repeat version of Prepare
+</p>
 
-`func (my *MySQL) Query(command interface{}, params ...interface{}) (rows
-[]*Row, res *Result, err os.Error)`
+<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go#L313">Query</a></h3>
+<p><code>func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
+<p>
+This call Start and next call GetRow as long as it reads all rows from the
+result. Next it returns all readed rows as the slice of rows.
+</p>
 
-This call Start and next call GetRow once or more times. It read all rows from
-connection and returns they as a slice.
+<h3 id="MySQL.QueryAC">func (*MySQL) <a href="/mymysql/autoconnect.go#L64">QueryAC</a></h3>
+<p><code>func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
+<p>
+Automatic connect/reconnect/repeat version of Query
+</p>
 
-### func (*MySQL) [QueryAC][99]
+<h3 id="MySQL.Reconnect">func (*MySQL) <a href="/mymysql/mysql.go#L141">Reconnect</a></h3>
+<p><code>func (my *MySQL) Reconnect() (err os.Error)</code></p>
+<p>
+Close and reopen connection in one, thread-safe operation.
+Ignore unreaded rows, reprepare all prepared statements.
+</p>
 
-`func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (rows
-[]*Row, res *Result, err os.Error)`
-
-Autoconnect/reconnect version of Query
-
-### func (*MySQL) [Reconnect][100]
-
-`func (my *MySQL) Reconnect() (err os.Error)`
-
-Close and reopen connection in one, thread safe operation. Ignore unreaded
-rows, reprepare all prepared statements.
-
-### func (*MySQL) [Start][101]
-
-`func (my *MySQL) Start(command interface{}, params ...interface{}) (res
-*Result, err os.Error)`
-
+<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go#L224">Start</a></h3>
+<p><code>func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)</code></p>
+<p>
 Start new query session.
-
+</p>
+<p>
 command can be SQL query (string) or a prepared statement (*Statement).
-
-If the command is a string and you specify the parameters, the SQL string will
-be a result of fmt.Sprintf(command, params...).
-
+</p>
+<p>
+If the command is a string and you specify the parameters, the SQL string
+will be a result of fmt.Sprintf(command, params...).
+</p>
+<p>
 If the command is a prepared statement, params will be binded to this
 statement before execution.
-
+</p>
+<p>
 You must get all result rows (if they exists) before next query.
+</p>
 
-### func (*MySQL) [Use][102]
+<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go#L619">ThreadId</a></h3>
+<p><code>func (my *MySQL) ThreadId() uint32</code></p>
+<p>
+Returns the thread ID of the current connection.
+</p>
 
-`func (my *MySQL) Use(dbname string) (err os.Error)`
-
+<h3 id="MySQL.Use">func (*MySQL) <a href="/mymysql/mysql.go#L176">Use</a></h3>
+<p><code>func (my *MySQL) Use(dbname string) (err os.Error)</code></p>
+<p>
 Change database
+</p>
 
-### func (*MySQL) [UseAC][103]
+<h3 id="MySQL.UseAC">func (*MySQL) <a href="/mymysql/autoconnect.go#L47">UseAC</a></h3>
+<p><code>func (my *MySQL) UseAC(dbname string) (err os.Error)</code></p>
+<p>
+Automatic connect/reconnect/repeat version of Use
+</p>
 
-`func (my *MySQL) UseAC(dbname string) (err os.Error)`
+<h2 id="Raw">type <a href="/mymysql/binding.go#L48">Raw</a></h2>
 
-Autoconnect/reconnect version of USE
+<p><pre>type Raw struct {
+Typ uint16
+Val *[]byte
+}</pre></p>
+<h2 id="Result">type <a href="/mymysql/result.go#L26">Result</a></h2>
 
-## type [Raw][104]
+<p><pre>type Result struct {
+FieldCount int
+Fields     []*Field       <span class="comment">// Fields table</span>
+Map        map[string]int <span class="comment">// Maps field name to column number</span>
 
+Message      []byte
+AffectedRows uint64
+InsertId     uint64
+WarningCount int
+Status       uint16
+<span class="comment">// contains unexported fields</span>
+}</pre></p>
+<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go#L304">End</a></h3>
+<p><code>func (res *Result) End() (err os.Error)</code></p>
+<p>
+Read all unreaded rows and discard them. This function is useful if you
+don&#39;t want to use the remaining rows. It has an impact only on current
+result. If there is multi result query, you must use NextResult method and
+read/discard all rows in this result, before use other method that sends
+data to the server.
+</p>
 
-    type Raw struct {
-
-        Typ uint16
-
-        Val *[]byte
-
-    }
-
-## type [Result][105]
-
-
-    type Result struct {
-
-        FieldCount int
-
-        Fields     []*Field       // Fields table
-
-        Map        map[string]int // Maps field name to column number
-
-
-        Message      []byte
-
-        AffectedRows uint64
-
-        InsertId     uint64
-
-        WarningCount int
-
-        Status       uint16
-
-        // contains unexported fields
-
-    }
-
-### func (*Result) [End][106]
-
-`func (res *Result) End() (err os.Error)`
-
-Read all unreaded rows and discard them. All the rows must be read before next
-query or other command.
-
-### func (*Result) [GetRow][107]
-
-`func (res *Result) GetRow() (row *Row, err os.Error)`
-
+<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go#L262">GetRow</a></h3>
+<p><code>func (res *Result) GetRow() (row *Row, err os.Error)</code></p>
+<p>
 Get the data row from a server. This method reads one row of result directly
 from network connection (without rows buffering on client side).
+</p>
 
-### func (*Result) [NextResult][108]
-
-`func (res *Result) NextResult() (next *Result, err os.Error)`
-
+<h3 id="Result.NextResult">func (*Result) <a href="/mymysql/mysql.go#L291">NextResult</a></h3>
+<p><code>func (res *Result) NextResult() (next *Result, err os.Error)</code></p>
+<p>
+This function is used when last query was the multi result query.
 Return the next result or nil if no more resuts exists.
+</p>
 
-## type [Row][109]
-
+<h2 id="Row">type <a href="/mymysql/result.go#L49">Row</a></h2>
+<p>
 Result row. Data field is a slice that contains values for any column of
 received row.
-
+</p>
+<p>
 If row is a result of ordinary text query, an element of Data field can be
 []byte slice, contained result text or nil if NULL is returned.
+</p>
+<p>
+If it is result of prepared statement execution, an element of Data field
+can be: intXX, uintXX, floatXX, []byte, *Datetime or nil.
+</p>
 
-If it is result of prepared statement execution, an element of Data field can
-be: intXX, uintXX, floatXX, []byte, *Datetime or nil.
-
-
-    type Row struct {
-
-        Data []interface{}
-
-    }
-
-### func (*Row) [Bin][110]
-
-`func (tr *Row) Bin(nn int) (bin []byte)`
-
+<p><pre>type Row struct {
+Data []interface{}
+}</pre></p>
+<h3 id="Row.Bin">func (*Row) <a href="/mymysql/result.go#L54">Bin</a></h3>
+<p><code>func (tr *Row) Bin(nn int) (bin []byte)</code></p>
+<p>
 Get the nn-th value and return it as []byte ([]byte{} if NULL)
+</p>
 
-### func (*Row) [Int][111]
-
-`func (tr *Row) Int(nn int) (val int)`
-
+<h3 id="Row.Int">func (*Row) <a href="/mymysql/result.go#L135">Int</a></h3>
+<p><code>func (tr *Row) Int(nn int) (val int)</code></p>
+<p>
 Get the nn-th value and return it as int. Return 0 if value is NULL or
 conversion is impossible.
+</p>
 
-### func (*Row) [IntErr][112]
-
-`func (tr *Row) IntErr(nn int) (val int, err os.Error)`
-
+<h3 id="Row.IntErr">func (*Row) <a href="/mymysql/result.go#L87">IntErr</a></h3>
+<p><code>func (tr *Row) IntErr(nn int) (val int, err os.Error)</code></p>
+<p>
 Get the nn-th value and return it as int (0 if NULL). Return error if
 conversion is impossible.
+</p>
 
-### func (*Row) [MustInt][113]
-
-`func (tr *Row) MustInt(nn int) (val int)`
-
+<h3 id="Row.MustInt">func (*Row) <a href="/mymysql/result.go#L125">MustInt</a></h3>
+<p><code>func (tr *Row) MustInt(nn int) (val int)</code></p>
+<p>
 Get the nn-th value and return it as int (0 if NULL). Panic if conversion is
 impossible.
+</p>
 
-### func (*Row) [MustUint][114]
-
-`func (tr *Row) MustUint(nn int) (val uint)`
-
+<h3 id="Row.MustUint">func (*Row) <a href="/mymysql/result.go#L168">MustUint</a></h3>
+<p><code>func (tr *Row) MustUint(nn int) (val uint)</code></p>
+<p>
 Get the nn-th value and return it as uint (0 if NULL). Panic if conversion is
 impossible.
+</p>
 
-### func (*Row) [Str][115]
+<h3 id="Row.Str">func (*Row) <a href="/mymysql/result.go#L71">Str</a></h3>
+<p><code>func (tr *Row) Str(nn int) (str string)</code></p>
+<p>
+Get the nn-th value and return it as string (&#34;&#34; if NULL)
+</p>
 
-`func (tr *Row) Str(nn int) (str string)`
-
-Get the nn-th value and return it as string ("" if NULL)
-
-### func (*Row) [Uint][116]
-
-`func (tr *Row) Uint(nn int) (val uint)`
-
+<h3 id="Row.Uint">func (*Row) <a href="/mymysql/result.go#L178">Uint</a></h3>
+<p><code>func (tr *Row) Uint(nn int) (val uint)</code></p>
+<p>
 Get the nn-th value and return it as uint. Return 0 if value is NULL or
 conversion is impossible.
+</p>
 
-### func (*Row) [UintErr][117]
-
-`func (tr *Row) UintErr(nn int) (val uint, err os.Error)`
-
+<h3 id="Row.UintErr">func (*Row) <a href="/mymysql/result.go#L142">UintErr</a></h3>
+<p><code>func (tr *Row) UintErr(nn int) (val uint, err os.Error)</code></p>
+<p>
 Get the nn-th value and return it as uint (0 if NULL). Return error if
 conversion is impossible.
+</p>
 
-## type [ServerInfo][118]
+<h2 id="Statement">type <a href="/mymysql/prepared.go#L7">Statement</a></h2>
 
+<p><pre>type Statement struct {
+Fields []*Field
+Map    map[string]int <span class="comment">// Maps field name to column number</span>
 
-    type ServerInfo struct {
+FieldCount   int
+ParamCount   int
+WarningCount int
+Status       uint16
+<span class="comment">// contains unexported fields</span>
+}</pre></p>
+<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go#L405">BindParams</a></h3>
+<p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>
+<p>
+Bind input data for the parameter markers in the SQL statement that was
+passed to Prepare.
+</p>
+<p>
+params may be a parameter list (slice), a struct or a pointer to the struct.
+A struct field can by value or pointer to value. A parameter (slice element)
+can be value, pointer to value or pointer to pointer to value.
+Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
+string, Datetime, Timestamp, Raw.
+</p>
 
-        // contains unexported fields
-
-    }
-
-## type [Statement][119]
-
-
-    type Statement struct {
-
-        Fields []*Field
-
-        Map    map[string]int // Maps field name to column number
-
-
-        FieldCount   int
-
-        ParamCount   int
-
-        WarningCount int
-
-        Status       uint16
-
-        // contains unexported fields
-
-    }
-
-### func (*Statement) [BindParams][120]
-
-`func (stmt *Statement) BindParams(params ...interface{})`
-
-Bind input data for the parameter markers in the SQL statement that was passed
-to Prepare.
-
-params may be a parameter list (slice), a struct or a pointer to the struct. A
-struct field can by value or pointer to value. A parameter (slice element) can
-be value, pointer to value or pointer to pointer to value. Values may be of
-the folowind types: intXX, uintXX, floatXX, []byte, Blob, string, Datetime,
-Timestamp, Raw.
-
-### func (*Statement) [Delete][121]
-
-`func (stmt *Statement) Delete() (err os.Error)`
-
+<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go#L486">Delete</a></h3>
+<p><code>func (stmt *Statement) Delete() (err os.Error)</code></p>
+<p>
 Destroy statement on server side. Client side handler is invalid after this
 command.
+</p>
 
-### func (*Statement) [Exec][122]
+<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go#L466">Exec</a></h3>
+<p><code>func (stmt *Statement) Exec() (rows []*Row, res *Result, err os.Error)</code></p>
+<p>
+This call Run and next call GetRow once or more times. It read all rows
+from connection and returns they as a slice.
+</p>
 
-`func (stmt *Statement) Exec(command interface{}, params ...interface{}) (rows
-[]*Row, res *Result, err os.Error)`
+<h3 id="Statement.ExecAC">func (*Statement) <a href="/mymysql/autoconnect.go#L100">ExecAC</a></h3>
+<p><code>func (stmt *Statement) ExecAC() (rows []*Row, res *Result, err os.Error)</code></p>
+<p>
+Automatic connect/reconnect/repeat version of Exec
+</p>
 
-This call Run and next call GetRow once or more times. It read all rows from
-connection and returns they as a slice.
-
-### func (*Statement) [Reset][123]
-
-`func (stmt *Statement) Reset() (err os.Error)`
-
+<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go#L513">Reset</a></h3>
+<p><code>func (stmt *Statement) Reset() (err os.Error)</code></p>
+<p>
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
+</p>
 
-### func (*Statement) [Run][124]
+<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go#L445">Run</a></h3>
+<p><code>func (stmt *Statement) Run() (res *Result, err os.Error)</code></p>
+<p>
+Execute prepared statement. If statement requires parameters you must
+bind them first. After this command you may use GetRow to retrieve data.
+</p>
 
-`func (stmt *Statement) Run() (res *Result, err os.Error)`
-
-Execute prepared statement. If statement requires parameters you must bind
-them first. After this command you may use GetRow to retrieve data.
-
-### func (*Statement) [SendLongData][125]
-
-`func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int)
-(err os.Error)`
-
-Send long data to MySQL server in chunks. You can call this method after Bind
-and before Run/Execute. It can be called multiple times for one parameter to
-send TEXT or BLOB data in chunks.
-
-pnum - Parameter number to associate the data with.
-
-data - Data source string, []byte or io.Reader.
-
+<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go#L553">SendLongData</a></h3>
+<p><code>func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)</code></p>
+<p>
+Send long data to MySQL server in chunks.
+You can call this method after Bind and before Run/Execute. It can be called
+multiple times for one parameter to send TEXT or BLOB data in chunks.
+</p>
+<p>
+pnum     - Parameter number to associate the data with.
+</p>
+<p>
+data     - Data source string, []byte or io.Reader.
+</p>
+<p>
 pkt_size - It must be must be greater than 6 and less or equal to MySQL
-max_allowed_packet variable. You can obtain value of this variable using such
-query: SHOW variables WHERE Variable_name = 'max_allowed_packet' If data
-source is io.Reader then (pkt_size - 6) is size of a buffer that will be
-allocated for reading.
-
-If you have data source of type string or []byte in one piece you may properly
-set pkt_size and call this method once. If you have data in multiple pieces
-you can call this method multiple times. If data source is io.Reader you
-should properly set pkt_size. Data will be readed from io.Reader and send in
-pieces to the server until EOF.
-
-## type [Timestamp][126]
-
-
-    type Timestamp Datetime
-
-### func [TimeToTimestamp][127]
-
-`func TimeToTimestamp(tt *time.Time) *Timestamp`
-
-### func (*Timestamp) [String][128]
-
-`func (ts *Timestamp) String() string`
-
-## Subdirectories
-
-Name
-
-
-Synopsis
-
-[..][129]
-
-[.git][130]
-
-[doc][131]
-
-[examples][132]
-
-   [1]: #DecodeU16
-
-   [2]: #DecodeU24
-
-   [3]: #DecodeU32
-
-   [4]: #DecodeU64
-
-   [5]: #EncodeDatetime
-
-   [6]: #EncodeU16
-
-   [7]: #EncodeU24
-
-   [8]: #EncodeU32
-
-   [9]: #EncodeU64
-
-   [10]: #IsDatetimeZero
-
-   [11]: #IsNetErr
-
-   [12]: #NbinToNstr
-
-   [13]: #NstrToNbin
-
-   [14]: #Blob
-
-   [15]: #Datetime
-
-   [16]: #Datetime.TimeToDatetime
-
-   [17]: #Datetime.String
-
-   [18]: #Error
-
-   [19]: #Error.String
-
-   [20]: #Field
-
-   [21]: #MySQL
-
-   [22]: #MySQL.New
-
-   [23]: #MySQL.Close
-
-   [24]: #MySQL.Connect
-
-   [25]: #MySQL.Ping
-
-   [26]: #MySQL.Prepare
-
-   [27]: #MySQL.Query
-
-   [28]: #MySQL.QueryAC
-
-   [29]: #MySQL.Reconnect
-
-   [30]: #MySQL.Start
-
-   [31]: #MySQL.Use
-
-   [32]: #MySQL.UseAC
-
-   [33]: #Raw
-
-   [34]: #Result
-
-   [35]: #Result.End
-
-   [36]: #Result.GetRow
-
-   [37]: #Result.NextResult
-
-   [38]: #Row
-
-   [39]: #Row.Bin
-
-   [40]: #Row.Int
-
-   [41]: #Row.IntErr
-
-   [42]: #Row.MustInt
-
-   [43]: #Row.MustUint
-
-   [44]: #Row.Str
-
-   [45]: #Row.Uint
-
-   [46]: #Row.UintErr
-
-   [47]: #ServerInfo
-
-   [48]: #Statement
-
-   [49]: #Statement.BindParams
-
-   [50]: #Statement.Delete
-
-   [51]: #Statement.Exec
-
-   [52]: #Statement.Reset
-
-   [53]: #Statement.Run
-
-   [54]: #Statement.SendLongData
-
-   [55]: #Timestamp
-
-   [56]: #Timestamp.TimeToTimestamp
-
-   [57]: #Timestamp.String
-
-   [58]: /mymysql/addons.go
-
-   [59]: /mymysql/autoconnect.go
-
-   [60]: /mymysql/binding.go
-
-   [61]: /mymysql/codecs.go
-
-   [62]: /mymysql/command.go
-
-   [63]: /mymysql/common.go
-
-   [64]: /mymysql/consts.go
-
-   [65]: /mymysql/errors.go
-
-   [66]: /mymysql/mysql.go
-
-   [67]: /mymysql/packet.go
-
-   [68]: /mymysql/prepared.go
-
-   [69]: /mymysql/result.go
-
-   [70]: /mymysql/unsafe.go
-
-   [71]: /mymysql/utils.go
-
-   [72]: /mymysql/codecs.go#L9
-
-   [73]: /mymysql/codecs.go#L18
-
-   [74]: /mymysql/codecs.go#L27
-
-   [75]: /mymysql/codecs.go#L37
-
-   [76]: /mymysql/codecs.go#L324
-
-   [77]: /mymysql/codecs.go#L49
-
-   [78]: /mymysql/codecs.go#L56
-
-   [79]: /mymysql/codecs.go#L63
-
-   [80]: /mymysql/codecs.go#L70
-
-   [81]: /mymysql/common.go#L86
-
-   [82]: /mymysql/autoconnect.go#L12
-
-   [83]: /mymysql/addons.go#L3
-
-   [84]: /mymysql/addons.go#L11
-
-   [85]: /mymysql/binding.go#L46
-
-   [86]: /mymysql/binding.go#L16
-
-   [87]: /mymysql/common.go#L91
-
-   [88]: /mymysql/binding.go#L21
-
-   [89]: /mymysql/errors.go#L34
-
-   [90]: /mymysql/errors.go#L39
-
-   [91]: /mymysql/result.go#L12
-
-   [92]: /mymysql/mysql.go#L23
-
-   [93]: /mymysql/mysql.go#L58
-
-   [94]: /mymysql/mysql.go#L122
-
-   [95]: /mymysql/mysql.go#L99
-
-   [96]: /mymysql/mysql.go#L325
-
-   [97]: /mymysql/mysql.go#L366
-
-   [98]: /mymysql/mysql.go#L305
-
-   [99]: /mymysql/autoconnect.go#L60
-
-   [100]: /mymysql/mysql.go#L137
-
-   [101]: /mymysql/mysql.go#L220
-
-   [102]: /mymysql/mysql.go#L172
-
-   [103]: /mymysql/autoconnect.go#L45
-
-   [104]: /mymysql/binding.go#L48
-
-   [105]: /mymysql/result.go#L26
-
-   [106]: /mymysql/mysql.go#L296
-
-   [107]: /mymysql/mysql.go#L258
-
-   [108]: /mymysql/mysql.go#L286
-
-   [109]: /mymysql/result.go#L49
-
-   [110]: /mymysql/result.go#L54
-
-   [111]: /mymysql/result.go#L135
-
-   [112]: /mymysql/result.go#L87
-
-   [113]: /mymysql/result.go#L125
-
-   [114]: /mymysql/result.go#L168
-
-   [115]: /mymysql/result.go#L71
-
-   [116]: /mymysql/result.go#L178
-
-   [117]: /mymysql/result.go#L142
-
-   [118]: /mymysql/mysql.go#L13
-
-   [119]: /mymysql/prepared.go#L7
-
-   [120]: /mymysql/mysql.go#L397
-
-   [121]: /mymysql/mysql.go#L479
-
-   [122]: /mymysql/mysql.go#L458
-
-   [123]: /mymysql/mysql.go#L501
-
-   [124]: /mymysql/mysql.go#L437
-
-   [125]: /mymysql/mysql.go#L540
-
-   [126]: /mymysql/binding.go#L41
-
-   [127]: /mymysql/common.go#L102
-
-   [128]: /mymysql/binding.go#L42
-
-   [129]: ..
-
-   [130]: .git
-
-   [131]: doc
-
-   [132]: examples
-
+max_allowed_packet variable. You can obtain value of this variable
+using such query: SHOW variables WHERE Variable_name = &#39;max_allowed_packet&#39;
+If data source is io.Reader then (pkt_size - 6) is size of a buffer that
+will be allocated for reading.
+</p>
+<p>
+If you have data source of type string or []byte in one piece you may
+properly set pkt_size and call this method once. If you have data in
+multiple pieces you can call this method multiple times. If data source is
+io.Reader you should properly set pkt_size. Data will be readed from
+io.Reader and send in pieces to the server until EOF.
+</p>
+
+<h2 id="Timestamp">type <a href="/mymysql/binding.go#L41">Timestamp</a></h2>
+
+<p><pre>type Timestamp Datetime</pre></p>
+<h3 id="Timestamp.TimeToTimestamp">func <a href="/mymysql/common.go#L102">TimeToTimestamp</a></h3>
+<p><code>func TimeToTimestamp(tt *time.Time) *Timestamp</code></p>
+
+<h3 id="Timestamp.String">func (*Timestamp) <a href="/mymysql/binding.go#L42">String</a></h3>
+<p><code>func (ts *Timestamp) String() string</code></p>
+
+<h2 id="Subdirectories">Subdirectories</h2>
+<p>
+<table class="layout">
+<tr>
+<th align="left" colspan="1">Name</th>
+<td width="25">&nbsp;</td>
+<th align="left">Synopsis</th>
+</tr>
+<tr>
+<th align="left"><a href="..">..</a></th>
+</tr>
+<tr>
+
+<td align="left" colspan="1"><a href=".git">.git</a></td>
+<td></td>
+<td align="left"></td>
+</tr>
+<tr>
+
+<td align="left" colspan="1"><a href="doc">doc</a></td>
+<td></td>
+<td align="left"></td>
+</tr>
+<tr>
+
+<td align="left" colspan="1"><a href="examples">examples</a></td>
+<td></td>
+<td align="left"></td>
+</tr>
+</table>
+</p>

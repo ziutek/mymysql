@@ -582,6 +582,84 @@ func TestReconnect(t *testing.T) {
     dbClose(t)
 }
 
+// Auto connect / auto reconnect test
+
+func TestAutoConnectReconnect(t *testing.T) {
+    db = New(conn[0], conn[1], conn[2], user, passwd)
+
+    // db is in unconnected state
+    checkErr(t, db.UseAC(dbname), nil)
+
+    // Disconnect
+    db.Close()
+
+    // Drop test table if exists
+    db.QueryAC("drop table R")
+
+    // Disconnect
+    db.Close()
+
+    // Create table
+    _, _, err := db.QueryAC(
+        "create table R (id int primary key, name varchar(20))",
+    )
+    checkErr(t, err, nil)
+
+    // Kill the connection
+    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    checkErr(t, err, nil)
+
+    // Prepare insert statement
+    ins, err := db.PrepareAC("insert R values (?,  ?)")
+    checkErr(t, err, nil)
+
+    // Kill the connection
+    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    checkErr(t, err, nil)
+
+    // Bind insert parameters
+    ins.BindParams(1, "jeden")
+    // Insert into table
+    _, _, err = ins.ExecAC()
+    checkErr(t, err, nil)
+
+    // Kill the connection
+    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    checkErr(t, err, nil)
+
+    // Bind insert parameters
+    ins.BindParams(2, "dwa")
+    // Insert into table
+    _, _, err = ins.ExecAC()
+    checkErr(t, err, nil)
+
+    // Kill the connection
+    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    checkErr(t, err, nil)
+
+    // Select from table
+    rows, res, err := db.QueryAC("select * from R")
+    checkErr(t, err, nil)
+    id := res.Map["id"]
+    name := res.Map["name"]
+    if len(rows) != 2 ||
+            rows[0].Int(id) != 1 || rows[0].Str(name) != "jeden" ||
+            rows[1].Int(id) != 2 || rows[1].Str(name) != "dwa" {
+        t.Fatal("Bad result")
+    }
+
+    // Kill the connection
+    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    checkErr(t, err, nil)
+
+    // Drop table
+    _, _, err = db.QueryAC("drop table R")
+    checkErr(t, err, nil)
+
+    // Disconnect
+    db.Close()
+}
+
 // StmtSendLongData test
 
 func TestSendLongData(t *testing.T) {

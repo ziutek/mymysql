@@ -18,16 +18,17 @@ func IsNetErr(err os.Error) bool {
     return false
 }
 
-func (my *MySQL) reconnectIfNetErr(err *os.Error) {
-    for nn := 0; *err != nil && IsNetErr(*err) && nn <= my.MaxRetries; nn++ {
+func (my *MySQL) reconnectIfNetErr(nn *int, err *os.Error) {
+    for *err != nil && IsNetErr(*err) && *nn <= my.MaxRetries {
         if my.Debug {
-            log.Println("Reconnecting...")
+            log.Printf("Error: '%s' - reconnecting...", *err)
         }
-        time.Sleep(int64(1e9) * int64(nn))
+        time.Sleep(int64(1e9) * int64(*nn))
         *err = my.Reconnect()
         if my.Debug && *err != nil {
             log.Println("Can't reconnect:", *err)
         }
+        *nn++
     }
 }
 
@@ -37,40 +38,77 @@ func (my *MySQL) connectIfNotConnected() (err os.Error) {
         return
     }
     err = my.Connect()
-    my.reconnectIfNetErr(&err)
+    nn := 0
+    my.reconnectIfNetErr(&nn, &err)
     return
 }
 
-// Autoconnect/reconnect version of USE
+// Automatic connect/reconnect/repeat version of Use
 func (my *MySQL) UseAC(dbname string) (err os.Error) {
     if err = my.connectIfNotConnected(); err != nil {
         return
     }
-    err = my.Use(dbname)
-    if err == nil {
-        return
+    nn := 0
+    for {
+        if err = my.Use(dbname); err == nil {
+            return
+        }
+        if my.reconnectIfNetErr(&nn, &err); err != nil {
+            return
+        }
     }
-    if my.reconnectIfNetErr(&err); err != nil {
-        return
-    }
-    return my.Use(dbname)
+    return
 }
 
-// Autoconnect/reconnect version of Query
+// Automatic connect/reconnect/repeat version of Query
 func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (
         rows []*Row, res *Result, err os.Error) {
 
     if err = my.connectIfNotConnected(); err != nil {
         return
     }
-    rows, res, err = my.Query(command, params...)
-    if err == nil {
-        return
+    nn := 0
+    for {
+        if rows, res, err = my.Query(command, params...); err == nil {
+            return
+        }
+        if my.reconnectIfNetErr(&nn, &err); err != nil {
+            return
+        }
     }
-    if my.reconnectIfNetErr(&err); err != nil {
-        return
-    }
-    return my.Query(command, params...)
+    return
 }
 
+// Automatic connect/reconnect/repeat version of Prepare
+func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error) {
+    if err = my.connectIfNotConnected(); err != nil {
+        return
+    }
+    nn := 0
+    for {
+        if stmt, err = my.Prepare(sql); err == nil {
+            return
+        }
+        if my.reconnectIfNetErr(&nn, &err); err != nil {
+            return
+        }
+    }
+    return
+}
 
+// Automatic connect/reconnect/repeat version of Exec
+func (stmt *Statement) ExecAC() (rows []*Row, res *Result, err os.Error) {
+    if err = stmt.db.connectIfNotConnected(); err != nil {
+        return
+    }
+    nn := 0
+    for {
+        if rows, res, err = stmt.Exec(); err == nil {
+            return
+        }
+        if stmt.db.reconnectIfNetErr(&nn, &err); err != nil {
+            return
+        }
+    }
+    return
+}

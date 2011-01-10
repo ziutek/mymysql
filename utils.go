@@ -15,7 +15,9 @@ func (my *MySQL) unlock() {
 
 func (my *MySQL) init() {
     my.seq = 0 // Reset sequence number, mainly for reconnect
-
+    if my.Debug {
+        log.Printf("[%2d ->] Init packet:", my.seq)
+    }
     pr := my.newPktReader()
     my.info.scramble = make([]byte, 20)
 
@@ -33,14 +35,16 @@ func (my *MySQL) init() {
     pr.checkEof()
 
     if my.Debug {
-        log.Printf(
-            "[%2d ->] Init packet: ProtVer=%d, ServVer=\"%s\" Status=0x%x",
-            my.seq - 1, my.info.prot_ver, my.info.serv_ver, status,
+        log.Printf(tab8s + "ProtVer=%d, ServVer=\"%s\" Status=0x%x",
+            my.info.prot_ver, my.info.serv_ver, status,
         )
     }
 }
 
 func (my *MySQL) auth() {
+    if my.Debug {
+        log.Printf("[%2d <-] Authentication packet", my.seq)
+    }
     pay_len := 4 + 4 + 1 + 23 + len(my.user)+1 + 1+len(my.info.scramble)
     flags := uint32(
         _CLIENT_PROTOCOL_41 |
@@ -65,9 +69,6 @@ func (my *MySQL) auth() {
     writeNbin(pw, &encr_passwd)   // Encrypted password
     if len(my.dbname) > 0 {
         writeNTS(pw, my.dbname)
-    }
-    if my.Debug {
-        log.Printf("[%2d <-] Authentication packet", my.seq)
     }
     return
 }

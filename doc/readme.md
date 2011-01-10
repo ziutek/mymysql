@@ -1,13 +1,32 @@
-## MyMySQL v0.3
+## MyMySQL v0.3 (2011-01-11)
 
 This package contains MySQL client API written entirely in Go. It was created
-due to lack of properly working MySQL API package, ready for my production
-application (December 2010).
+due to lack of properly working MySQL client API package, ready for my
+production application (December 2010).
 
 The code of this package is carefuly written and has internal error handling
-using *panic()* exceptions, thus the probability of Go bugs or an unhandled
-internal errors should be very small. Unfortunately I'm not a MySQL protocol
-expert, so bugs in the protocol handling are possible.
+using *panic()* exceptions, thus the probability of bugs in Go code or an
+unhandled internal errors should be very small. Unfortunately I'm not a MySQL
+protocol expert, so bugs in the protocol handling are possible.
+
+## Differences betwen version 0.2 and 0.3
+
+1. There is one change in v0.3, which doesn't preserve backwards compatibility
+with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
+method was added. It is similar in result to *Query* method.
+method.
+2. *Reconnect* method was added. After reconnectio it re-prepare all prepared
+statements related to database handler that was reconectd.
+3. Auto connect / reconnect / repeat interface was added. It allows not worry
+about making the connection, and not wory about re-establish connection after
+network error or MySQL server restart.
+It is certainly safe to use it with *select* queries. As for the use of the
+*insert* queries, I'm not entirely sure, that they always can be repeated
+after network error. Repetition of the *Prepare* method call appears to be
+quite safe (at most it prepare unnecessary copy of statement). This interface
+does not appear to be useful with local transactions.
+4. Multi statements / multi results were added.
+5. Types ENUM and SET were added for prepared statements results.
 
 ## Instaling
 
@@ -34,11 +53,6 @@ Next run tests:
     $ gotest -v
 
 ## Interface
-
-There is one change in v0.3, which doesn't preserve backwards compatibility
-with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
-method for Statement struct was added. It is similar in result to *Query*
-method.
 
 In *GODOC.html* or *GODOC.txt* you can find the full documentation of this package in godoc format.
 
@@ -216,8 +230,8 @@ This is improved part of previous example:
         checkError(err)
 
         // We can retrieve response directly into database because 
-        // the resp.Body implements io.Reader
-        err = ins.SendLongData(1, resp.Body, 4092)
+        // the resp.Body implements io.Reader. Use 8 kB buffer.
+        err = ins.SendLongData(1, resp.Body, 8192)
         checkError(err)
 
         // Execute insert statement
@@ -260,6 +274,34 @@ This is improved part of previous example:
         // Do something with with the data
         functionThatUseName(row.Str(0))
     }
+
+## Example 5 - automatic connect/reconnect/repeat
+
+    db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+
+    // There is no need to explicity connect to the MySQL server
+    rows, res, err := db.QueryAC("SELECT * FROM R")
+    checkError(err)
+
+    // Now we are connected.
+
+    // It does not matter if connection will be interrupted during sleep, eg
+    // due to server reboot or network down.
+    time.Sleep(9e9)
+
+    // If we can reconnect in no more than db.MaxRetries attempts this
+    // statement will be prepared.
+    sel, err := db.PrepareAC("SELECT name FROM R where id > ?")
+    checkError(err)
+
+    // We can destroy our connection on server side
+    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    checkError(err)
+
+    // But it doesn't matter
+    sel.BindParams(2)
+    rows, res, err = sel.ExecAC()
+    checkError(err)
 
 More examples are in *examples* directory.
 
@@ -331,6 +373,7 @@ below:
      TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
     BLOB, TINYBLOB, MEDIUMBLOB, LONGBLOB  -->  []byte
                             DECIMAL, BIT  -->  []byte
+                               SET, ENUM  -->  []byte
                                     NULL  -->  nil
 
 ## Big packets
@@ -338,8 +381,8 @@ below:
 This package can send and receive MySQL data packets that are biger than 16 MB.
 This means that you can receive response rows biger than 16 MB and can execute
 prepared statements with parameter data biger than 16 MB without using
-SEND_LONG_DATA command. If you want to use this feature you must set
-*MySQL.MaxPktSize* to appropriate value before connect and change
+SendLongData method. If you want to use this feature you must set *MaxPktSize*
+field in database handler to appropriate value before connect, and change
 *max_allowed_packet* value in MySQL server configuration.
 
 ## Thread safety
@@ -354,7 +397,7 @@ data to the server, until *Query*/*Exec* return in first thread.
 If one thread is calling *Start* or *Run* method, other threads will be
 blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
 data to the server,  until all results and all rows  will be readed from
-a connection in first thread.
+the connection in first thread.
 
 ## TODO
 
@@ -363,7 +406,4 @@ a connection in first thread.
 3. io.Writer as bind result variable
 
 # Package documentation generated by godoc
-
-It is converted to Markdown from GODOC.html. Unfortunately, after conversion
-links doesn't works. 
 

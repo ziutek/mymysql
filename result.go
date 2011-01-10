@@ -420,7 +420,7 @@ func (my *MySQL) getBinRowPacket(pr *pktReader, res *Result) *Row {
         case MYSQL_TYPE_STRING, MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_DECIMAL,
                 MYSQL_TYPE_VARCHAR, MYSQL_TYPE_BIT, MYSQL_TYPE_BLOB,
                 MYSQL_TYPE_TINY_BLOB, MYSQL_TYPE_MEDIUM_BLOB,
-                MYSQL_TYPE_LONG_BLOB:
+                MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET, MYSQL_TYPE_ENUM:
             row.Data[ii] = readNotNullBin(pr)
 
         case MYSQL_TYPE_DATETIME, MYSQL_TYPE_DATE, MYSQL_TYPE_TIME,
@@ -428,8 +428,7 @@ func (my *MySQL) getBinRowPacket(pr *pktReader, res *Result) *Row {
             row.Data[ii] = readNotNullDatetime(pr)
 
         // TODO:
-        // MYSQL_TYPE_NEWDATE, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_ENUM,
-        // MYSQL_TYPE_SET, MYSQL_TYPE_GEOMETRY      
+        // MYSQL_TYPE_NEWDATE, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_GEOMETRY      
 
         default:
             panic(UNK_MYSQL_TYPE_ERROR)

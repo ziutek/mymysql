@@ -10,7 +10,7 @@ import (
     "reflect"
 )
 
-type ServerInfo struct {
+type serverInfo struct {
     prot_ver byte
     serv_ver string
     thr_id   uint32
@@ -33,7 +33,7 @@ type MySQL struct {
     rd   *bufio.Reader
     wr   *bufio.Writer
 
-    info ServerInfo // MySQL server information
+    info serverInfo // MySQL server information
     seq  byte       // MySQL sequence number
 
     mutex         *sync.Mutex // For concurency
@@ -110,11 +110,15 @@ func (my *MySQL) Connect() (err os.Error) {
 func (my *MySQL) close_conn() (err os.Error) {
     defer catchOsError(&err)
 
+    // Always close and invalidate connection, even if
+    // COM_QUIT returns an error
+    defer func() {
+        err = my.conn.Close()
+        my.conn = nil // Mark that we disconnect
+    } ()
+
     // Close the connection
     my.sendCmd(_COM_QUIT)
-    err = my.conn.Close()
-    my.conn = nil // Mark that we disconnect
-
     return
 }
 
@@ -132,7 +136,7 @@ func (my *MySQL) Close() (err os.Error) {
     return my.close_conn()
 }
 
-// Close and reopen connection in one, thread safe operation.
+// Close and reopen connection in one, thread-safe operation.
 // Ignore unreaded rows, reprepare all prepared statements.
 func (my *MySQL) Reconnect() (err os.Error) {
     defer my.unlock()
@@ -157,7 +161,7 @@ func (my *MySQL) Reconnect() (err os.Error) {
             return
         }
         // Assume that fields set in new_stmt by prepare() are indentical to
-        // corresponding fields in stmt. Why they can be different?
+        // corresponding fields in stmt. Why can they be different?
         stmt.id = new_stmt.id
         stmt.rebind = true
         new_map[stmt.id] = stmt
@@ -184,7 +188,7 @@ func (my *MySQL) Use(dbname string) (err os.Error) {
     my.sendCmd(_COM_INIT_DB, dbname)
     // Get server response
     my.getResult(nil)
-    // Save new database name
+    // Save new database name if no errors
     my.dbname = dbname
 
     return
@@ -282,6 +286,7 @@ func (res *Result) GetRow() (row *Row, err os.Error) {
     return
 }
 
+// This function is used when last query was the multi result query.
 // Return the next result or nil if no more resuts exists.
 func (res *Result) NextResult() (next *Result, err os.Error) {
     if res.Status & _SERVER_MORE_RESULTS_EXISTS == 0 {
@@ -291,8 +296,11 @@ func (res *Result) NextResult() (next *Result, err os.Error) {
     return
 }
 
-// Read all unreaded rows and discard them. All the rows must be read before
-// next query or other command.
+// Read all unreaded rows and discard them. This function is useful if you
+// don't want to use the remaining rows. It has an impact only on current
+// result. If there is multi result query, you must use NextResult method and
+// read/discard all rows in this result, before use other method that sends
+// data to the server.
 func (res *Result) End() (err os.Error) {
     for err == nil && res.db.unreaded_rows {
         _, err = res.GetRow()
@@ -300,8 +308,8 @@ func (res *Result) End() (err os.Error) {
     return
 }
 
-// This call Start and next call GetRow once or more times. It read all rows
-// from connection and returns they as a slice.
+// This call Start and next call GetRow as long as it reads all rows from the
+// result. Next it returns all readed rows as the slice of rows.
 func (my *MySQL) Query(command interface{}, params ...interface{}) (
         rows []*Row, res *Result, err os.Error) {
 
@@ -455,8 +463,7 @@ func (stmt *Statement) Run() (res *Result, err os.Error) {
 
 // This call Run and next call GetRow once or more times. It read all rows
 // from connection and returns they as a slice.
-func (stmt *Statement) Exec(command interface{}, params ...interface{}) (
-        rows []*Row, res *Result, err os.Error) {
+func (stmt *Statement) Exec() (rows []*Row, res *Result, err os.Error) {
 
     res, err = stmt.Run()
     if err != nil {
@@ -487,12 +494,17 @@ func (stmt *Statement) Delete() (err os.Error) {
     defer catchOsError(&err)
     stmt.db.lock()
 
+    // Allways delete statement on client side, even if
+    // the command return an error.
+    defer func() {
+        // Delete statement from stmt_map
+        stmt.db.stmt_map[stmt.id] = nil, false
+        // Invalidate handler
+        *stmt = Statement{}
+    } ()
+
     // Send command
     stmt.db.sendCmd(_COM_STMT_CLOSE, stmt.id)
-    // Delete statement from stmt_map
-    stmt.db.stmt_map[stmt.id] = nil, false
-    // Invalidate handler
-    *stmt = Statement{}
     return
 }
 
@@ -509,12 +521,13 @@ func (stmt *Statement) Reset() (err os.Error) {
     defer catchOsError(&err)
     stmt.db.lock()
 
+    // Next exec must send type information. We set rebind flag regardless of
+    // whether the command succeeds or not.
+    stmt.rebind = true
     // Send command
     stmt.db.sendCmd(_COM_STMT_RESET, stmt.id)
     // Get result
     stmt.db.getResult(nil)
-    // Next exec must send type information.
-    stmt.rebind = true
     return
 }
 
@@ -600,4 +613,9 @@ func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (
         return
     }
     return UNK_DATA_TYPE_ERROR
+}
+
+// Returns the thread ID of the current connection.
+func (my *MySQL) ThreadId() uint32 {
+    return my.info.thr_id
 }

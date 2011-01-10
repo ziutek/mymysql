@@ -696,15 +696,18 @@ Send MySQL PING to the server.
 func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)
 Prepare server side statement. Return statement handler.
 
+func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error)
+Automatic connect/reconnect/repeat version of Prepare
+
 func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)
-This call Start and next call GetRow once or more times. It read all rows
-from connection and returns they as a slice.
+This call Start and next call GetRow as long as it reads all rows from the
+result. Next it returns all readed rows as the slice of rows.
 
 func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)
-Autoconnect/reconnect version of Query
+Automatic connect/reconnect/repeat version of Query
 
 func (my *MySQL) Reconnect() (err os.Error)
-Close and reopen connection in one, thread safe operation.
+Close and reopen connection in one, thread-safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 
 func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)
@@ -720,11 +723,14 @@ statement before execution.
 
 You must get all result rows (if they exists) before next query.
 
+func (my *MySQL) ThreadId() uint32
+Returns the thread ID of the current connection.
+
 func (my *MySQL) Use(dbname string) (err os.Error)
 Change database
 
 func (my *MySQL) UseAC(dbname string) (err os.Error)
-Autoconnect/reconnect version of USE
+Automatic connect/reconnect/repeat version of Use
 
 type Raw struct {
     Typ uint16
@@ -745,14 +751,18 @@ type Result struct {
 }
 
 func (res *Result) End() (err os.Error)
-Read all unreaded rows and discard them. All the rows must be read before
-next query or other command.
+Read all unreaded rows and discard them. This function is useful if you
+don't want to use the remaining rows. It has an impact only on current
+result. If there is multi result query, you must use NextResult method and
+read/discard all rows in this result, before use other method that sends
+data to the server.
 
 func (res *Result) GetRow() (row *Row, err os.Error)
 Get the data row from a server. This method reads one row of result directly
 from network connection (without rows buffering on client side).
 
 func (res *Result) NextResult() (next *Result, err os.Error)
+This function is used when last query was the multi result query.
 Return the next result or nil if no more resuts exists.
 
 type Row struct {
@@ -797,10 +807,6 @@ func (tr *Row) UintErr(nn int) (val uint, err os.Error)
 Get the nn-th value and return it as uint (0 if NULL). Return error if
 conversion is impossible.
 
-type ServerInfo struct {
-    // contains unexported fields
-}
-
 type Statement struct {
     Fields []*Field
     Map    map[string]int // Maps field name to column number
@@ -826,9 +832,12 @@ func (stmt *Statement) Delete() (err os.Error)
 Destroy statement on server side. Client side handler is invalid after this
 command.
 
-func (stmt *Statement) Exec(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+func (stmt *Statement) Exec() (rows []*Row, res *Result, err os.Error)
 This call Run and next call GetRow once or more times. It read all rows
 from connection and returns they as a slice.
+
+func (stmt *Statement) ExecAC() (rows []*Row, res *Result, err os.Error)
+Automatic connect/reconnect/repeat version of Exec
 
 func (stmt *Statement) Reset() (err os.Error)
 Resets a prepared statement on server: data sent to the server, unbuffered

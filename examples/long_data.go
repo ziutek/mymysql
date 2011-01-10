@@ -85,7 +85,8 @@ func main() {
             fmt.Println(err)
             continue
         }
-        checkError(ins.SendLongData(1, http_res.Body, 4092))
+        // Retrieve response directly into database. Use 8 kB buffer.
+        checkError(ins.SendLongData(1, http_res.Body, 8192))
         _, err = ins.Run()
         checkError(err)
     }

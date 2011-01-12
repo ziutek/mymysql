@@ -19,11 +19,10 @@ statements, related to database handler that was reconnected.
 3. Auto connect / reconnect / repeat interface was added. It allows not worry
 about making the connection, and not wory about re-establish connection after
 network error or MySQL server restart.
-It is certainly safe to use it with *select* queries. As for the use of the
-*insert* queries, I'm not entirely sure, that they always can be repeated
-after network error. Repetition of the *Prepare* method call appears to be
-quite safe (at most it prepare unnecessary copy of statement). This interface
-does not appear to be useful with local transactions.
+It is certainly safe to use it with *select* queries and to prepare statements.
+As for the use of the *insert* queries, I'm not entirely sure, that they
+always can be repeated after network error. This interface does not appear to
+be useful with local transactions.
 4. Multi statements / multi results were added.
 5. Types ENUM and SET were added for prepared statements results.
 

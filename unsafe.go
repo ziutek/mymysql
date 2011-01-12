@@ -5,6 +5,18 @@ import (
     "unsafe"
 )
 
+type paramValue struct {
+    typ    uint16
+    addr   unsafe.Pointer
+    is_ptr bool
+    raw    bool
+    length int  // >=0 - length of value, <0 - unknown length
+}
+
+func unsafePointer(addr uintptr) unsafe.Pointer {
+    return unsafe.Pointer(addr)
+}
+
 func (val *paramValue) Len() int {
     ptr := unsafe.Pointer(val.addr)
     if val.is_ptr && *(*unsafe.Pointer)(ptr) == nil {
@@ -36,15 +48,14 @@ func (val *paramValue) Len() int {
 }
 
 func writeValue(wr io.Writer, val *paramValue) {
-    ptr := unsafe.Pointer(val.addr)
     if val.raw || val.typ == MYSQL_TYPE_VAR_STRING ||
             val.typ == MYSQL_TYPE_BLOB {
         if val.is_ptr {
-            if vp := *(**[]byte)(ptr); vp != nil {
+            if vp := *(**[]byte)(val.addr); vp != nil {
                 writeNbin(wr, vp)
             }
         } else {
-            writeNbin(wr, (*[]byte)(ptr))
+            writeNbin(wr, (*[]byte)(val.addr))
         }
         return
     }
@@ -55,56 +66,56 @@ func writeValue(wr io.Writer, val *paramValue) {
 
     case MYSQL_TYPE_STRING:
         if val.is_ptr {
-            if vp := *(**string)(ptr); vp != nil {
+            if vp := *(**string)(val.addr); vp != nil {
                 writeNstr(wr, vp)
             }
         } else {
-            writeNstr(wr, (*string)(ptr))
+            writeNstr(wr, (*string)(val.addr))
         }
 
     case MYSQL_TYPE_LONG, MYSQL_TYPE_FLOAT:
         if val.is_ptr {
-            if vp := *(**uint32)(ptr); vp != nil {
+            if vp := *(**uint32)(val.addr); vp != nil {
                 writeU32(wr, *vp)
             }
         } else {
-            writeU32(wr, *(*uint32)(ptr))
+            writeU32(wr, *(*uint32)(val.addr))
         }
 
     case MYSQL_TYPE_SHORT:
         if val.is_ptr {
-            if vp := *(**uint16)(ptr); vp != nil {
+            if vp := *(**uint16)(val.addr); vp != nil {
                 writeU16(wr, *vp)
             }
         } else {
-            writeU16(wr, *(*uint16)(ptr))
+            writeU16(wr, *(*uint16)(val.addr))
         }
 
     case MYSQL_TYPE_TINY:
         if val.is_ptr {
-            if vp := *(**byte)(ptr); vp != nil {
+            if vp := *(**byte)(val.addr); vp != nil {
                 writeByte(wr, *vp)
             }
         } else {
-            writeByte(wr, *(*byte)(ptr))
+            writeByte(wr, *(*byte)(val.addr))
         }
 
     case MYSQL_TYPE_LONGLONG, MYSQL_TYPE_DOUBLE:
         if val.is_ptr {
-            if vp := *(**uint64)(ptr); vp != nil {
+            if vp := *(**uint64)(val.addr); vp != nil {
                 writeU64(wr, *vp)
             }
         } else {
-            writeU64(wr, *(*uint64)(ptr))
+            writeU64(wr, *(*uint64)(val.addr))
         }
 
     case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
         if val.is_ptr {
-            if vp := *(**Datetime)(ptr); vp != nil {
+            if vp := *(**Datetime)(val.addr); vp != nil {
                 writeNdatetime(wr, vp)
             }
         } else {
-            writeNdatetime(wr, (*Datetime)(ptr))
+            writeNdatetime(wr, (*Datetime)(val.addr))
         }
 
     default:

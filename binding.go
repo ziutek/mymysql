@@ -5,14 +5,6 @@ import (
     "fmt"
 )
 
-type paramValue struct {
-    typ    uint16
-    addr   uintptr
-    is_ptr bool
-    raw    bool
-    length int  // >=0 - length ov value, <0 - unknown length
-}
-
 type Datetime struct {
     Year  int16
     Month, Day, Hour, Minute, Second uint8
@@ -62,7 +54,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
         return &paramValue{typ: MYSQL_TYPE_NULL}
     }
 
-    out = &paramValue{addr: val.Addr()}
+    out = &paramValue{addr: unsafePointer(val.Addr())}
     typ := val.Type()
 
     // Dereference type
@@ -116,7 +108,9 @@ func bindValue(val reflect.Value) (out *paramValue) {
         if tt == reflectRawType {
             rv := val.(*reflect.StructValue)
             out.typ = uint16(rv.FieldByName("Typ").(*reflect.UintValue).Get())
-            out.addr = rv.FieldByName("Val").(*reflect.PtrValue).Get()
+            out.addr = unsafePointer(
+                rv.FieldByName("Val").(*reflect.PtrValue).Get(),
+            )
             out.is_ptr = true
             out.raw = true
             return

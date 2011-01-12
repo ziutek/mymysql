@@ -3,10 +3,10 @@ include $(GOROOT)/src/Make.inc
 TARG=mymy
 GOFILES=\
 	mysql.go\
+	init.go\
 	common.go\
 	packet.go\
 	codecs.go\
-	utils.go\
 	errors.go\
 	consts.go\
 	command.go\

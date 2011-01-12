@@ -2,7 +2,6 @@ package mymy
 
 import (
     "log"
-    "os"
 )
 
 func (my *MySQL) lock() {
@@ -31,8 +30,8 @@ func (my *MySQL) init() {
     status          := readU16(pr)
     read(pr, 13)
     readFull(pr, my.info.scramble[8:])
-    read(pr, 1)
-    pr.checkEof()
+    // Skip other information
+    pr.readAll()
 
     if my.Debug {
         log.Printf(tab8s + "ProtVer=%d, ServVer=\"%s\" Status=0x%x",
@@ -71,10 +70,4 @@ func (my *MySQL) auth() {
         writeNTS(pw, my.dbname)
     }
     return
-}
-
-func (my *MySQL) unlockIfError(err *os.Error) {
-    if *err != nil {
-        my.unlock()
-    }
 }

@@ -210,6 +210,12 @@ func (my *MySQL) getResponse() (res *Result) {
     return
 }
 
+func (my *MySQL) unlockIfError(err *os.Error) {
+    if *err != nil {
+        my.unlock()
+    }
+}
+
 // Start new query session.
 //
 // command can be SQL query (string) or a prepared statement (*Statement).

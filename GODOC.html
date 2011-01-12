@@ -265,12 +265,12 @@ span.alert {
 				<a href="/mymysql/common.go">common.go</a>
 				<a href="/mymysql/consts.go">consts.go</a>
 				<a href="/mymysql/errors.go">errors.go</a>
+				<a href="/mymysql/init.go">init.go</a>
 				<a href="/mymysql/mysql.go">mysql.go</a>
 				<a href="/mymysql/packet.go">packet.go</a>
 				<a href="/mymysql/prepared.go">prepared.go</a>
 				<a href="/mymysql/result.go">result.go</a>
 				<a href="/mymysql/unsafe.go">unsafe.go</a>
-				<a href="/mymysql/utils.go">utils.go</a>
 			</span>
 			</p>
 		<h2 id="Constants">Constants</h2>
@@ -911,10 +911,10 @@ Return true if error is network error or UnexpectedEOF.
 			<h2 id="NstrToNbin">func <a href="/mymysql/addons.go#L11">NstrToNbin</a></h2>
 			<p><code>func NstrToNbin(nstr *string) *[]byte</code></p>
 			
-			<h2 id="Blob">type <a href="/mymysql/binding.go#L46">Blob</a></h2>
+			<h2 id="Blob">type <a href="/mymysql/binding.go#L38">Blob</a></h2>
 			
 			<p><pre>type Blob []byte</pre></p>
-			<h2 id="Datetime">type <a href="/mymysql/binding.go#L16">Datetime</a></h2>
+			<h2 id="Datetime">type <a href="/mymysql/binding.go#L8">Datetime</a></h2>
 			
 			<p><pre>type Datetime struct {
     Year                             int16
@@ -924,7 +924,7 @@ Return true if error is network error or UnexpectedEOF.
 				<h3 id="Datetime.TimeToDatetime">func <a href="/mymysql/common.go#L91">TimeToDatetime</a></h3>
 				<p><code>func TimeToDatetime(tt *time.Time) *Datetime</code></p>
 				
-				<h3 id="Datetime.String">func (*Datetime) <a href="/mymysql/binding.go#L21">String</a></h3>
+				<h3 id="Datetime.String">func (*Datetime) <a href="/mymysql/binding.go#L13">String</a></h3>
 				<p><code>func (dt *Datetime) String() string</code></p>
 				
 			<h2 id="Error">type <a href="/mymysql/errors.go#L34">Error</a></h2>
@@ -995,13 +995,13 @@ Close connection to the server
 Establishes a connection with MySQL server version 4.1 or later.
 </p>
 
-				<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go#L333">Ping</a></h3>
+				<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go#L339">Ping</a></h3>
 				<p><code>func (my *MySQL) Ping() (err os.Error)</code></p>
 				<p>
 Send MySQL PING to the server.
 </p>
 
-				<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go#L374">Prepare</a></h3>
+				<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go#L380">Prepare</a></h3>
 				<p><code>func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)</code></p>
 				<p>
 Prepare server side statement. Return statement handler.
@@ -1013,7 +1013,7 @@ Prepare server side statement. Return statement handler.
 Automatic connect/reconnect/repeat version of Prepare
 </p>
 
-				<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go#L313">Query</a></h3>
+				<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go#L319">Query</a></h3>
 				<p><code>func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 				<p>
 This call Start and next call GetRow as long as it reads all rows from the
@@ -1033,7 +1033,7 @@ Close and reopen connection in one, thread-safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 </p>
 
-				<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go#L224">Start</a></h3>
+				<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go#L230">Start</a></h3>
 				<p><code>func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)</code></p>
 				<p>
 Start new query session.
@@ -1053,7 +1053,7 @@ statement before execution.
 You must get all result rows (if they exists) before next query.
 </p>
 
-				<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go#L619">ThreadId</a></h3>
+				<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go#L625">ThreadId</a></h3>
 				<p><code>func (my *MySQL) ThreadId() uint32</code></p>
 				<p>
 Returns the thread ID of the current connection.
@@ -1071,7 +1071,7 @@ Change database
 Automatic connect/reconnect/repeat version of Use
 </p>
 
-			<h2 id="Raw">type <a href="/mymysql/binding.go#L48">Raw</a></h2>
+			<h2 id="Raw">type <a href="/mymysql/binding.go#L40">Raw</a></h2>
 			
 			<p><pre>type Raw struct {
     Typ uint16
@@ -1091,7 +1091,7 @@ Automatic connect/reconnect/repeat version of Use
     Status       uint16
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-				<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go#L304">End</a></h3>
+				<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go#L310">End</a></h3>
 				<p><code>func (res *Result) End() (err os.Error)</code></p>
 				<p>
 Read all unreaded rows and discard them. This function is useful if you
@@ -1101,14 +1101,14 @@ read/discard all rows in this result, before use other method that sends
 data to the server.
 </p>
 
-				<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go#L262">GetRow</a></h3>
+				<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go#L268">GetRow</a></h3>
 				<p><code>func (res *Result) GetRow() (row *Row, err os.Error)</code></p>
 				<p>
 Get the data row from a server. This method reads one row of result directly
 from network connection (without rows buffering on client side).
 </p>
 
-				<h3 id="Result.NextResult">func (*Result) <a href="/mymysql/mysql.go#L291">NextResult</a></h3>
+				<h3 id="Result.NextResult">func (*Result) <a href="/mymysql/mysql.go#L297">NextResult</a></h3>
 				<p><code>func (res *Result) NextResult() (next *Result, err os.Error)</code></p>
 				<p>
 This function is used when last query was the multi result query.
@@ -1198,7 +1198,7 @@ conversion is impossible.
     Status       uint16
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go#L405">BindParams</a></h3>
+				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go#L411">BindParams</a></h3>
 				<p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>
 				<p>
 Bind input data for the parameter markers in the SQL statement that was
@@ -1212,14 +1212,14 @@ Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 string, Datetime, Timestamp, Raw.
 </p>
 
-				<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go#L486">Delete</a></h3>
+				<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go#L492">Delete</a></h3>
 				<p><code>func (stmt *Statement) Delete() (err os.Error)</code></p>
 				<p>
 Destroy statement on server side. Client side handler is invalid after this
 command.
 </p>
 
-				<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go#L466">Exec</a></h3>
+				<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go#L472">Exec</a></h3>
 				<p><code>func (stmt *Statement) Exec() (rows []*Row, res *Result, err os.Error)</code></p>
 				<p>
 This call Run and next call GetRow once or more times. It read all rows
@@ -1232,21 +1232,21 @@ from connection and returns they as a slice.
 Automatic connect/reconnect/repeat version of Exec
 </p>
 
-				<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go#L513">Reset</a></h3>
+				<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go#L519">Reset</a></h3>
 				<p><code>func (stmt *Statement) Reset() (err os.Error)</code></p>
 				<p>
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 </p>
 
-				<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go#L445">Run</a></h3>
+				<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go#L451">Run</a></h3>
 				<p><code>func (stmt *Statement) Run() (res *Result, err os.Error)</code></p>
 				<p>
 Execute prepared statement. If statement requires parameters you must
 bind them first. After this command you may use GetRow to retrieve data.
 </p>
 
-				<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go#L553">SendLongData</a></h3>
+				<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go#L559">SendLongData</a></h3>
 				<p><code>func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)</code></p>
 				<p>
 Send long data to MySQL server in chunks.
@@ -1274,13 +1274,13 @@ io.Reader you should properly set pkt_size. Data will be readed from
 io.Reader and send in pieces to the server until EOF.
 </p>
 
-			<h2 id="Timestamp">type <a href="/mymysql/binding.go#L41">Timestamp</a></h2>
+			<h2 id="Timestamp">type <a href="/mymysql/binding.go#L33">Timestamp</a></h2>
 			
 			<p><pre>type Timestamp Datetime</pre></p>
 				<h3 id="Timestamp.TimeToTimestamp">func <a href="/mymysql/common.go#L102">TimeToTimestamp</a></h3>
 				<p><code>func TimeToTimestamp(tt *time.Time) *Timestamp</code></p>
 				
-				<h3 id="Timestamp.String">func (*Timestamp) <a href="/mymysql/binding.go#L42">String</a></h3>
+				<h3 id="Timestamp.String">func (*Timestamp) <a href="/mymysql/binding.go#L34">String</a></h3>
 				<p><code>func (ts *Timestamp) String() string</code></p>
 				
 	<h2 id="Subdirectories">Subdirectories</h2>

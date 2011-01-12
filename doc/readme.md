@@ -20,9 +20,12 @@ statements, related to database handler that was reconnected.
 about making the connection, and not wory about re-establish connection after
 network error or MySQL server restart.
 It is certainly safe to use it with *select* queries and to prepare statements.
-As for the use of the *insert* queries, I'm not entirely sure, that they
-always can be repeated after network error. This interface does not appear to
-be useful with local transactions.
+You must be careful with *insert* queries. I'm not sure whether the server
+performs an insert: immediately after receive query or after successfull sending
+OK packet. Even if it is the second option, server may not immediately notice
+the network failure becouse of network buffers in kernel. Therefore query
+repetitions may cause additional unnecessary inserts into database.
+This interface does not appear to be useful with local transactions.
 4. Multi statements / multi results were added.
 5. Types ENUM and SET were added for prepared statements results.
 

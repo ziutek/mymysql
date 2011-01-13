@@ -11,23 +11,20 @@ type Datetime struct {
     Nanosec uint32
 }
 func (dt *Datetime) String() string {
-    switch {
-    case dt == nil:
+    if dt == nil {
         return "NULL"
-    case dt.Nanosec != 0:
-        return fmt.Sprintf(
-            "%04d-%02d-%02d %02d:%02d:%02d.%09d", dt.Year, dt.Month, dt.Day,
-            dt.Hour, dt.Minute, dt.Second,dt.Nanosec,
-        )
-    case dt.Second != 0 || dt.Minute != 0 || dt.Hour != 0:
-        return fmt.Sprintf(
-            "%04d-%02d-%02d %02d:%02d:%02d", dt.Year, dt.Month, dt.Day,
-            dt.Hour, dt.Minute, dt.Second,
-        )
-    case dt.Day != 0 || dt.Month != 0 || dt.Year != 0:
-        return fmt.Sprintf( "%04d-%02d-%02d", dt.Year, dt.Month, dt.Day)
     }
-   return "0000-00-00"
+    if dt.Nanosec != 0 {
+        return fmt.Sprintf(
+            "%04d-%02d-%02d %02d:%02d:%02d.%09d",
+            dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second,
+            dt.Nanosec,
+        )
+    }
+    return fmt.Sprintf(
+        "%04d-%02d-%02d %02d:%02d:%02d",
+        dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second,
+    )
 }
 
 type Timestamp Datetime

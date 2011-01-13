@@ -587,6 +587,9 @@ func TestReconnect(t *testing.T) {
 func TestAutoConnectReconnect(t *testing.T) {
     db = New(conn[0], conn[1], conn[2], user, passwd)
 
+    // Register initialisation commands
+    db.Register("set names utf8")
+
     // db is in unconnected state
     checkErr(t, db.UseAC(dbname), nil)
 

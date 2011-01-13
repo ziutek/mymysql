@@ -38,7 +38,9 @@ type MySQL struct {
 
     mutex         *sync.Mutex // For concurency
     unreaded_rows bool
-    stmt_map      map[uint32]*Statement // For reprepare during reconnect
+
+    init_cmds []string // MySQL commands/queries executed after connect
+    stmt_map  map[uint32]*Statement // For reprepare during reconnect
 
     // Maximum packet size that client can accept from server.
     // Default 16*1024*1024-1. You may change it before connect.
@@ -91,6 +93,37 @@ func (my *MySQL) connect() (err os.Error) {
     my.init()
     my.auth()
     my.getResult(nil)
+
+    // Execute all registered commands
+    for _, cmd := range my.init_cmds {
+        // Send command
+        my.sendCmd(_COM_QUERY, cmd)
+        // Get command response
+        res := my.getResponse()
+
+        if res.FieldCount == 0 {
+            // No fields in result (OK result)
+            continue
+        }
+        // Read and discard all result rows
+        var row *Row
+        for {
+            row, err = res.getRow()
+            if err != nil {
+                return
+            }
+            if row == nil {
+                res, err = res.NextResult()
+                if err != nil {
+                    return
+                }
+                if res == nil {
+                    // No more rows and results from this cmd
+                    break
+                }
+            }
+        }
+    }
 
     return
 }
@@ -216,7 +249,7 @@ func (my *MySQL) unlockIfError(err *os.Error) {
     }
 }
 
-// Start new query session.
+// Start new query.
 //
 // command can be SQL query (string) or a prepared statement (*Statement).
 //
@@ -263,14 +296,8 @@ func (my *MySQL) Start(command interface{}, params ...interface{}) (
     return nil, BAD_COMMAND_ERROR
 }
 
-// Get the data row from a server. This method reads one row of result directly
-// from network connection (without rows buffering on client side).
-func (res *Result) GetRow() (row *Row, err os.Error) {
-    if res.FieldCount == 0 {
-        // There is no fields in result (OK result)
-        return
-    }
-    defer res.db.unlockIfError(&err)
+
+func (res *Result) getRow() (row *Row, err os.Error) {
     defer catchOsError(&err)
 
     switch result := res.db.getResult(res).(type) {
@@ -280,14 +307,28 @@ func (res *Result) GetRow() (row *Row, err os.Error) {
 
     case *Result:
         // EOF result
-        if res.Status & _SERVER_MORE_RESULTS_EXISTS == 0 {
-            // There is no more results
-            res.db.unlock()
-        }
-        res.db.unreaded_rows = false
 
     default:
         err = BAD_RESULT_ERROR
+    }
+    return
+}
+
+// Get the data row from a server. This method reads one row of result directly
+// from network connection (without rows buffering on client side).
+func (res *Result) GetRow() (row *Row, err os.Error) {
+    if res.FieldCount == 0 {
+        // There is no fields in result (OK result)
+        return
+    }
+    row, err = res.getRow()
+    if err != nil {
+        // Unlock if error
+        res.db.unlock()
+    } else if row == nil && res.Status & _SERVER_MORE_RESULTS_EXISTS == 0 {
+        // Unlock if no more rows to read
+        res.db.unreaded_rows = false
+        res.db.unlock()
     }
     return
 }
@@ -624,4 +665,11 @@ func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (
 // Returns the thread ID of the current connection.
 func (my *MySQL) ThreadId() uint32 {
     return my.info.thr_id
+}
+
+// Register MySQL command/query to be executed immediately after connecting to
+// the server. You may register multiple commands. They will be executed in
+// the order of registration. Yhis method is mainly useful for reconnect.
+func (my *MySQL) Register(sql string) {
+    my.init_cmds = append(my.init_cmds, sql)
 }

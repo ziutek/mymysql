@@ -710,8 +710,13 @@ func (my *MySQL) Reconnect() (err os.Error)
 Close and reopen connection in one, thread-safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 
+func (my *MySQL) Register(sql string)
+Register MySQL command/query to be executed immediately after connecting to
+the server. You may register multiple commands. They will be executed in
+the order of registration. Yhis method is mainly useful for reconnect.
+
 func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)
-Start new query session.
+Start new query.
 
 command can be SQL query (string) or a prepared statement (*Statement).
 
@@ -874,6 +879,10 @@ func TimeToTimestamp(tt *time.Time) *Timestamp
 
 func (ts *Timestamp) String() string
 
+
+OTHER PACKAGES
+
+main
 
 SUBDIRECTORIES
 

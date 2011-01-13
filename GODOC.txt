@@ -880,10 +880,6 @@ func TimeToTimestamp(tt *time.Time) *Timestamp
 func (ts *Timestamp) String() string
 
 
-OTHER PACKAGES
-
-main
-
 SUBDIRECTORIES
 
 	.git

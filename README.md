@@ -16,19 +16,17 @@ with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
 method was added. It is similar in result to *Query* method.
 2. *Reconnect* method was added. After reconnect it re-prepare all prepared
 statements, related to database handler that was reconnected.
-3. Auto connect / reconnect / repeat interface was added. It allows not worry
-about making the connection, and not wory about re-establish connection after
-network error or MySQL server restart.
-It is certainly safe to use it with *select* queries and to prepare statements.
-You must be careful with *insert* queries. I'm not sure whether the server
-performs an insert: immediately after receive query or after successfull sending
-OK packet. Even if it is the second option, server may not immediately notice
-the network failure becouse of network buffers in kernel. Therefore query
-repetitions may cause additional unnecessary inserts into database.
-This interface does not appear to be useful with local transactions.
-4. *Register* method was added. It allows to register commands which will be
-executed immediately after connect. It is mainly useful with *Reconnect* method
-and auto connect/reconnect/repeat interface.
+3. Autoreconn interface was added. It allows not worry about making the
+connection, and not wory about re-establish connection after network error or
+MySQL server restart. It is certainly safe to use it with *select* queries and
+to prepare statements. You must be careful with *insert* queries. I'm not sure
+whether the server performs an insert: immediately after receive query or after successfull sending OK packet. Even if it is the second option, server may not
+immediately notice the network failure, becouse of network buffers in kernel.
+Therefore query repetitions may cause additional unnecessary inserts into
+database. This interface does not appear to be useful with local transactions.
+4. *Register* method was added in v0.3.2. It allows to register commands which
+will be executed immediately after connect. It is mainly useful with
+*Reconnect* method and autoreconn interface.
 5. Multi statements / multi results were added.
 6. Types ENUM and SET were added for prepared statements results.
 
@@ -279,11 +277,11 @@ This is improved part of previous example:
         functionThatUseName(row.Str(0))
     }
 
-## Example 5 - automatic connect/reconnect/repeat
+## Example 5 - autoreconn interface
 
     db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
-    // Register initilisation command. If will be executed after each connect.
+    // Register initilisation command. It will be executed after each connect.
     db.Register("set names utf8")
 
     // There is no need to explicity connect to the MySQL server
@@ -1525,10 +1523,6 @@ io.Reader and send in pieces to the server until EOF.
 <h3 id="Timestamp.String">func (*Timestamp) <a href="/mymysql/binding.go#L34">String</a></h3>
 <p><code>func (ts *Timestamp) String() string</code></p>
 
-<h2>Other packages</h2>
-<p>
-<a href="?p=main">main</a><br />
-</p>
 <h2 id="Subdirectories">Subdirectories</h2>
 <p>
 <table class="layout">

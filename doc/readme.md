@@ -281,7 +281,7 @@ This is improved part of previous example:
 
     db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
-    // Register initilisation command. If will be executed after each connect.
+    // Register initilisation command. It will be executed after each connect.
     db.Register("set names utf8")
 
     // There is no need to explicity connect to the MySQL server

@@ -97,13 +97,15 @@ func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error) {
 }
 
 // Automatic connect/reconnect/repeat version of Exec
-func (stmt *Statement) ExecAC() (rows []*Row, res *Result, err os.Error) {
+func (stmt *Statement) ExecAC(params ...interface{}) (
+        rows []*Row, res *Result, err os.Error) {
+
     if err = stmt.db.connectIfNotConnected(); err != nil {
         return
     }
     nn := 0
     for {
-        if rows, res, err = stmt.Exec(); err == nil {
+        if rows, res, err = stmt.Exec(params...); err == nil {
             return
         }
         if stmt.db.reconnectIfNetErr(&nn, &err); err != nil {

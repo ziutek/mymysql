@@ -267,8 +267,7 @@ func (my *MySQL) Start(command interface{}, params ...interface{}) (
     switch cmd := command.(type) {
     case *Statement:
         // Prepared statement
-        cmd.BindParams(params...)
-        return cmd.Run()
+        return cmd.Run(params...)
 
     case string:
         // Text SQL
@@ -487,9 +486,10 @@ func (stmt *Statement) BindParams(params ...interface{}) {
     }
 }
 
-// Execute prepared statement. If statement requires parameters you must
-// bind them first. After this command you may use GetRow to retrieve data.
-func (stmt *Statement) Run() (res *Result, err os.Error) {
+// Execute prepared statement. If statement requires parameters you may bind
+// them first or specify directly. After this command you may use GetRow to
+// retrieve data.
+func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error) {
     if stmt.db.conn == nil {
         return nil, NOT_CONN_ERROR
     }
@@ -499,6 +499,11 @@ func (stmt *Statement) Run() (res *Result, err os.Error) {
     defer stmt.db.unlockIfError(&err)
     defer catchOsError(&err)
     stmt.db.lock()
+
+    // Bind parameters if any
+    if len(params) != 0 {
+        stmt.BindParams(params...)
+    }
 
     // Send EXEC command with binded parameters
     stmt.sendCmdExec()
@@ -510,9 +515,10 @@ func (stmt *Statement) Run() (res *Result, err os.Error) {
 
 // This call Run and next call GetRow once or more times. It read all rows
 // from connection and returns they as a slice.
-func (stmt *Statement) Exec() (rows []*Row, res *Result, err os.Error) {
+func (stmt *Statement) Exec(params ...interface{}) (
+        rows []*Row, res *Result, err os.Error) {
 
-    res, err = stmt.Run()
+    res, err = stmt.Run(params...)
     if err != nil {
         return
     }

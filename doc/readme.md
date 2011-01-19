@@ -392,10 +392,9 @@ below:
                          UNSIGNED BIGINT  -->  uint64
                                    FLOAT  -->  float32
                                   DOUBLE  -->  float64
-                                    TIME  -->  *mymy.Time
-                               TIMESTAMP  -->  *mymy.Timestamp
-                                DATETIME  -->  *mymy.Datetime
+                     TIMESTAMP, DATETIME  -->  *mymy.Datetime
                                     DATE  -->  *mymy.Date
+                                    TIME  -->  *mymy.Time
                                     YEAR  -->  int16
         CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte
      TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
@@ -435,7 +434,7 @@ MySQL database (some of them are prepared statements). Database contains ca.
 connection to MySQL server which is shared by all gorutines. Application is
 running on dual-core machine with GOMAXPROCS=2. It was tested using *siege*:
 
-    # siege my.http.server -c25 -d0 -t 30s
+    # siege my.httpserver.pl -c25 -d0 -t 30s
     ** SIEGE 2.69
     ** Preparing 25 concurrent users for battle.
     The server is now under siege...

@@ -1124,7 +1124,7 @@ Close and reopen connection in one, thread-safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 </p>
 
-				<h3 id="MySQL.Register">func (*MySQL) <a href="/mymysql/mysql.go?s=18178:18215#L680">Register</a></h3>
+				<h3 id="MySQL.Register">func (*MySQL) <a href="/mymysql/mysql.go?s=18190:18227#L680">Register</a></h3>
 				<p><code>func (my *MySQL) Register(sql string)</code></p>
 				<p>
 Register MySQL command/query to be executed immediately after connecting to
@@ -1143,7 +1143,7 @@ fmt.Sprintf(sql, params...).
 You must get all result rows (if they exists) before next query.
 </p>
 
-				<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go?s=17883:17917#L673">ThreadId</a></h3>
+				<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go?s=17895:17929#L673">ThreadId</a></h3>
 				<p><code>func (my *MySQL) ThreadId() uint32</code></p>
 				<p>
 Returns the thread ID of the current connection.
@@ -1346,7 +1346,7 @@ conversion is impossible.
     Status       uint16
     // contains unexported fields
 }</pre></p>
-				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go?s=11179:11235#L439">BindParams</a></h3>
+				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go?s=11191:11247#L439">BindParams</a></h3>
 				<p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>
 				<p>
 Bind input data for the parameter markers in the SQL statement that was
@@ -1357,24 +1357,24 @@ params may be a parameter list (slice), a struct or a pointer to the struct.
 A struct field can by value or pointer to value. A parameter (slice element)
 can be value, pointer to value or pointer to pointer to value.
 Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
-string, Datetime, Timestamp, Raw.
+string, Datetime, Date, Time, Timestamp, Raw.
 </p>
 <p>
 Warning! This method isn&#39;t thread safe. If you use the same prepared
 statement in multiple threads, you should not use this method unless you know
-exactly what you are doing. For each thread you may prepare his own statement
+exactly what you are doing. For each thread you may prepare its own statement
 or use Run, Exec or ExecAC method with parameters (but they rebind parameters
 on each call).
 </p>
 
-				<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go?s=13837:13883#L537">Delete</a></h3>
+				<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go?s=13849:13895#L537">Delete</a></h3>
 				<p><code>func (stmt *Statement) Delete() (err os.Error)</code></p>
 				<p>
 Destroy statement on server side. Client side handler is invalid after this
 command.
 </p>
 
-				<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go?s=13371:13471#L516">Exec</a></h3>
+				<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go?s=13383:13483#L516">Exec</a></h3>
 				<p><code>func (stmt *Statement) Exec(params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 				<p>
 This call Run and next call GetRow once or more times. It read all rows
@@ -1387,20 +1387,20 @@ from connection and returns they as a slice.
 Automatic connect/reconnect/repeat version of Exec
 </p>
 
-				<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go?s=14561:14606#L565">Reset</a></h3>
+				<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go?s=14573:14618#L565">Reset</a></h3>
 				<p><code>func (stmt *Statement) Reset() (err os.Error)</code></p>
 				<p>
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 </p>
 
-				<h3 id="Statement.ResetParams">func (*Statement) <a href="/mymysql/mysql.go?s=12353:12389#L479">ResetParams</a></h3>
+				<h3 id="Statement.ResetParams">func (*Statement) <a href="/mymysql/mysql.go?s=12365:12401#L479">ResetParams</a></h3>
 				<p><code>func (stmt *Statement) ResetParams()</code></p>
 				<p>
 Resets the previous parameter binding
 </p>
 
-				<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go?s=12672:12749#L489">Run</a></h3>
+				<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go?s=12684:12761#L489">Run</a></h3>
 				<p><code>func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error)</code></p>
 				<p>
 Execute prepared statement. If statement requires parameters you may bind
@@ -1408,7 +1408,7 @@ them first or specify directly. After this command you may use GetRow to
 retrieve data.
 </p>
 
-				<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go?s=16104:16205#L606">SendLongData</a></h3>
+				<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go?s=16116:16217#L606">SendLongData</a></h3>
 				<p><code>func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)</code></p>
 				<p>
 Send long data to MySQL server in chunks.

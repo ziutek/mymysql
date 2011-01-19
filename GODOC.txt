@@ -885,11 +885,11 @@ params may be a parameter list (slice), a struct or a pointer to the struct.
 A struct field can by value or pointer to value. A parameter (slice element)
 can be value, pointer to value or pointer to pointer to value.
 Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
-string, Datetime, Timestamp, Raw.
+string, Datetime, Date, Time, Timestamp, Raw.
 
 Warning! This method isn't thread safe. If you use the same prepared
 statement in multiple threads, you should not use this method unless you know
-exactly what you are doing. For each thread you may prepare his own statement
+exactly what you are doing. For each thread you may prepare its own statement
 or use Run, Exec or ExecAC method with parameters (but they rebind parameters
 on each call).
 

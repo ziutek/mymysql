@@ -43,8 +43,8 @@ func (ts *Timestamp) String() string {
     return (*Datetime)(ts).String()
 }
 
-// MySQL TIME type in nanoseconds. Note that MySQL doesn't store fractional part
-// of second, but it is permitted for temporal values.
+// MySQL TIME in nanoseconds. Note that MySQL doesn't store fractional part
+// of second but it is permitted for temporal values.
 type Time int64
 func (tt *Time) String() string {
     if tt == nil {
@@ -65,7 +65,7 @@ func (tt *Time) String() string {
     if ns == 0 {
         return fmt.Sprintf("%d:%02d:%02d", hour, min, sec)
     }
-    return fmt.Sprintf("%d:%02d:%02d.09d%", hour, min, sec, ns)
+    return fmt.Sprintf("%d:%02d:%02d.%09d", hour, min, sec, ns)
 }
 
 type Blob []byte

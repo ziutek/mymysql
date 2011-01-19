@@ -449,10 +449,11 @@ func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
 // Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 // string, Datetime, Timestamp, Raw.
 //
-// Warning! This method isn't thread safe. If you use the same statement in
-// multiple threads, you should not use this method unless you know exactly
-// what you are doing. However, you can safely pass parameters directly to the
-// Run or Exec method, but they will be rebinded on each call.
+// Warning! This method isn't thread safe. If you use the same prepared
+// statement in multiple threads, you should not use this method unless you know
+// exactly what you are doing. For each thread you may prepare his own statement
+// or use Run, Exec or ExecAC method with parameters (but they rebind parameters
+// on each call).
 func (stmt *Statement) BindParams(params ...interface{}) {
     stmt.rebind = true
 

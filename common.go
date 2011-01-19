@@ -154,19 +154,65 @@ func StrToDatetime(str string) (dt *Datetime) {
     if len(str) == 10 || dt == nil {
         return
     }
-    str = strings.TrimSpace(str[10:])
-    if len(str) != 8 || str[2] != ':' || str[5] != ':' {
+    tt := StrToTime(str[10:])
+    if tt == nil || *tt < 0 {
         return nil
+    }
+    ti := *tt
+    dt.Nanosec = uint32(ti % 1e9)
+    ti /= 1e9
+    dt.Second = uint8(ti % 60)
+    ti /= 60
+    dt.Minute = uint8(ti % 60)
+    ti /= 60
+    if ti > 23 {
+        return nil
+    }
+    dt.Hour = uint8(ti)
+    return
+}
+
+// Convert string time in format [+-]H+:MM:SS[.UUUUUUUUU] to Time.
+// Leading and trailing spaces are ignored. If format is invalid returns nil.
+func StrToTime(str string) *Time {
+    str = strings.TrimSpace(str)
+    // Check sign
+    sign := Time(1)
+    switch str[0] {
+    case '-':
+        sign = -1
+        fallthrough
+    case '+':
+        str = str[1:]
     }
     var (
         ii int
         ok os.Error
+        tt Time
     )
-    if ii, ok = strconv.Atoi(str[0:2]); ok != nil { return nil }
-    dt.Hour = uint8(ii)
-    if ii, ok = strconv.Atoi(str[3:5]); ok != nil { return nil }
-    dt.Minute = uint8(ii)
-    if ii, ok = strconv.Atoi(str[6:8]); ok != nil { return nil }
-    dt.Second = uint8(ii)
-    return
+    // Find houre
+    if nn := strings.IndexRune(str, ':'); nn != -1 {
+        if ii, ok = strconv.Atoi(str[0:nn]); ok != nil { return nil }
+        tt = Time(ii * 3600)
+        str = str[nn+1:]
+    } else {
+        return nil
+    }
+    if len(str) != 5 && len(str) != 15 || str[2] != ':' {
+        return nil
+    }
+    if ii, ok = strconv.Atoi(str[0:2]); ok != nil || ii > 59 { return nil }
+    tt += Time(ii * 60)
+    if ii, ok = strconv.Atoi(str[3:5]); ok != nil || ii > 59 { return nil }
+    tt += Time(ii)
+    tt *= 1e9
+    if len(str) == 15 {
+        if str[5] != '.' {
+            return nil
+        }
+        if ii, ok = strconv.Atoi(str[6:15]); ok != nil { return nil }
+        tt += Time(ii)
+    }
+    tt *= sign
+    return &tt
 }

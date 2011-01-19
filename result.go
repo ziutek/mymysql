@@ -57,8 +57,6 @@ func (tr *Row) Bin(nn int) (bin []byte) {
         // bin = []byte{}
     case []byte:
         bin = data
-    case *Datetime:
-        bin = []byte(data.String())
     default:
         buf := new(bytes.Buffer)
         fmt.Fprint(buf, data)
@@ -74,8 +72,6 @@ func (tr *Row) Str(nn int) (str string) {
         // str = ""
     case []byte:
         str = string(data)
-    case *Datetime:
-        str = data.String()
     default:
         str = fmt.Sprint(data)
     }
@@ -192,13 +188,14 @@ func (tr *Row) DateErr(nn int) (val *Date, err os.Error) {
         val = StrToDate(string(data))
     }
     if val == nil {
-        err = os.NewError(fmt.Sprintf("Can't convert `%s` to Date", val))
+        err = os.NewError(
+            fmt.Sprintf("Can't convert `%v` to Date", tr.Data[nn]),
+        )
     }
     return
 }
 
-// Get the nn-th value and return it as Date (0000-00-00 if NULL). Panic if
-// conversion is impossible.
+// It is like DateErr but panics if conversion is impossible.
 func (tr *Row) MustDate(nn int) (val *Date) {
     val, err := tr.DateErr(nn)
     if err != nil {
@@ -207,8 +204,7 @@ func (tr *Row) MustDate(nn int) (val *Date) {
     return
 }
 
-// Get the nn-th value and return it as Date. Return 0000-00-00 if value is NULL
-// or conversion is impossible.
+// It is like DateErr but return 0000-00-00 if conversion is impossible.
 func (tr *Row) Date(nn int) (val *Date) {
     val, _ = tr.DateErr(nn)
     if val == nil {
@@ -217,7 +213,83 @@ func (tr *Row) Date(nn int) (val *Date) {
     return
 }
 
+// Get the nn-th value and return it as Datetime (0000-00-00 00:00:00 if NULL).
+// Return error if conversion is impossible. It can convert Date to Datetime.
+func (tr *Row) DatetimeErr(nn int) (val *Datetime, err os.Error) {
+    switch data := tr.Data[nn].(type) {
+    case nil:
+        val = new(Datetime)
+    case *Datetime:
+        val = data
+    case *Date:
+        val = DateToDatetime(data)
+    case []byte:
+        val = StrToDatetime(string(data))
+    }
+    if val == nil {
+        err = os.NewError(
+            fmt.Sprintf("Can't convert `%v` to Datetime", tr.Data[nn]),
+        )
+    }
+    return
+}
 
+// As DatetimeErr but panics if conversion is impossible.
+func (tr *Row) MustDatetime(nn int) (val *Datetime) {
+    val, err := tr.DatetimeErr(nn)
+    if err != nil {
+        panic(err)
+    }
+    return
+}
+
+// It is like DatetimeErr but return 0000-00-00 00:00:00 if conversion is
+// impossible.
+func (tr *Row) Datetime(nn int) (val *Datetime) {
+    val, _ = tr.DatetimeErr(nn)
+    if val == nil {
+        val = new(Datetime)
+    }
+    return
+}
+
+// Get the nn-th value and return it as Time (0:00:00 if NULL). Return error
+// if conversion is impossible.
+func (tr *Row) TimeErr(nn int) (val Time, err os.Error) {
+    var tp *Time
+    switch data := tr.Data[nn].(type) {
+    case nil:
+        return
+    case Time:
+        val = data
+        return
+    case []byte:
+        tp = StrToTime(string(data))
+    }
+    if tp == nil {
+        err = os.NewError(
+            fmt.Sprintf("Can't convert `%v` to Time", tr.Data[nn]),
+        )
+        return
+    }
+    val = *tp
+    return
+}
+
+// It is like TimeErr but panics if conversion is impossible.
+func (tr *Row) MustTime(nn int) (val Time) {
+    val, err := tr.TimeErr(nn)
+    if err != nil {
+        panic(err)
+    }
+    return
+}
+
+// It is like TimeErr but return 0:00:00 if conversion is impossible.
+func (tr *Row) Time(nn int) (val Time) {
+    val, _ = tr.TimeErr(nn)
+    return
+}
 func (my *MySQL) getResult(res *Result) interface{} {
 loop:
     pr   := my.newPktReader() // New reader for next packet

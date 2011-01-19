@@ -116,9 +116,7 @@ If you do not want to load the entire result into memory you may use
 *Start* and *GetRow* methods:
 
     res, err := db.Start("select * from X")
-    if err != nil {
-        panic(err)
-    }
+    checkError(err)
 
     // Print fields names
     for _, field := range res.Fields {
@@ -129,13 +127,13 @@ If you do not want to load the entire result into memory you may use
     // Print all rows
     for {
         row, err := res.GetRow()
-        if err != nil {
-            panic(err)
-        }
+        checkError(err)
+
         if row == nil {
             // No more rows
             break
         }
+
         // Print all cols
         for _, col := range row.Data {
             if col == nil {
@@ -153,9 +151,7 @@ If you do not want to load the entire result into memory you may use
 You can use *Run* or *Exec* method for prepared statements:
 
     stmt, err := db.Prepare("insert into X values (?, ?)")
-    if err != nil {
-        panic(err)
-    }
+    checkError(err)
 
     type Data struct {
         id  int
@@ -168,13 +164,11 @@ You can use *Run* or *Exec* method for prepared statements:
         err := getData(data)
         if err == endOfData {
             break       
-        } else if err != nil {
-            panic(err)
         }
-        _, err = db.Run(stmt, data.id, data.tax)
-        if err != nil {
-            panic(err)
-        }
+        checkError(err)
+
+        _, err = stmt.Run(data.id, data.tax)
+        checkError(err)
     }
 
 *getData* is your function which retrieves data from somewhere and set *id* and
@@ -215,13 +209,11 @@ This is improved part of previous example:
         err := getData(data)
         if err == endOfData {
             break       
-        } else if err != nil {
-            panic(err)
         }
+        checkError(err)
+
         _, err = stmt.Run()
-        if err != nil {
-            panic(err)
-        }
+        checkError(err)
     }
 
 ## Example 3 - using SendLongData in conjunction with http.Get

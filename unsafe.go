@@ -34,11 +34,23 @@ func (val *paramValue) Len() int {
         }
         return lenNstr((*string)(ptr))
 
+    case MYSQL_TYPE_DATE:
+        if val.is_ptr {
+            return lenNdate(*(**Date)(ptr))
+        }
+        return lenNdate((*Date)(ptr))
+
     case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
         if val.is_ptr {
             return lenNdatetime(*(**Datetime)(ptr))
         }
         return lenNdatetime((*Datetime)(ptr))
+
+    case MYSQL_TYPE_TIME:
+        if val.is_ptr {
+            return lenNtime(*(**Time)(ptr))
+        }
+        return lenNtime((*Time)(ptr))
     }
     // MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_BLOB and type of Raw value
     if val.is_ptr {
@@ -109,6 +121,15 @@ func writeValue(wr io.Writer, val *paramValue) {
             writeU64(wr, *(*uint64)(val.addr))
         }
 
+    case MYSQL_TYPE_DATE:
+        if val.is_ptr {
+            if vp := *(**Date)(val.addr); vp != nil {
+                writeNdate(wr, vp)
+            }
+        } else {
+            writeNdate(wr, (*Date)(val.addr))
+        }
+
     case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
         if val.is_ptr {
             if vp := *(**Datetime)(val.addr); vp != nil {
@@ -116,6 +137,15 @@ func writeValue(wr io.Writer, val *paramValue) {
             }
         } else {
             writeNdatetime(wr, (*Datetime)(val.addr))
+        }
+
+    case MYSQL_TYPE_TIME:
+        if val.is_ptr {
+            if vp := *(**Time)(val.addr); vp != nil {
+                writeNtime(wr, vp)
+            }
+        } else {
+            writeNtime(wr, (*Time)(val.addr))
         }
 
     default:

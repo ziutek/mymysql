@@ -1,4 +1,4 @@
-## MyMySQL v0.3.2 (2011-01-13)
+## MyMySQL v0.3.3 (2011-01-18)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -9,7 +9,7 @@ using *panic()* exceptions, thus the probability of bugs in Go code or an
 unhandled internal errors should be very small. Unfortunately I'm not a MySQL
 protocol expert, so bugs in the protocol handling are possible.
 
-## Differences betwen version 0.2 and 0.3.2
+## Differences betwen version 0.2 and 0.3.3
 
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
 with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
@@ -29,6 +29,8 @@ will be executed immediately after connect. It is mainly useful with
 *Reconnect* method and autoreconn interface.
 5. Multi statements / multi results were added.
 6. Types ENUM and SET were added for prepared statements results.
+7. *Time* and *Date* types added in v0.3.3.
+8. Since v0.3.3 *Run*, *Exec* and *ExecAC* accept parameters.
 
 ## Instaling
 
@@ -44,10 +46,15 @@ For testing you need test database and test user:
     mysql> grant all privileges on test.* to testuser@localhost;
     mysql> set password for testuser@localhost = password("TestPasswd9")
 
-Make sure that MySQL variable *max_allowed_packet* is greater than 33M (needed
-to test long packets). If not, change it in *my.cnf* file and restart MySQL
-daemon. The default MySQL server addres is *127.0.0.1:3306*. You can change it
-by edit *mymy_test.go* file.
+Make sure that MySQL *max_allowed_packet* variable in *my.cnf is greater than
+33M (needed to test long packets) and logging is disabled. If logging is enabled
+test may fail with this message:
+
+	--- FAIL: mymy.TestSendLongData
+	Error: Received #1210 error from MySQL server: "Incorrect arguments to mysqld_stmt_execute"
+
+The default MySQL test server address is *127.0.0.1:3306*. You may change it in
+*mymy_test.go* file.
 
 Next run tests:
 
@@ -354,6 +361,8 @@ mapped for MySQL protocol types as below:
             float64  -->  MYSQL_TYPE_DOUBLE
     *mymy.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
      *mymy.Datetime  -->  MYSQL_TYPE_DATETIME
+         *mymy.Date  -->  MYSQL_TYPE_DATE
+         *mymy.Time  -->  MYSQL_TYPE_TIME
           mymy.Blob  -->  MYSQL_TYPE_BLOB
                 nil  -->  MYSQL_TYPE_NULL
 
@@ -372,7 +381,10 @@ below:
                          UNSIGNED BIGINT  -->  uint64
                                    FLOAT  -->  float32
                                   DOUBLE  -->  float64
-         TIME, DATE, DATETIME, TIMESTAMP  -->  *mymy.Datetime
+                                    TIME  -->  *mymy.Time
+                               TIMESTAMP  -->  *mymy.Timestamp
+                                DATETIME  -->  *mymy.Datetime
+                                    DATE  -->  *mymy.Date
                                     YEAR  -->  int16
         CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte
      TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
@@ -392,8 +404,8 @@ field in database handler to appropriate value before connect, and change
 
 ## Thread safety
 
-You can use this package in multithreading enviroment. All functions are thread
-safe.
+You can use this package in multithreading enviroment. All methods are thread
+safe, unless the description of the method says something else.
 
 If one thread is calling *Query* or *Exec* method, other threads will be
 blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send

@@ -1,4 +1,4 @@
-## MyMySQL v0.3.2 (2011-01-13)
+## MyMySQL v0.3.3 (2011-01-18)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -9,7 +9,7 @@ using *panic()* exceptions, thus the probability of bugs in Go code or an
 unhandled internal errors should be very small. Unfortunately I'm not a MySQL
 protocol expert, so bugs in the protocol handling are possible.
 
-## Differences betwen version 0.2 and 0.3.2
+## Differences betwen version 0.2 and 0.3.3
 
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
 with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
@@ -29,6 +29,8 @@ will be executed immediately after connect. It is mainly useful with
 *Reconnect* method and autoreconn interface.
 5. Multi statements / multi results were added.
 6. Types ENUM and SET were added for prepared statements results.
+7. *Time* and *Date* types added in v0.3.3.
+8. Since v0.3.3 *Run*, *Exec* and *ExecAC* accept parameters.
 
 ## Instaling
 
@@ -44,10 +46,15 @@ For testing you need test database and test user:
     mysql> grant all privileges on test.* to testuser@localhost;
     mysql> set password for testuser@localhost = password("TestPasswd9")
 
-Make sure that MySQL variable *max_allowed_packet* is greater than 33M (needed
-to test long packets). If not, change it in *my.cnf* file and restart MySQL
-daemon. The default MySQL server addres is *127.0.0.1:3306*. You can change it
-by edit *mymy_test.go* file.
+Make sure that MySQL *max_allowed_packet* variable in *my.cnf is greater than
+33M (needed to test long packets) and logging is disabled. If logging is enabled
+test may fail with this message:
+
+	--- FAIL: mymy.TestSendLongData
+	Error: Received #1210 error from MySQL server: "Incorrect arguments to mysqld_stmt_execute"
+
+The default MySQL test server address is *127.0.0.1:3306*. You may change it in
+*mymy_test.go* file.
 
 Next run tests:
 
@@ -354,6 +361,8 @@ mapped for MySQL protocol types as below:
             float64  -->  MYSQL_TYPE_DOUBLE
     *mymy.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
      *mymy.Datetime  -->  MYSQL_TYPE_DATETIME
+         *mymy.Date  -->  MYSQL_TYPE_DATE
+         *mymy.Time  -->  MYSQL_TYPE_TIME
           mymy.Blob  -->  MYSQL_TYPE_BLOB
                 nil  -->  MYSQL_TYPE_NULL
 
@@ -372,7 +381,10 @@ below:
                          UNSIGNED BIGINT  -->  uint64
                                    FLOAT  -->  float32
                                   DOUBLE  -->  float64
-         TIME, DATE, DATETIME, TIMESTAMP  -->  *mymy.Datetime
+                                    TIME  -->  *mymy.Time
+                               TIMESTAMP  -->  *mymy.Timestamp
+                                DATETIME  -->  *mymy.Datetime
+                                    DATE  -->  *mymy.Date
                                     YEAR  -->  int16
         CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte
      TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
@@ -392,8 +404,8 @@ field in database handler to appropriate value before connect, and change
 
 ## Thread safety
 
-You can use this package in multithreading enviroment. All functions are thread
-safe.
+You can use this package in multithreading enviroment. All methods are thread
+safe, unless the description of the method says something else.
 
 If one thread is calling *Query* or *Exec* method, other threads will be
 blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
@@ -420,17 +432,25 @@ It is *GODOC.html* file embded in *README.md*.  Unfortunately, after embding lin
 <dt><a href='#DecodeU24'>func DecodeU24</a></dt>
 <dt><a href='#DecodeU32'>func DecodeU32</a></dt>
 <dt><a href='#DecodeU64'>func DecodeU64</a></dt>
+<dt><a href='#EncodeDate'>func EncodeDate</a></dt>
 <dt><a href='#EncodeDatetime'>func EncodeDatetime</a></dt>
+<dt><a href='#EncodeTime'>func EncodeTime</a></dt>
 <dt><a href='#EncodeU16'>func EncodeU16</a></dt>
 <dt><a href='#EncodeU24'>func EncodeU24</a></dt>
 <dt><a href='#EncodeU32'>func EncodeU32</a></dt>
 <dt><a href='#EncodeU64'>func EncodeU64</a></dt>
+<dt><a href='#IsDateZero'>func IsDateZero</a></dt>
 <dt><a href='#IsDatetimeZero'>func IsDatetimeZero</a></dt>
 <dt><a href='#IsNetErr'>func IsNetErr</a></dt>
 <dt><a href='#NbinToNstr'>func NbinToNstr</a></dt>
 <dt><a href='#NstrToNbin'>func NstrToNbin</a></dt>
 <dt><a href='#Blob'>type Blob</a></dt>
+<dt><a href='#Date'>type Date</a></dt>
+<dd><a href='#Date.StrToDate'>func StrToDate</a></dd>
+<dd><a href='#Date.String'>func (*Date) String</a></dd>
 <dt><a href='#Datetime'>type Datetime</a></dt>
+<dd><a href='#Datetime.DateToDatetime'>func DateToDatetime</a></dd>
+<dd><a href='#Datetime.StrToDatetime'>func StrToDatetime</a></dd>
 <dd><a href='#Datetime.TimeToDatetime'>func TimeToDatetime</a></dd>
 <dd><a href='#Datetime.String'>func (*Datetime) String</a></dd>
 <dt><a href='#Error'>type Error</a></dt>
@@ -458,8 +478,11 @@ It is *GODOC.html* file embded in *README.md*.  Unfortunately, after embding lin
 <dd><a href='#Result.NextResult'>func (*Result) NextResult</a></dd>
 <dt><a href='#Row'>type Row</a></dt>
 <dd><a href='#Row.Bin'>func (*Row) Bin</a></dd>
+<dd><a href='#Row.Date'>func (*Row) Date</a></dd>
+<dd><a href='#Row.DateErr'>func (*Row) DateErr</a></dd>
 <dd><a href='#Row.Int'>func (*Row) Int</a></dd>
 <dd><a href='#Row.IntErr'>func (*Row) IntErr</a></dd>
+<dd><a href='#Row.MustDate'>func (*Row) MustDate</a></dd>
 <dd><a href='#Row.MustInt'>func (*Row) MustInt</a></dd>
 <dd><a href='#Row.MustUint'>func (*Row) MustUint</a></dd>
 <dd><a href='#Row.Str'>func (*Row) Str</a></dd>
@@ -473,8 +496,9 @@ It is *GODOC.html* file embded in *README.md*.  Unfortunately, after embding lin
 <dd><a href='#Statement.Reset'>func (*Statement) Reset</a></dd>
 <dd><a href='#Statement.Run'>func (*Statement) Run</a></dd>
 <dd><a href='#Statement.SendLongData'>func (*Statement) SendLongData</a></dd>
+<dt><a href='#Time'>type Time</a></dt>
+<dd><a href='#Time.String'>func (*Time) String</a></dd>
 <dt><a href='#Timestamp'>type Timestamp</a></dt>
-<dd><a href='#Timestamp.TimeToTimestamp'>func TimeToTimestamp</a></dd>
 <dd><a href='#Timestamp.String'>func (*Timestamp) String</a></dd>
 </dl>
 <!--
@@ -994,18 +1018,18 @@ MySQL types are marked with a comment contains mymysql type that uses it.
 
 <pre>const (
 MYSQL_TYPE_DECIMAL     = 0x00
-MYSQL_TYPE_TINY        = 0x01 <span class="comment">// int8, uint8</span>
-MYSQL_TYPE_SHORT       = 0x02 <span class="comment">// int16, uint16</span>
-MYSQL_TYPE_LONG        = 0x03 <span class="comment">// int32, uint32</span>
-MYSQL_TYPE_FLOAT       = 0x04 <span class="comment">// float32</span>
-MYSQL_TYPE_DOUBLE      = 0x05 <span class="comment">// float64</span>
-MYSQL_TYPE_NULL        = 0x06 <span class="comment">// nil</span>
-MYSQL_TYPE_TIMESTAMP   = 0x07 <span class="comment">// *Timestamp</span>
-MYSQL_TYPE_LONGLONG    = 0x08 <span class="comment">// int64, uint64</span>
+MYSQL_TYPE_TINY        = 0x01 // int8, uint8
+MYSQL_TYPE_SHORT       = 0x02 // int16, uint16
+MYSQL_TYPE_LONG        = 0x03 // int32, uint32
+MYSQL_TYPE_FLOAT       = 0x04 // float32
+MYSQL_TYPE_DOUBLE      = 0x05 // float64
+MYSQL_TYPE_NULL        = 0x06 // nil
+MYSQL_TYPE_TIMESTAMP   = 0x07 // *Timestamp
+MYSQL_TYPE_LONGLONG    = 0x08 // int64, uint64
 MYSQL_TYPE_INT24       = 0x09
-MYSQL_TYPE_DATE        = 0x0a
-MYSQL_TYPE_TIME        = 0x0b
-MYSQL_TYPE_DATETIME    = 0x0c <span class="comment">// *Datetime</span>
+MYSQL_TYPE_DATE        = 0x0a // *Date
+MYSQL_TYPE_TIME        = 0x0b // Time
+MYSQL_TYPE_DATETIME    = 0x0c // *Datetime
 MYSQL_TYPE_YEAR        = 0x0d
 MYSQL_TYPE_NEWDATE     = 0x0e
 MYSQL_TYPE_VARCHAR     = 0x0f
@@ -1016,9 +1040,9 @@ MYSQL_TYPE_SET         = 0xf8
 MYSQL_TYPE_TINY_BLOB   = 0xf9
 MYSQL_TYPE_MEDIUM_BLOB = 0xfa
 MYSQL_TYPE_LONG_BLOB   = 0xfb
-MYSQL_TYPE_BLOB        = 0xfc <span class="comment">// Blob</span>
-MYSQL_TYPE_VAR_STRING  = 0xfd <span class="comment">// []byte</span>
-MYSQL_TYPE_STRING      = 0xfe <span class="comment">// string</span>
+MYSQL_TYPE_BLOB        = 0xfc // Blob
+MYSQL_TYPE_VAR_STRING  = 0xfd // []byte
+MYSQL_TYPE_STRING      = 0xfe // string
 MYSQL_TYPE_GEOMETRY    = 0xff
 
 MYSQL_UNSIGNED_MASK = uint16(1 &lt;&lt; 15)
@@ -1035,47 +1059,47 @@ better preformance use []byte.
 </p>
 
 <pre>const (
-<span class="comment">// Client send and receive, mymysql representation for send / receive</span>
-TINYINT   = MYSQL_TYPE_TINY      <span class="comment">// int8 / int8</span>
-SMALLINT  = MYSQL_TYPE_SHORT     <span class="comment">// int16 / int16</span>
-INT       = MYSQL_TYPE_LONG      <span class="comment">// int32 / int32</span>
-BIGINT    = MYSQL_TYPE_LONGLONG  <span class="comment">// int64 / int64</span>
-FLOAT     = MYSQL_TYPE_FLOAT     <span class="comment">// float32 / float32</span>
-DOUBLE    = MYSQL_TYPE_DOUBLE    <span class="comment">// float64 / float32</span>
-TIME      = MYSQL_TYPE_TIME      <span class="comment">// *Datetime / *Datetime</span>
-DATE      = MYSQL_TYPE_DATE      <span class="comment">// *Datetime / *Datetime</span>
-DATETIME  = MYSQL_TYPE_DATETIME  <span class="comment">// *Datetime / *Datetime</span>
-TIMESTAMP = MYSQL_TYPE_TIMESTAMP <span class="comment">// *Timestamp / *Datetime</span>
-CHAR      = MYSQL_TYPE_STRING    <span class="comment">// string / []byte</span>
-BLOB      = MYSQL_TYPE_BLOB      <span class="comment">// Blob / []byte</span>
-NULL      = MYSQL_TYPE_NULL      <span class="comment">// nil</span>
+// Client send and receive, mymysql representation for send / receive
+TINYINT   = MYSQL_TYPE_TINY      // int8 / int8
+SMALLINT  = MYSQL_TYPE_SHORT     // int16 / int16
+INT       = MYSQL_TYPE_LONG      // int32 / int32
+BIGINT    = MYSQL_TYPE_LONGLONG  // int64 / int64
+FLOAT     = MYSQL_TYPE_FLOAT     // float32 / float32
+DOUBLE    = MYSQL_TYPE_DOUBLE    // float64 / float32
+TIME      = MYSQL_TYPE_TIME      // Time / Time
+DATE      = MYSQL_TYPE_DATE      // *Date / *Date
+DATETIME  = MYSQL_TYPE_DATETIME  // *Datetime / *Datetime
+TIMESTAMP = MYSQL_TYPE_TIMESTAMP // *Timestamp / *Datetime
+CHAR      = MYSQL_TYPE_STRING    // string / []byte
+BLOB      = MYSQL_TYPE_BLOB      // Blob / []byte
+NULL      = MYSQL_TYPE_NULL      // nil
 
 
-<span class="comment">// Client send only, mymysql representation for send</span>
-OUT_TEXT      = MYSQL_TYPE_STRING <span class="comment">// string</span>
-OUT_VARCHAR   = MYSQL_TYPE_STRING <span class="comment">// string</span>
-OUT_BINARY    = MYSQL_TYPE_BLOB   <span class="comment">// Blob</span>
-OUT_VARBINARY = MYSQL_TYPE_BLOB   <span class="comment">// Blob</span>
+// Client send only, mymysql representation for send
+OUT_TEXT      = MYSQL_TYPE_STRING // string
+OUT_VARCHAR   = MYSQL_TYPE_STRING // string
+OUT_BINARY    = MYSQL_TYPE_BLOB   // Blob
+OUT_VARBINARY = MYSQL_TYPE_BLOB   // Blob
 
 
-<span class="comment">// Client receive only, mymysql representation for receive</span>
-IN_MEDIUMINT  = MYSQL_TYPE_INT24       <span class="comment">// int32</span>
-IN_YEAR       = MYSQL_TYPE_SHORT       <span class="comment">// int16</span>
-IN_BINARY     = MYSQL_TYPE_STRING      <span class="comment">// []byte</span>
-IN_VARCHAR    = MYSQL_TYPE_VAR_STRING  <span class="comment">// []byte</span>
-IN_VARBINARY  = MYSQL_TYPE_VAR_STRING  <span class="comment">// []byte</span>
-IN_TINYBLOB   = MYSQL_TYPE_TINY_BLOB   <span class="comment">// []byte</span>
-IN_TINYTEXT   = MYSQL_TYPE_TINY_BLOB   <span class="comment">// []byte</span>
-IN_TEXT       = MYSQL_TYPE_BLOB        <span class="comment">// []byte</span>
-IN_MEDIUMBLOB = MYSQL_TYPE_MEDIUM_BLOB <span class="comment">// []byte</span>
-IN_MEDIUMTEXT = MYSQL_TYPE_MEDIUM_BLOB <span class="comment">// []byte</span>
-IN_LONGBLOB   = MYSQL_TYPE_LONG_BLOB   <span class="comment">// []byte</span>
-IN_LONGTEXT   = MYSQL_TYPE_LONG_BLOB   <span class="comment">// []byte</span>
+// Client receive only, mymysql representation for receive
+IN_MEDIUMINT  = MYSQL_TYPE_INT24       // int32
+IN_YEAR       = MYSQL_TYPE_SHORT       // int16
+IN_BINARY     = MYSQL_TYPE_STRING      // []byte
+IN_VARCHAR    = MYSQL_TYPE_VAR_STRING  // []byte
+IN_VARBINARY  = MYSQL_TYPE_VAR_STRING  // []byte
+IN_TINYBLOB   = MYSQL_TYPE_TINY_BLOB   // []byte
+IN_TINYTEXT   = MYSQL_TYPE_TINY_BLOB   // []byte
+IN_TEXT       = MYSQL_TYPE_BLOB        // []byte
+IN_MEDIUMBLOB = MYSQL_TYPE_MEDIUM_BLOB // []byte
+IN_MEDIUMTEXT = MYSQL_TYPE_MEDIUM_BLOB // []byte
+IN_LONGBLOB   = MYSQL_TYPE_LONG_BLOB   // []byte
+IN_LONGTEXT   = MYSQL_TYPE_LONG_BLOB   // []byte
 
 
-<span class="comment">// MySQL 5.x specific</span>
-IN_DECIMAL = MYSQL_TYPE_NEWDECIMAL <span class="comment">// TODO</span>
-IN_BIT     = MYSQL_TYPE_BIT        <span class="comment">// []byte</span>
+// MySQL 5.x specific
+IN_DECIMAL = MYSQL_TYPE_NEWDECIMAL // TODO
+IN_BIT     = MYSQL_TYPE_BIT        // []byte
 )</pre>
 <h2 id="Variables">Variables</h2>
 
@@ -1086,6 +1110,7 @@ PKT_LONG_ERROR        = os.NewError(&#34;packet too long&#34;)
 UNEXP_NULL_LCS_ERROR  = os.NewError(&#34;unexpected null LCS&#34;)
 UNEXP_NULL_LCB_ERROR  = os.NewError(&#34;unexpected null LCB&#34;)
 UNEXP_NULL_DATE_ERROR = os.NewError(&#34;unexpected null datetime&#34;)
+UNEXP_NULL_TIME_ERROR = os.NewError(&#34;unexpected null time&#34;)
 UNK_RESULT_PKT_ERROR  = os.NewError(&#34;unexpected or unknown result packet&#34;)
 NOT_CONN_ERROR        = os.NewError(&#34;not connected&#34;)
 ALREDY_CONN_ERROR     = os.NewError(&#34;not connected&#34;)
@@ -1096,70 +1121,118 @@ BIND_UNK_TYPE         = os.NewError(&#34;unknown value type for bind&#34;)
 RESULT_COUNT_ERROR    = os.NewError(&#34;wrong number of result columns&#34;)
 BAD_COMMAND_ERROR     = os.NewError(&#34;comand isn&#39;t text SQL nor *Statement&#34;)
 WRONG_DATE_LEN_ERROR  = os.NewError(&#34;wrong datetime/timestamp length&#34;)
+WRONG_TIME_LEN_ERROR  = os.NewError(&#34;wrong time length&#34;)
 UNK_MYSQL_TYPE_ERROR  = os.NewError(&#34;unknown MySQL type&#34;)
 WRONG_PARAM_NUM_ERROR = os.NewError(&#34;wrong parameter number&#34;)
 UNK_DATA_TYPE_ERROR   = os.NewError(&#34;unknown data source type&#34;)
 SMALL_PKT_SIZE_ERROR  = os.NewError(&#34;specified packet size is to small&#34;)
 )</pre>
-<h2 id="DecodeU16">func <a href="/mymysql/codecs.go#L9">DecodeU16</a></h2>
+<h2 id="DecodeU16">func <a href="/mymysql/codecs.go?s=65:98#L1">DecodeU16</a></h2>
 <p><code>func DecodeU16(buf []byte) uint16</code></p>
 
-<h2 id="DecodeU24">func <a href="/mymysql/codecs.go#L18">DecodeU24</a></h2>
+<h2 id="DecodeU24">func <a href="/mymysql/codecs.go?s=265:298#L8">DecodeU24</a></h2>
 <p><code>func DecodeU24(buf []byte) uint32</code></p>
 
-<h2 id="DecodeU32">func <a href="/mymysql/codecs.go#L27">DecodeU32</a></h2>
+<h2 id="DecodeU32">func <a href="/mymysql/codecs.go?s=489:522#L17">DecodeU32</a></h2>
 <p><code>func DecodeU32(buf []byte) uint32</code></p>
 
-<h2 id="DecodeU64">func <a href="/mymysql/codecs.go#L37">DecodeU64</a></h2>
+<h2 id="DecodeU64">func <a href="/mymysql/codecs.go?s=745:783#L27">DecodeU64</a></h2>
 <p><code>func DecodeU64(buf []byte) (rv uint64)</code></p>
 
-<h2 id="EncodeDatetime">func <a href="/mymysql/codecs.go#L324">EncodeDatetime</a></h2>
-<p><code>func EncodeDatetime(dt *Datetime) *[]byte</code></p>
+<h2 id="EncodeDate">func <a href="/mymysql/codecs.go?s=9904:9936#L471">EncodeDate</a></h2>
+<p><code>func EncodeDate(dd *Date) []byte</code></p>
 
-<h2 id="EncodeU16">func <a href="/mymysql/codecs.go#L49">EncodeU16</a></h2>
-<p><code>func EncodeU16(val uint16) *[]byte</code></p>
+<h2 id="EncodeDatetime">func <a href="/mymysql/codecs.go?s=8538:8578#L409">EncodeDatetime</a></h2>
+<p><code>func EncodeDatetime(dt *Datetime) []byte</code></p>
 
-<h2 id="EncodeU24">func <a href="/mymysql/codecs.go#L56">EncodeU24</a></h2>
-<p><code>func EncodeU24(val uint32) *[]byte</code></p>
+<h2 id="EncodeTime">func <a href="/mymysql/codecs.go?s=6481:6513#L313">EncodeTime</a></h2>
+<p><code>func EncodeTime(tt *Time) []byte</code></p>
 
-<h2 id="EncodeU32">func <a href="/mymysql/codecs.go#L63">EncodeU32</a></h2>
-<p><code>func EncodeU32(val uint32) *[]byte</code></p>
+<h2 id="EncodeU16">func <a href="/mymysql/codecs.go?s=995:1028#L39">EncodeU16</a></h2>
+<p><code>func EncodeU16(val uint16) []byte</code></p>
 
-<h2 id="EncodeU64">func <a href="/mymysql/codecs.go#L70">EncodeU64</a></h2>
-<p><code>func EncodeU64(val uint64) *[]byte</code></p>
+<h2 id="EncodeU24">func <a href="/mymysql/codecs.go?s=1153:1186#L46">EncodeU24</a></h2>
+<p><code>func EncodeU24(val uint32) []byte</code></p>
 
-<h2 id="IsDatetimeZero">func <a href="/mymysql/common.go#L86">IsDatetimeZero</a></h2>
+<h2 id="EncodeU32">func <a href="/mymysql/codecs.go?s=1328:1361#L53">EncodeU32</a></h2>
+<p><code>func EncodeU32(val uint32) []byte</code></p>
+
+<h2 id="EncodeU64">func <a href="/mymysql/codecs.go?s=1520:1553#L60">EncodeU64</a></h2>
+<p><code>func EncodeU64(val uint64) []byte</code></p>
+
+<h2 id="IsDateZero">func <a href="/mymysql/common.go?s=2509:2539#L112">IsDateZero</a></h2>
+<p><code>func IsDateZero(dd *Date) bool</code></p>
+<p>
+True if date is 0000-00-00
+</p>
+
+<h2 id="IsDatetimeZero">func <a href="/mymysql/common.go?s=1684:1722#L79">IsDatetimeZero</a></h2>
 <p><code>func IsDatetimeZero(dt *Datetime) bool</code></p>
+<p>
+True if datetime is 0000-00-00 00:00:00
+</p>
 
-<h2 id="IsNetErr">func <a href="/mymysql/autoconnect.go#L12">IsNetErr</a></h2>
+<h2 id="IsNetErr">func <a href="/mymysql/autoconnect.go?s=134:166#L2">IsNetErr</a></h2>
 <p><code>func IsNetErr(err os.Error) bool</code></p>
 <p>
 Return true if error is network error or UnexpectedEOF.
 </p>
 
-<h2 id="NbinToNstr">func <a href="/mymysql/addons.go#L3">NbinToNstr</a></h2>
+<h2 id="NbinToNstr">func <a href="/mymysql/addons.go?s=14:51#L1">NbinToNstr</a></h2>
 <p><code>func NbinToNstr(nbin *[]byte) *string</code></p>
 
-<h2 id="NstrToNbin">func <a href="/mymysql/addons.go#L11">NstrToNbin</a></h2>
+<h2 id="NstrToNbin">func <a href="/mymysql/addons.go?s=144:181#L1">NstrToNbin</a></h2>
 <p><code>func NstrToNbin(nstr *string) *[]byte</code></p>
 
-<h2 id="Blob">type <a href="/mymysql/binding.go#L38">Blob</a></h2>
+<h2 id="Blob">type <a href="/mymysql/binding.go?s=1508:1524#L61">Blob</a></h2>
 
 <p><pre>type Blob []byte</pre></p>
-<h2 id="Datetime">type <a href="/mymysql/binding.go#L8">Datetime</a></h2>
+<h2 id="Date">type <a href="/mymysql/binding.go?s=591:648#L20">Date</a></h2>
+
+<p><pre>type Date struct {
+Year       int16
+Month, Day uint8
+}</pre></p>
+<h3 id="Date.StrToDate">func <a href="/mymysql/common.go?s=2726:2763#L118">StrToDate</a></h3>
+<p><code>func StrToDate(str string) (dd *Date)</code></p>
+<p>
+Convert string date in format YYYY-MM-DD to Date.
+Leading and trailing spaces are ignored. If format is invalid returns nil.
+</p>
+
+<h3 id="Date.String">func (*Date) <a href="/mymysql/binding.go?s=649:680#L24">String</a></h3>
+<p><code>func (dd *Date) String() string</code></p>
+
+<h2 id="Datetime">type <a href="/mymysql/binding.go?s=50:152#L1">Datetime</a></h2>
 
 <p><pre>type Datetime struct {
 Year                             int16
 Month, Day, Hour, Minute, Second uint8
 Nanosec                          uint32
 }</pre></p>
-<h3 id="Datetime.TimeToDatetime">func <a href="/mymysql/common.go#L91">TimeToDatetime</a></h3>
-<p><code>func TimeToDatetime(tt *time.Time) *Datetime</code></p>
+<h3 id="Datetime.DateToDatetime">func <a href="/mymysql/common.go?s=2289:2328#L100">DateToDatetime</a></h3>
+<p><code>func DateToDatetime(dd *Date) *Datetime</code></p>
+<p>
+Convert *Date to *Datetime. Return nil if dd is nil
+</p>
 
-<h3 id="Datetime.String">func (*Datetime) <a href="/mymysql/binding.go#L13">String</a></h3>
+<h3 id="Datetime.StrToDatetime">func <a href="/mymysql/common.go?s=3384:3429#L139">StrToDatetime</a></h3>
+<p><code>func StrToDatetime(str string) (dt *Datetime)</code></p>
+<p>
+Convert string datetime in format YYYY-MM-DD[ HH:MM:SS] to Datetime.
+Leading and trailing spaces are ignored. If format is invalid returns nil.
+</p>
+
+<h3 id="Datetime.TimeToDatetime">func <a href="/mymysql/common.go?s=1915:1959#L85">TimeToDatetime</a></h3>
+<p><code>func TimeToDatetime(tt *time.Time) *Datetime</code></p>
+<p>
+Convert *time.Time to *Datetime. Return nil if tt is nil
+</p>
+
+<h3 id="Datetime.String">func (*Datetime) <a href="/mymysql/binding.go?s=153:188#L3">String</a></h3>
 <p><code>func (dt *Datetime) String() string</code></p>
 
-<h2 id="Error">type <a href="/mymysql/errors.go#L34">Error</a></h2>
+<h2 id="Error">type <a href="/mymysql/errors.go?s=1710:1765#L26">Error</a></h2>
 <p>
 If function/method returns error you can check returned error type, and if
 it is *mymy.Error it is error received from MySQL server. Next you can check
@@ -1170,10 +1243,10 @@ Code for error number.
 Code uint16
 Msg  []byte
 }</pre></p>
-<h3 id="Error.String">func (Error) <a href="/mymysql/errors.go#L39">String</a></h3>
+<h3 id="Error.String">func (Error) <a href="/mymysql/errors.go?s=1767:1799#L31">String</a></h3>
 <p><code>func (err Error) String() string</code></p>
 
-<h2 id="Field">type <a href="/mymysql/result.go#L12">Field</a></h2>
+<h2 id="Field">type <a href="/mymysql/result.go?s=92:329#L2">Field</a></h2>
 
 <p><pre>type Field struct {
 Catalog  string
@@ -1183,31 +1256,31 @@ OrgTable string
 Name     string
 OrgName  string
 DispLen  uint32
-<span class="comment">//  Charset  uint16</span>
+//  Charset  uint16
 Flags uint16
 Type  byte
 Scale byte
 }</pre></p>
-<h2 id="MySQL">type <a href="/mymysql/mysql.go#L23">MySQL</a></h2>
+<h2 id="MySQL">type <a href="/mymysql/mysql.go?s=273:1286#L13">MySQL</a></h2>
 <p>
 MySQL connection handler
 </p>
 
 <p><pre>type MySQL struct {
 
-<span class="comment">// Maximum packet size that client can accept from server.</span>
-<span class="comment">// Default 16*1024*1024-1. You may change it before connect.</span>
+// Maximum packet size that client can accept from server.
+// Default 16*1024*1024-1. You may change it before connect.
 MaxPktSize int
 
-<span class="comment">// Debug logging. You may change it at any time.</span>
+// Debug logging. You may change it at any time.
 Debug bool
 
-<span class="comment">// Maximum reconnect retries - for XxxAC methods. Default is 5 which</span>
-<span class="comment">// means 1+2+3+4+5 = 15 seconds before return an error.</span>
+// Maximum reconnect retries - for XxxAC methods. Default is 5 which
+// means 1+2+3+4+5 = 15 seconds before return an error.
 MaxRetries int
-<span class="comment">// contains unexported fields</span>
+// contains unexported fields
 }</pre></p>
-<h3 id="MySQL.New">func <a href="/mymysql/mysql.go#L60">New</a></h3>
+<h3 id="MySQL.New">func <a href="/mymysql/mysql.go?s=1517:1593#L50">New</a></h3>
 <p><code>func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL)</code></p>
 <p>
 Create new MySQL handler. The first three arguments are passed to net.Bind
@@ -1215,57 +1288,57 @@ for create connection. user and passwd are for authentication. Optional db
 is database name (you may not specifi it and use Use() method later).
 </p>
 
-<h3 id="MySQL.Close">func (*MySQL) <a href="/mymysql/mysql.go#L159">Close</a></h3>
+<h3 id="MySQL.Close">func (*MySQL) <a href="/mymysql/mysql.go?s=3873:3912#L149">Close</a></h3>
 <p><code>func (my *MySQL) Close() (err os.Error)</code></p>
 <p>
 Close connection to the server
 </p>
 
-<h3 id="MySQL.Connect">func (*MySQL) <a href="/mymysql/mysql.go#L132">Connect</a></h3>
+<h3 id="MySQL.Connect">func (*MySQL) <a href="/mymysql/mysql.go?s=3304:3345#L122">Connect</a></h3>
 <p><code>func (my *MySQL) Connect() (err os.Error)</code></p>
 <p>
 Establishes a connection with MySQL server version 4.1 or later.
 </p>
 
-<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go#L380">Ping</a></h3>
+<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go?s=9510:9548#L369">Ping</a></h3>
 <p><code>func (my *MySQL) Ping() (err os.Error)</code></p>
 <p>
 Send MySQL PING to the server.
 </p>
 
-<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go#L421">Prepare</a></h3>
+<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go?s=10422:10490#L410">Prepare</a></h3>
 <p><code>func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)</code></p>
 <p>
 Prepare server side statement. Return statement handler.
 </p>
 
-<h3 id="MySQL.PrepareAC">func (*MySQL) <a href="/mymysql/autoconnect.go#L83">PrepareAC</a></h3>
+<h3 id="MySQL.PrepareAC">func (*MySQL) <a href="/mymysql/autoconnect.go?s=1844:1914#L73">PrepareAC</a></h3>
 <p><code>func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error)</code></p>
 <p>
 Automatic connect/reconnect/repeat version of Prepare
 </p>
 
-<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go#L360">Query</a></h3>
+<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go?s=9076:9192#L349">Query</a></h3>
 <p><code>func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 <p>
 This call Start and next call GetRow as long as it reads all rows from the
 result. Next it returns all readed rows as the slice of rows.
 </p>
 
-<h3 id="MySQL.QueryAC">func (*MySQL) <a href="/mymysql/autoconnect.go#L64">QueryAC</a></h3>
+<h3 id="MySQL.QueryAC">func (*MySQL) <a href="/mymysql/autoconnect.go?s=1362:1480#L54">QueryAC</a></h3>
 <p><code>func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 <p>
 Automatic connect/reconnect/repeat version of Query
 </p>
 
-<h3 id="MySQL.Reconnect">func (*MySQL) <a href="/mymysql/mysql.go#L174">Reconnect</a></h3>
+<h3 id="MySQL.Reconnect">func (*MySQL) <a href="/mymysql/mysql.go?s=4231:4274#L164">Reconnect</a></h3>
 <p><code>func (my *MySQL) Reconnect() (err os.Error)</code></p>
 <p>
 Close and reopen connection in one, thread-safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 </p>
 
-<h3 id="MySQL.Register">func (*MySQL) <a href="/mymysql/mysql.go#L673">Register</a></h3>
+<h3 id="MySQL.Register">func (*MySQL) <a href="/mymysql/mysql.go?s=18441:18478#L675">Register</a></h3>
 <p><code>func (my *MySQL) Register(sql string)</code></p>
 <p>
 Register MySQL command/query to be executed immediately after connecting to
@@ -1273,7 +1346,7 @@ the server. You may register multiple commands. They will be executed in
 the order of registration. Yhis method is mainly useful for reconnect.
 </p>
 
-<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go#L263">Start</a></h3>
+<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go?s=6402:6505#L253">Start</a></h3>
 <p><code>func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)</code></p>
 <p>
 Start new query.
@@ -1293,45 +1366,45 @@ statement before execution.
 You must get all result rows (if they exists) before next query.
 </p>
 
-<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go#L666">ThreadId</a></h3>
+<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go?s=18146:18180#L668">ThreadId</a></h3>
 <p><code>func (my *MySQL) ThreadId() uint32</code></p>
 <p>
 Returns the thread ID of the current connection.
 </p>
 
-<h3 id="MySQL.Use">func (*MySQL) <a href="/mymysql/mysql.go#L209">Use</a></h3>
+<h3 id="MySQL.Use">func (*MySQL) <a href="/mymysql/mysql.go?s=5102:5152#L199">Use</a></h3>
 <p><code>func (my *MySQL) Use(dbname string) (err os.Error)</code></p>
 <p>
 Change database
 </p>
 
-<h3 id="MySQL.UseAC">func (*MySQL) <a href="/mymysql/autoconnect.go#L47">UseAC</a></h3>
+<h3 id="MySQL.UseAC">func (*MySQL) <a href="/mymysql/autoconnect.go?s=974:1026#L37">UseAC</a></h3>
 <p><code>func (my *MySQL) UseAC(dbname string) (err os.Error)</code></p>
 <p>
 Automatic connect/reconnect/repeat version of Use
 </p>
 
-<h2 id="Raw">type <a href="/mymysql/binding.go#L40">Raw</a></h2>
+<h2 id="Raw">type <a href="/mymysql/binding.go?s=1526:1576#L63">Raw</a></h2>
 
 <p><pre>type Raw struct {
 Typ uint16
 Val *[]byte
 }</pre></p>
-<h2 id="Result">type <a href="/mymysql/result.go#L26">Result</a></h2>
+<h2 id="Result">type <a href="/mymysql/result.go?s=331:668#L16">Result</a></h2>
 
 <p><pre>type Result struct {
 FieldCount int
-Fields     []*Field       <span class="comment">// Fields table</span>
-Map        map[string]int <span class="comment">// Maps field name to column number</span>
+Fields     []*Field       // Fields table
+Map        map[string]int // Maps field name to column number
 
 Message      []byte
 AffectedRows uint64
 InsertId     uint64
 WarningCount int
 Status       uint16
-<span class="comment">// contains unexported fields</span>
+// contains unexported fields
 }</pre></p>
-<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go#L351">End</a></h3>
+<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go?s=8796:8835#L340">End</a></h3>
 <p><code>func (res *Result) End() (err os.Error)</code></p>
 <p>
 Read all unreaded rows and discard them. This function is useful if you
@@ -1341,21 +1414,21 @@ read/discard all rows in this result, before use other method that sends
 data to the server.
 </p>
 
-<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go#L319">GetRow</a></h3>
+<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go?s=7702:7754#L308">GetRow</a></h3>
 <p><code>func (res *Result) GetRow() (row *Row, err os.Error)</code></p>
 <p>
 Get the data row from a server. This method reads one row of result directly
 from network connection (without rows buffering on client side).
 </p>
 
-<h3 id="Result.NextResult">func (*Result) <a href="/mymysql/mysql.go#L338">NextResult</a></h3>
+<h3 id="Result.NextResult">func (*Result) <a href="/mymysql/mysql.go?s=8285:8345#L327">NextResult</a></h3>
 <p><code>func (res *Result) NextResult() (next *Result, err os.Error)</code></p>
 <p>
 This function is used when last query was the multi result query.
 Return the next result or nil if no more resuts exists.
 </p>
 
-<h2 id="Row">type <a href="/mymysql/result.go#L49">Row</a></h2>
+<h2 id="Row">type <a href="/mymysql/result.go?s=1064:1106#L39">Row</a></h2>
 <p>
 Result row. Data field is a slice that contains values for any column of
 received row.
@@ -1365,80 +1438,101 @@ If row is a result of ordinary text query, an element of Data field can be
 []byte slice, contained result text or nil if NULL is returned.
 </p>
 <p>
-If it is result of prepared statement execution, an element of Data field
-can be: intXX, uintXX, floatXX, []byte, *Datetime or nil.
+If it is result of prepared statement execution, an element of Data field can
+be: intXX, uintXX, floatXX, []byte, *Date, *Datetime, Time or nil
 </p>
 
 <p><pre>type Row struct {
 Data []interface{}
 }</pre></p>
-<h3 id="Row.Bin">func (*Row) <a href="/mymysql/result.go#L54">Bin</a></h3>
+<h3 id="Row.Bin">func (*Row) <a href="/mymysql/result.go?s=1174:1213#L44">Bin</a></h3>
 <p><code>func (tr *Row) Bin(nn int) (bin []byte)</code></p>
 <p>
 Get the nn-th value and return it as []byte ([]byte{} if NULL)
 </p>
 
-<h3 id="Row.Int">func (*Row) <a href="/mymysql/result.go#L135">Int</a></h3>
+<h3 id="Row.Date">func (*Row) <a href="/mymysql/result.go?s=5228:5267#L202">Date</a></h3>
+<p><code>func (tr *Row) Date(nn int) (val *Date)</code></p>
+<p>
+Get the nn-th value and return it as Date. Return 0000-00-00 if value is NULL
+or conversion is impossible.
+</p>
+
+<h3 id="Row.DateErr">func (*Row) <a href="/mymysql/result.go?s=4527:4583#L175">DateErr</a></h3>
+<p><code>func (tr *Row) DateErr(nn int) (val *Date, err os.Error)</code></p>
+<p>
+Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
+if conversion is impossible.
+</p>
+
+<h3 id="Row.Int">func (*Row) <a href="/mymysql/result.go?s=3168:3204#L125">Int</a></h3>
 <p><code>func (tr *Row) Int(nn int) (val int)</code></p>
 <p>
 Get the nn-th value and return it as int. Return 0 if value is NULL or
 conversion is impossible.
 </p>
 
-<h3 id="Row.IntErr">func (*Row) <a href="/mymysql/result.go#L87">IntErr</a></h3>
+<h3 id="Row.IntErr">func (*Row) <a href="/mymysql/result.go?s=1944:1997#L77">IntErr</a></h3>
 <p><code>func (tr *Row) IntErr(nn int) (val int, err os.Error)</code></p>
 <p>
 Get the nn-th value and return it as int (0 if NULL). Return error if
 conversion is impossible.
 </p>
 
-<h3 id="Row.MustInt">func (*Row) <a href="/mymysql/result.go#L125">MustInt</a></h3>
+<h3 id="Row.MustDate">func (*Row) <a href="/mymysql/result.go?s=4979:5022#L192">MustDate</a></h3>
+<p><code>func (tr *Row) MustDate(nn int) (val *Date)</code></p>
+<p>
+Get the nn-th value and return it as Date (0000-00-00 if NULL). Panic if
+conversion is impossible.
+</p>
+
+<h3 id="Row.MustInt">func (*Row) <a href="/mymysql/result.go?s=2933:2973#L115">MustInt</a></h3>
 <p><code>func (tr *Row) MustInt(nn int) (val int)</code></p>
 <p>
 Get the nn-th value and return it as int (0 if NULL). Panic if conversion is
 impossible.
 </p>
 
-<h3 id="Row.MustUint">func (*Row) <a href="/mymysql/result.go#L168">MustUint</a></h3>
+<h3 id="Row.MustUint">func (*Row) <a href="/mymysql/result.go?s=4093:4135#L158">MustUint</a></h3>
 <p><code>func (tr *Row) MustUint(nn int) (val uint)</code></p>
 <p>
 Get the nn-th value and return it as uint (0 if NULL). Panic if conversion is
 impossible.
 </p>
 
-<h3 id="Row.Str">func (*Row) <a href="/mymysql/result.go#L71">Str</a></h3>
+<h3 id="Row.Str">func (*Row) <a href="/mymysql/result.go?s=1570:1609#L61">Str</a></h3>
 <p><code>func (tr *Row) Str(nn int) (str string)</code></p>
 <p>
 Get the nn-th value and return it as string (&#34;&#34; if NULL)
 </p>
 
-<h3 id="Row.Uint">func (*Row) <a href="/mymysql/result.go#L178">Uint</a></h3>
+<h3 id="Row.Uint">func (*Row) <a href="/mymysql/result.go?s=4332:4370#L168">Uint</a></h3>
 <p><code>func (tr *Row) Uint(nn int) (val uint)</code></p>
 <p>
 Get the nn-th value and return it as uint. Return 0 if value is NULL or
 conversion is impossible.
 </p>
 
-<h3 id="Row.UintErr">func (*Row) <a href="/mymysql/result.go#L142">UintErr</a></h3>
+<h3 id="Row.UintErr">func (*Row) <a href="/mymysql/result.go?s=3351:3406#L132">UintErr</a></h3>
 <p><code>func (tr *Row) UintErr(nn int) (val uint, err os.Error)</code></p>
 <p>
 Get the nn-th value and return it as uint (0 if NULL). Return error if
 conversion is impossible.
 </p>
 
-<h2 id="Statement">type <a href="/mymysql/prepared.go#L7">Statement</a></h2>
+<h2 id="Statement">type <a href="/mymysql/prepared.go?s=36:376#L1">Statement</a></h2>
 
 <p><pre>type Statement struct {
 Fields []*Field
-Map    map[string]int <span class="comment">// Maps field name to column number</span>
+Map    map[string]int // Maps field name to column number
 
 FieldCount   int
 ParamCount   int
 WarningCount int
 Status       uint16
-<span class="comment">// contains unexported fields</span>
+// contains unexported fields
 }</pre></p>
-<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go#L452">BindParams</a></h3>
+<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go?s=11639:11695#L446">BindParams</a></h3>
 <p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>
 <p>
 Bind input data for the parameter markers in the SQL statement that was
@@ -1451,42 +1545,49 @@ can be value, pointer to value or pointer to pointer to value.
 Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 string, Datetime, Timestamp, Raw.
 </p>
+<p>
+Warning! This method isn&#39;t thread safe. If you use the same statement in
+multiple threads, you should not use this method unless you know exactly
+what you are doing. However, you can safely pass parameters directly to the
+Run or Exec method, but they will be rebinded on each call.
+</p>
 
-<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go#L533">Delete</a></h3>
+<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go?s=14103:14149#L535">Delete</a></h3>
 <p><code>func (stmt *Statement) Delete() (err os.Error)</code></p>
 <p>
 Destroy statement on server side. Client side handler is invalid after this
 command.
 </p>
 
-<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go#L513">Exec</a></h3>
-<p><code>func (stmt *Statement) Exec() (rows []*Row, res *Result, err os.Error)</code></p>
+<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go?s=13637:13737#L514">Exec</a></h3>
+<p><code>func (stmt *Statement) Exec(params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 <p>
 This call Run and next call GetRow once or more times. It read all rows
 from connection and returns they as a slice.
 </p>
 
-<h3 id="Statement.ExecAC">func (*Statement) <a href="/mymysql/autoconnect.go#L100">ExecAC</a></h3>
-<p><code>func (stmt *Statement) ExecAC() (rows []*Row, res *Result, err os.Error)</code></p>
+<h3 id="Statement.ExecAC">func (*Statement) <a href="/mymysql/autoconnect.go?s=2256:2358#L90">ExecAC</a></h3>
+<p><code>func (stmt *Statement) ExecAC(params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 <p>
 Automatic connect/reconnect/repeat version of Exec
 </p>
 
-<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go#L560">Reset</a></h3>
+<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go?s=14826:14871#L562">Reset</a></h3>
 <p><code>func (stmt *Statement) Reset() (err os.Error)</code></p>
 <p>
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 </p>
 
-<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go#L492">Run</a></h3>
-<p><code>func (stmt *Statement) Run() (res *Result, err os.Error)</code></p>
+<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go?s=12943:13020#L488">Run</a></h3>
+<p><code>func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error)</code></p>
 <p>
-Execute prepared statement. If statement requires parameters you must
-bind them first. After this command you may use GetRow to retrieve data.
+Execute prepared statement. If statement requires parameters you may bind
+them first or specify directly. After this command you may use GetRow to
+retrieve data.
 </p>
 
-<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go#L600">SendLongData</a></h3>
+<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go?s=16368:16469#L602">SendLongData</a></h3>
 <p><code>func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)</code></p>
 <p>
 Send long data to MySQL server in chunks.
@@ -1514,13 +1615,20 @@ io.Reader you should properly set pkt_size. Data will be readed from
 io.Reader and send in pieces to the server until EOF.
 </p>
 
-<h2 id="Timestamp">type <a href="/mymysql/binding.go#L33">Timestamp</a></h2>
+<h2 id="Time">type <a href="/mymysql/binding.go?s=1039:1054#L38">Time</a></h2>
+<p>
+MySQL TIME type in nanoseconds. Note that MySQL doesn&#39;t store fractional part
+of second, but it is permitted for temporal values.
+</p>
+
+<p><pre>type Time int64</pre></p>
+<h3 id="Time.String">func (*Time) <a href="/mymysql/binding.go?s=1055:1086#L39">String</a></h3>
+<p><code>func (tt *Time) String() string</code></p>
+
+<h2 id="Timestamp">type <a href="/mymysql/binding.go?s=801:824#L31">Timestamp</a></h2>
 
 <p><pre>type Timestamp Datetime</pre></p>
-<h3 id="Timestamp.TimeToTimestamp">func <a href="/mymysql/common.go#L102">TimeToTimestamp</a></h3>
-<p><code>func TimeToTimestamp(tt *time.Time) *Timestamp</code></p>
-
-<h3 id="Timestamp.String">func (*Timestamp) <a href="/mymysql/binding.go#L34">String</a></h3>
+<h3 id="Timestamp.String">func (*Timestamp) <a href="/mymysql/binding.go?s=825:861#L32">String</a></h3>
 <p><code>func (ts *Timestamp) String() string</code></p>
 
 <h2 id="Subdirectories">Subdirectories</h2>

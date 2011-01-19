@@ -27,9 +27,45 @@ func (dt *Datetime) String() string {
     )
 }
 
+type Date struct {
+    Year  int16
+    Month, Day uint8
+}
+func (dd *Date) String() string {
+    if dd == nil {
+        return "NULL"
+    }
+    return fmt.Sprintf("%04d-%02d-%02d", dd.Year, dd.Month, dd.Day)
+}
+
 type Timestamp Datetime
 func (ts *Timestamp) String() string {
     return (*Datetime)(ts).String()
+}
+
+// MySQL TIME type in nanoseconds. Note that MySQL doesn't store fractional part
+// of second, but it is permitted for temporal values.
+type Time int64
+func (tt *Time) String() string {
+    if tt == nil {
+        return "NULL"
+    }
+    ti := int64(*tt)
+    sign := 1
+    if ti < 0 {
+        sign = -1
+        ti = -ti
+    }
+    ns := int(ti % 1e9)
+    ti /= 1e9
+    sec := int(ti % 60)
+    ti /= 60
+    min := int(ti % 60)
+    hour := int(ti / 60) * sign
+    if ns == 0 {
+        return fmt.Sprintf("%d:%02d:%02d", hour, min, sec)
+    }
+    return fmt.Sprintf("%d:%02d:%02d.09d%", hour, min, sec, ns)
 }
 
 type Blob []byte
@@ -42,7 +78,9 @@ type Raw struct {
 var (
     reflectBlobType = reflect.Typeof(Blob{})
     reflectDatetimeType = reflect.Typeof(Datetime{})
+    reflectDateType = reflect.Typeof(Date{})
     reflectTimestampType = reflect.Typeof(Timestamp{})
+    reflectTimeType = reflect.Typeof(Time(0))
     reflectRawType = reflect.Typeof(Raw{})
 )
 
@@ -68,7 +106,12 @@ func bindValue(val reflect.Value) (out *paramValue) {
         return
 
     case *reflect.IntType:
-        out.typ, out.length = mysqlIntType(tt.Kind())
+        if tt == reflectTimeType {
+            out.typ = MYSQL_TYPE_TIME
+            out.length = -1
+        } else {
+            out.typ, out.length = mysqlIntType(tt.Kind())
+        }
         return
 
     case *reflect.UintType:
@@ -96,6 +139,10 @@ func bindValue(val reflect.Value) (out *paramValue) {
         out.length = -1
         if tt == reflectDatetimeType {
             out.typ = MYSQL_TYPE_DATETIME
+            return
+        }
+        if tt == reflectDateType {
+            out.typ = MYSQL_TYPE_DATE
             return
         }
         if tt == reflectTimestampType {

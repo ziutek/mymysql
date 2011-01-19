@@ -46,36 +46,36 @@ func readU64(rd io.Reader) (rv uint64) {
     return DecodeU64(buf)
 }
 
-func EncodeU16(val uint16) *[]byte {
-    return &[]byte{byte(val), byte(val >> 8)}
+func EncodeU16(val uint16) []byte {
+    return []byte{byte(val), byte(val >> 8)}
 }
 func writeU16(wr io.Writer, val uint16) {
-    write(wr, *EncodeU16(val))
+    write(wr, EncodeU16(val))
 }
 
-func EncodeU24(val uint32) *[]byte {
-    return &[]byte{byte(val), byte(val >> 8), byte(val >> 16)}
+func EncodeU24(val uint32) []byte {
+    return []byte{byte(val), byte(val >> 8), byte(val >> 16)}
 }
 func writeU24(wr io.Writer, val uint32) {
-    write(wr, *EncodeU24(val))
+    write(wr, EncodeU24(val))
 }
 
-func EncodeU32(val uint32) *[]byte {
-    return &[]byte{byte(val), byte(val >> 8), byte(val >> 16), byte(val >> 24)}
+func EncodeU32(val uint32) []byte {
+    return []byte{byte(val), byte(val >> 8), byte(val >> 16), byte(val >> 24)}
 }
 func writeU32(wr io.Writer, val uint32) {
-    write(wr, *EncodeU32(val))
+    write(wr, EncodeU32(val))
 }
 
-func EncodeU64(val uint64) *[]byte {
+func EncodeU64(val uint64) []byte {
     buf := make([]byte, 8)
     for ii := range buf {
         buf[ii] = byte(val >> uint(ii * 8))
     }
-    return &buf
+    return buf
 }
 func writeU64(wr io.Writer, val uint64) {
-    write(wr, *EncodeU64(val))
+    write(wr, EncodeU64(val))
 }
 
 
@@ -275,11 +275,106 @@ func writeNT(wr io.Writer, v interface{}) {
     }
 }
 
+func readNtime(rd io.Reader) *Time {
+    dlen := readByte(rd)
+    switch dlen {
+    case 251:
+        // Null
+        return nil
+    case 0:
+        // 00:00:00
+        return new(Time)
+    case 5, 8, 12:
+        // Properly time length
+    default:
+        panic(WRONG_DATE_LEN_ERROR)
+    }
+    buf := make([]byte, dlen)
+    readFull(rd, buf)
+    tt := int64(0)
+    switch dlen {
+    case 12:
+        // Nanosecond part
+        tt += int64(DecodeU32(buf[8:]))
+        fallthrough
+    case 8:
+        // HH:MM:SS part
+        tt += int64(int(buf[5]) * 3600 + int(buf[6]) * 60 + int(buf[7])) * 1e9
+        fallthrough
+    case 5:
+        // Day part
+        tt += int64(DecodeU32(buf[1:5])) * (24 * 3600 * 1e9)
+        fallthrough
+    }
+    if buf[0] != 0 {
+        tt = -tt
+    }
+    return (*Time)(&tt)
+}
+
+func readNotNullTime(rd io.Reader) Time {
+    tt := readNtime(rd)
+    if tt == nil {
+        panic(UNEXP_NULL_DATE_ERROR)
+    }
+    return *tt
+}
+
+func EncodeTime(tt *Time) []byte {
+    if tt == nil {
+        return []byte{251}
+    }
+    buf := make([]byte, 13)
+    ti := int64(*tt)
+    if ti < 0 {
+        buf[1] = 1
+        ti = -ti
+    }
+    if ns := uint32(ti % 1e9); ns != 0 {
+        copy(buf[9:13], EncodeU32(ns)) // nanosecond
+        buf[0] += 4
+    }
+    ti /= 1e9
+    if hms := int(ti % (24 * 3600)); buf[0] != 0 || hms != 0 {
+        buf[8] = byte(hms % 60) // second
+        hms /= 60
+        buf[7] = byte(hms % 60) // minute
+        buf[6] = byte(hms / 60) // hour
+        buf[0] += 3
+    }
+    if day := uint32(ti / (24 * 3600)); buf[0] != 0 || day != 0 {
+        copy(buf[2:6], EncodeU32(day)) // day
+        buf[0] += 4
+    }
+    buf[0]++ // For sign byte
+    buf = buf[0 : buf[0]+1]
+    return buf
+}
+
+func writeNtime(wr io.Writer, tt *Time) {
+    write(wr, EncodeTime(tt))
+}
+
+func lenNtime(tt *Time) int {
+    if tt == nil || *tt == 0 {
+        return 1
+    }
+    ti := int64(*tt)
+    if ti % 1e9 != 0 {
+        return 13
+    }
+    ti /= 1e9
+    if ti % (24 * 3600) != 0 {
+        return 9
+    }
+   return 6
+}
+
 func readNdatetime(rd io.Reader) *Datetime {
     dlen := readByte(rd)
     switch dlen {
     case 251:
-        // Null timestamp
+        // Null
         return nil
     case 0:
         // 0000-00-00
@@ -321,14 +416,14 @@ func readNotNullDatetime(rd io.Reader) (dt *Datetime) {
     return
 }
 
-func EncodeDatetime(dt *Datetime) *[]byte {
+func EncodeDatetime(dt *Datetime) []byte {
     if dt == nil {
-        return &[]byte{251}
+        return []byte{251}
     }
     buf := make([]byte, 12)
     switch {
     case dt.Nanosec != 0:
-        copy(buf[7:12], *EncodeU32(dt.Nanosec))
+        copy(buf[7:12], EncodeU32(dt.Nanosec))
         buf[0] += 4
         fallthrough
 
@@ -342,15 +437,15 @@ func EncodeDatetime(dt *Datetime) *[]byte {
     case dt.Day != 0 || dt.Month != 0 || dt.Year != 0:
         buf[4] = dt.Day
         buf[3] = dt.Month
-        copy(buf[1:3], *EncodeU16(uint16(dt.Year)))
+        copy(buf[1:3], EncodeU16(uint16(dt.Year)))
         buf[0] += 4
     }
     buf = buf[0 : buf[0]+1]
-    return &buf
+    return buf
 }
 
 func writeNdatetime(wr io.Writer, dt *Datetime) {
-    write(wr, *EncodeDatetime(dt))
+    write(wr, EncodeDatetime(dt))
 }
 
 func lenNdatetime(dt *Datetime) int {
@@ -365,6 +460,34 @@ func lenNdatetime(dt *Datetime) int {
         return 5
     }
    return 1
+}
+
+func readNdate(rd io.Reader) *Date {
+    dt := readNdatetime(rd)
+    if dt == nil {
+        return nil
+    }
+    return &Date{Year: dt.Year, Month: dt.Month, Day: dt.Day}
+}
+
+func readNotNullDate(rd io.Reader) (dt *Date) {
+    dt = readNdate(rd)
+    if dt == nil {
+        panic(UNEXP_NULL_DATE_ERROR)
+    }
+    return
+}
+
+func EncodeDate(dd *Date) []byte {
+    return EncodeDatetime(DateToDatetime(dd))
+}
+
+func writeNdate(wr io.Writer, dd *Date) {
+    write(wr, EncodeDate(dd))
+}
+
+func lenNdate(dd *Date) int {
+    return lenNdatetime(DateToDatetime(dd))
 }
 
 // Borrowed from GoMySQL

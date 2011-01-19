@@ -492,8 +492,8 @@ const (
     MYSQL_TYPE_TIMESTAMP   = 0x07 // *Timestamp
     MYSQL_TYPE_LONGLONG    = 0x08 // int64, uint64
     MYSQL_TYPE_INT24       = 0x09
-    MYSQL_TYPE_DATE        = 0x0a
-    MYSQL_TYPE_TIME        = 0x0b
+    MYSQL_TYPE_DATE        = 0x0a // *Date
+    MYSQL_TYPE_TIME        = 0x0b // Time
     MYSQL_TYPE_DATETIME    = 0x0c // *Datetime
     MYSQL_TYPE_YEAR        = 0x0d
     MYSQL_TYPE_NEWDATE     = 0x0e
@@ -525,8 +525,8 @@ const (
     BIGINT    = MYSQL_TYPE_LONGLONG  // int64 / int64
     FLOAT     = MYSQL_TYPE_FLOAT     // float32 / float32
     DOUBLE    = MYSQL_TYPE_DOUBLE    // float64 / float32
-    TIME      = MYSQL_TYPE_TIME      // *Datetime / *Datetime
-    DATE      = MYSQL_TYPE_DATE      // *Datetime / *Datetime
+    TIME      = MYSQL_TYPE_TIME      // Time / Time
+    DATE      = MYSQL_TYPE_DATE      // *Date / *Date
     DATETIME  = MYSQL_TYPE_DATETIME  // *Datetime / *Datetime
     TIMESTAMP = MYSQL_TYPE_TIMESTAMP // *Timestamp / *Datetime
     CHAR      = MYSQL_TYPE_STRING    // string / []byte
@@ -578,6 +578,7 @@ var (
     UNEXP_NULL_LCS_ERROR  = os.NewError("unexpected null LCS")
     UNEXP_NULL_LCB_ERROR  = os.NewError("unexpected null LCB")
     UNEXP_NULL_DATE_ERROR = os.NewError("unexpected null datetime")
+    UNEXP_NULL_TIME_ERROR = os.NewError("unexpected null time")
     UNK_RESULT_PKT_ERROR  = os.NewError("unexpected or unknown result packet")
     NOT_CONN_ERROR        = os.NewError("not connected")
     ALREDY_CONN_ERROR     = os.NewError("not connected")
@@ -588,6 +589,7 @@ var (
     RESULT_COUNT_ERROR    = os.NewError("wrong number of result columns")
     BAD_COMMAND_ERROR     = os.NewError("comand isn't text SQL nor *Statement")
     WRONG_DATE_LEN_ERROR  = os.NewError("wrong datetime/timestamp length")
+    WRONG_TIME_LEN_ERROR  = os.NewError("wrong time length")
     UNK_MYSQL_TYPE_ERROR  = os.NewError("unknown MySQL type")
     WRONG_PARAM_NUM_ERROR = os.NewError("wrong parameter number")
     UNK_DATA_TYPE_ERROR   = os.NewError("unknown data source type")
@@ -605,17 +607,25 @@ func DecodeU32(buf []byte) uint32
 
 func DecodeU64(buf []byte) (rv uint64)
 
-func EncodeDatetime(dt *Datetime) *[]byte
+func EncodeDate(dd *Date) []byte
 
-func EncodeU16(val uint16) *[]byte
+func EncodeDatetime(dt *Datetime) []byte
 
-func EncodeU24(val uint32) *[]byte
+func EncodeTime(tt *Time) []byte
 
-func EncodeU32(val uint32) *[]byte
+func EncodeU16(val uint16) []byte
 
-func EncodeU64(val uint64) *[]byte
+func EncodeU24(val uint32) []byte
+
+func EncodeU32(val uint32) []byte
+
+func EncodeU64(val uint64) []byte
+
+func IsDateZero(dd *Date) bool
+True if date is 0000-00-00
 
 func IsDatetimeZero(dt *Datetime) bool
+True if datetime is 0000-00-00 00:00:00
 
 func IsNetErr(err os.Error) bool
 Return true if error is network error or UnexpectedEOF.
@@ -629,13 +639,32 @@ TYPES
 
 type Blob []byte
 
+type Date struct {
+    Year       int16
+    Month, Day uint8
+}
+
+func StrToDate(str string) (dd *Date)
+Convert string date in format YYYY-MM-DD to Date.
+Leading and trailing spaces are ignored. If format is invalid returns nil.
+
+func (dd *Date) String() string
+
 type Datetime struct {
     Year                             int16
     Month, Day, Hour, Minute, Second uint8
     Nanosec                          uint32
 }
 
+func DateToDatetime(dd *Date) *Datetime
+Convert *Date to *Datetime. Return nil if dd is nil
+
+func StrToDatetime(str string) (dt *Datetime)
+Convert string datetime in format YYYY-MM-DD[ HH:MM:SS] to Datetime.
+Leading and trailing spaces are ignored. If format is invalid returns nil.
+
 func TimeToDatetime(tt *time.Time) *Datetime
+Convert *time.Time to *Datetime. Return nil if tt is nil
 
 func (dt *Datetime) String() string
 
@@ -779,11 +808,19 @@ received row.
 If row is a result of ordinary text query, an element of Data field can be
 []byte slice, contained result text or nil if NULL is returned.
 
-If it is result of prepared statement execution, an element of Data field
-can be: intXX, uintXX, floatXX, []byte, *Datetime or nil.
+If it is result of prepared statement execution, an element of Data field can
+be: intXX, uintXX, floatXX, []byte, *Date, *Datetime, Time or nil
 
 func (tr *Row) Bin(nn int) (bin []byte)
 Get the nn-th value and return it as []byte ([]byte{} if NULL)
+
+func (tr *Row) Date(nn int) (val *Date)
+Get the nn-th value and return it as Date. Return 0000-00-00 if value is NULL
+or conversion is impossible.
+
+func (tr *Row) DateErr(nn int) (val *Date, err os.Error)
+Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
+if conversion is impossible.
 
 func (tr *Row) Int(nn int) (val int)
 Get the nn-th value and return it as int. Return 0 if value is NULL or
@@ -791,6 +828,10 @@ conversion is impossible.
 
 func (tr *Row) IntErr(nn int) (val int, err os.Error)
 Get the nn-th value and return it as int (0 if NULL). Return error if
+conversion is impossible.
+
+func (tr *Row) MustDate(nn int) (val *Date)
+Get the nn-th value and return it as Date (0000-00-00 if NULL). Panic if
 conversion is impossible.
 
 func (tr *Row) MustInt(nn int) (val int)
@@ -833,24 +874,30 @@ can be value, pointer to value or pointer to pointer to value.
 Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 string, Datetime, Timestamp, Raw.
 
+Warning! This method isn't thread safe. If you use the same statement in
+multiple threads, you should not use this method unless you know exactly
+what you are doing. However, you can safely pass parameters directly to the
+Run or Exec method, but they will be rebinded on each call.
+
 func (stmt *Statement) Delete() (err os.Error)
 Destroy statement on server side. Client side handler is invalid after this
 command.
 
-func (stmt *Statement) Exec() (rows []*Row, res *Result, err os.Error)
+func (stmt *Statement) Exec(params ...interface{}) (rows []*Row, res *Result, err os.Error)
 This call Run and next call GetRow once or more times. It read all rows
 from connection and returns they as a slice.
 
-func (stmt *Statement) ExecAC() (rows []*Row, res *Result, err os.Error)
+func (stmt *Statement) ExecAC(params ...interface{}) (rows []*Row, res *Result, err os.Error)
 Automatic connect/reconnect/repeat version of Exec
 
 func (stmt *Statement) Reset() (err os.Error)
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 
-func (stmt *Statement) Run() (res *Result, err os.Error)
-Execute prepared statement. If statement requires parameters you must
-bind them first. After this command you may use GetRow to retrieve data.
+func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error)
+Execute prepared statement. If statement requires parameters you may bind
+them first or specify directly. After this command you may use GetRow to
+retrieve data.
 
 func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)
 Send long data to MySQL server in chunks.
@@ -873,9 +920,13 @@ multiple pieces you can call this method multiple times. If data source is
 io.Reader you should properly set pkt_size. Data will be readed from
 io.Reader and send in pieces to the server until EOF.
 
-type Timestamp Datetime
+type Time int64
+MySQL TIME type in nanoseconds. Note that MySQL doesn't store fractional part
+of second, but it is permitted for temporal values.
 
-func TimeToTimestamp(tt *time.Time) *Timestamp
+func (tt *Time) String() string
+
+type Timestamp Datetime
 
 func (ts *Timestamp) String() string
 

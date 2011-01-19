@@ -83,8 +83,8 @@ const (
     MYSQL_TYPE_TIMESTAMP   = 0x07   // *Timestamp
     MYSQL_TYPE_LONGLONG    = 0x08   // int64, uint64
     MYSQL_TYPE_INT24       = 0x09
-    MYSQL_TYPE_DATE        = 0x0a
-    MYSQL_TYPE_TIME        = 0x0b
+    MYSQL_TYPE_DATE        = 0x0a   // *Date
+    MYSQL_TYPE_TIME        = 0x0b   // Time
     MYSQL_TYPE_DATETIME    = 0x0c   // *Datetime
     MYSQL_TYPE_YEAR        = 0x0d
     MYSQL_TYPE_NEWDATE     = 0x0e
@@ -119,8 +119,8 @@ const (
     BIGINT        = MYSQL_TYPE_LONGLONG      // int64 / int64
     FLOAT         = MYSQL_TYPE_FLOAT         // float32 / float32
     DOUBLE        = MYSQL_TYPE_DOUBLE        // float64 / float32
-    TIME          = MYSQL_TYPE_TIME          // *Datetime / *Datetime
-    DATE          = MYSQL_TYPE_DATE          // *Datetime / *Datetime
+    TIME          = MYSQL_TYPE_TIME          // Time / Time
+    DATE          = MYSQL_TYPE_DATE          // *Date / *Date
     DATETIME      = MYSQL_TYPE_DATETIME      // *Datetime / *Datetime
     TIMESTAMP     = MYSQL_TYPE_TIMESTAMP     // *Timestamp / *Datetime
     CHAR          = MYSQL_TYPE_STRING        // string / []byte

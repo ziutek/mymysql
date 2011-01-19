@@ -441,6 +441,43 @@ func TestVarBinding(t *testing.T) {
     dbClose(t)
 }
 
+func TestDate(t *testing.T) {
+    dbConnect(t, true, 0)
+    query("drop table D") // Drop test table if exists
+    checkResult(t,
+        query("create table D (id int, dd date, dt datetime, tt time)"),
+        cmdOK(0, false),
+    )
+
+    dd := "2011-12-13"
+    dt := "2010-12-12 11:24:00"
+    tt := -Time((124*3600 + 4 * 3600 + 3 * 60 + 2) * 1e9 + 1)
+
+    ins, err := db.Prepare("insert D values (?, ?, ?, ?)")
+    checkErr(t, err, nil)
+
+    sel, err := db.Prepare("select id, tt from D where dd <= ? && dt <= ?")
+    checkErr(t, err, nil)
+
+    _, err = ins.Run(1, dd, dt, tt)
+    checkErr(t, err, nil)
+
+    rows, _, err := sel.Exec(StrToDatetime(dd), StrToDate(dd))
+    checkErr(t, err, nil)
+    if rows == nil {
+        t.Fatal("nil result")
+    }
+    if rows[0].Int(0) != 1 {
+        t.Fatal("Bad id", rows[0].Int(1))
+    }
+    if rows[0].Data[1].(Time) != tt + 1 {
+        t.Fatal("Bad tt", rows[0].Data[1].(Time))
+    }
+
+    //checkResult(t, query("drop table D"), cmdOK(0, false))
+    dbClose(t)
+}
+
 // Big blob
 
 func TestBigBlob(t *testing.T) {

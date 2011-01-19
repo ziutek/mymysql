@@ -44,8 +44,8 @@ type Result struct {
 // If row is a result of ordinary text query, an element of Data field can be
 // []byte slice, contained result text or nil if NULL is returned.
 //
-// If it is result of prepared statement execution, an element of Data field
-// can be: intXX, uintXX, floatXX, []byte, *Datetime or nil.
+// If it is result of prepared statement execution, an element of Data field can
+// be: intXX, uintXX, floatXX, []byte, *Date, *Datetime, Time or nil
 type Row struct {
     Data []interface{}
 }
@@ -179,6 +179,44 @@ func (tr *Row) Uint(nn int) (val uint) {
     val, _ = tr.UintErr(nn)
     return
 }
+
+// Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
+// if conversion is impossible.
+func (tr *Row) DateErr(nn int) (val *Date, err os.Error) {
+    switch data := tr.Data[nn].(type) {
+    case nil:
+        val = new(Date)
+    case *Date:
+        val = data
+    case []byte:
+        val = StrToDate(string(data))
+    }
+    if val == nil {
+        err = os.NewError(fmt.Sprintf("Can't convert `%s` to Date", val))
+    }
+    return
+}
+
+// Get the nn-th value and return it as Date (0000-00-00 if NULL). Panic if
+// conversion is impossible.
+func (tr *Row) MustDate(nn int) (val *Date) {
+    val, err := tr.DateErr(nn)
+    if err != nil {
+        panic(err)
+    }
+    return
+}
+
+// Get the nn-th value and return it as Date. Return 0000-00-00 if value is NULL
+// or conversion is impossible.
+func (tr *Row) Date(nn int) (val *Date) {
+    val, _ = tr.DateErr(nn)
+    if val == nil {
+        val = new(Date)
+    }
+    return
+}
+
 
 func (my *MySQL) getResult(res *Result) interface{} {
 loop:
@@ -423,9 +461,14 @@ func (my *MySQL) getBinRowPacket(pr *pktReader, res *Result) *Row {
                 MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET, MYSQL_TYPE_ENUM:
             row.Data[ii] = readNotNullBin(pr)
 
-        case MYSQL_TYPE_DATETIME, MYSQL_TYPE_DATE, MYSQL_TYPE_TIME,
-                MYSQL_TYPE_TIMESTAMP:
+        case MYSQL_TYPE_DATE:
+            row.Data[ii] = readNotNullDate(pr)
+
+        case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
             row.Data[ii] = readNotNullDatetime(pr)
+
+        case MYSQL_TYPE_TIME:
+            row.Data[ii] = readNotNullTime(pr)
 
         // TODO:
         // MYSQL_TYPE_NEWDATE, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_GEOMETRY      

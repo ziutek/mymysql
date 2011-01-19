@@ -11,14 +11,18 @@ var (
     Bytes  = []byte("Ala ma Kota!")
     String = "ssss" //"A kot ma Alę!"
     blob   = Blob{1, 2, 3}
-    date   = Datetime{Year: 2010, Month: 12, Day: 30, Hour: 17, Minute:21}
+    dateT  = Datetime{Year: 2010, Month: 12, Day: 30, Hour: 17, Minute:21}
     tstamp = Timestamp{Year: 2001, Month: 2, Day: 3, Hour: 7, Minute:2}
+    date   = Date{Year: 2011, Month: 2, Day: 3}
+    tim    = -Time((5 * 24*3600 + 4 * 3600 + 3 * 60 + 2) * 1e9 + 1)
 
     pBytes  *[]byte
     pString *string
     pBlob   *Blob
-    pDate   *Datetime
+    pDateT  *Datetime
     pTstamp *Timestamp
+    pDate   *Date
+    pTim    *Time
 
     raw    = Raw{MYSQL_TYPE_INT24, &[]byte{3, 2, 1}}
 
@@ -65,20 +69,26 @@ var bindTests = []BindTest {
     BindTest{Bytes,   MYSQL_TYPE_VAR_STRING, false, -1},
     BindTest{String,  MYSQL_TYPE_STRING,     false, -1},
     BindTest{blob,    MYSQL_TYPE_BLOB,       false, -1},
-    BindTest{date,    MYSQL_TYPE_DATETIME,   false, -1},
+    BindTest{dateT,   MYSQL_TYPE_DATETIME,   false, -1},
     BindTest{tstamp,  MYSQL_TYPE_TIMESTAMP,  false, -1},
+    BindTest{date,    MYSQL_TYPE_DATE,       false, -1},
+    BindTest{tim,     MYSQL_TYPE_TIME,       false, -1},
 
     BindTest{&Bytes,  MYSQL_TYPE_VAR_STRING, true,  -1},
     BindTest{&String, MYSQL_TYPE_STRING,     true,  -1},
     BindTest{&blob,   MYSQL_TYPE_BLOB,       true,  -1},
-    BindTest{&date,   MYSQL_TYPE_DATETIME,   true,  -1},
+    BindTest{&dateT,  MYSQL_TYPE_DATETIME,   true,  -1},
     BindTest{&tstamp, MYSQL_TYPE_TIMESTAMP,  true,  -1},
+    BindTest{&date,   MYSQL_TYPE_DATE,       true,  -1},
+    BindTest{&tim,    MYSQL_TYPE_TIME,       true,  -1},
 
     BindTest{pBytes,  MYSQL_TYPE_VAR_STRING, true,  -1},
     BindTest{pString, MYSQL_TYPE_STRING,     true,  -1},
     BindTest{pBlob,   MYSQL_TYPE_BLOB,       true,  -1},
-    BindTest{pDate,   MYSQL_TYPE_DATETIME,   true,  -1},
+    BindTest{pDateT,  MYSQL_TYPE_DATETIME,   true,  -1},
     BindTest{pTstamp, MYSQL_TYPE_TIMESTAMP,  true,  -1},
+    BindTest{pDate,   MYSQL_TYPE_DATE,       true,  -1},
+    BindTest{pTim,    MYSQL_TYPE_TIME,       true,  -1},
 
     BindTest{raw,     MYSQL_TYPE_INT24,    true,  -1},
 
@@ -164,67 +174,97 @@ func init() {
             append(
                 append(
                     []byte{253},
-                    *EncodeU24(uint32(len(blob)))...
+                    EncodeU24(uint32(len(blob)))...
                 ),
                 []byte(blob)...,
             ),
         },
         WriteTest {
+            dateT,
+            []byte{
+                7, byte(dateT.Year), byte(dateT.Year >> 8), byte(dateT.Month),
+                byte(dateT.Day), byte(dateT.Hour), byte(dateT.Minute),
+                byte(dateT.Second),
+            },
+        },
+        WriteTest {
+            &dateT,
+            []byte{
+                7, byte(dateT.Year), byte(dateT.Year >> 8), byte(dateT.Month),
+                byte(dateT.Day), byte(dateT.Hour), byte(dateT.Minute),
+                byte(dateT.Second),
+            },
+        },
+        WriteTest {
             date,
             []byte{
-                7, byte(date.Year), byte(date.Year >> 8), byte(date.Month),
-                byte(date.Day), byte(date.Hour), byte(date.Minute),
-                byte(date.Second),
+                4, byte(date.Year), byte(date.Year >> 8), byte(date.Month),
+                byte(date.Day),
             },
         },
         WriteTest {
             &date,
             []byte{
-                7, byte(date.Year), byte(date.Year >> 8), byte(date.Month),
-                byte(date.Day), byte(date.Hour), byte(date.Minute),
-                byte(date.Second),
+                4, byte(date.Year), byte(date.Year >> 8), byte(date.Month),
+                byte(date.Day),
             },
         },
-        WriteTest{date,  *EncodeDatetime(&date)},
-        WriteTest{&date, *EncodeDatetime(&date)},
-        WriteTest{pDate, nil},
+        WriteTest {
+            tim,
+            []byte{12,  1,  5, 0, 0, 0,  4,  3,  2,  1, 0, 0, 0},
+        },
+        WriteTest {
+            &tim,
+            []byte{12,  1,  5, 0, 0, 0,  4,  3,  2,  1, 0, 0, 0},
+        },
+        WriteTest{dateT,  EncodeDatetime(&dateT)},
+        WriteTest{&dateT, EncodeDatetime(&dateT)},
+        WriteTest{pDateT, nil},
 
-        WriteTest{tstamp,  *EncodeDatetime((*Datetime)(&tstamp))},
-        WriteTest{&tstamp, *EncodeDatetime((*Datetime)(&tstamp))},
+        WriteTest{tstamp,  EncodeDatetime((*Datetime)(&tstamp))},
+        WriteTest{&tstamp, EncodeDatetime((*Datetime)(&tstamp))},
         WriteTest{pTstamp, nil},
 
-        WriteTest{Int,     *EncodeU32(uint32(Int))}, // Hack
-        WriteTest{Int16,   *EncodeU16(uint16(Int16))},
-        WriteTest{Int32,   *EncodeU32(uint32(Int32))},
-        WriteTest{Int64,   *EncodeU64(uint64(Int64))},
+        WriteTest{date,  EncodeDate(&date)},
+        WriteTest{&date, EncodeDate(&date)},
+        WriteTest{pDate, nil},
 
-        WriteTest{Int   ,  *EncodeU32(uint32(Int))}, // Hack
-        WriteTest{Uint16,  *EncodeU16(Uint16)},
-        WriteTest{Uint32,  *EncodeU32(Uint32)},
-        WriteTest{Uint64,  *EncodeU64(Uint64)},
+        WriteTest{tim,  EncodeTime(&tim)},
+        WriteTest{&tim, EncodeTime(&tim)},
+        WriteTest{pTim, nil},
 
-        WriteTest{&Int,    *EncodeU32(uint32(Int))}, // Hack
-        WriteTest{&Int16,  *EncodeU16(uint16(Int16))},
-        WriteTest{&Int32,  *EncodeU32(uint32(Int32))},
-        WriteTest{&Int64,  *EncodeU64(uint64(Int64))},
+        WriteTest{Int,     EncodeU32(uint32(Int))}, // Hack
+        WriteTest{Int16,   EncodeU16(uint16(Int16))},
+        WriteTest{Int32,   EncodeU32(uint32(Int32))},
+        WriteTest{Int64,   EncodeU64(uint64(Int64))},
 
-        WriteTest{&Uint,   *EncodeU32(uint32(Uint))}, // Hack
-        WriteTest{&Uint16, *EncodeU16(Uint16)},
-        WriteTest{&Uint32, *EncodeU32(Uint32)},
-        WriteTest{&Uint64, *EncodeU64(Uint64)},
+        WriteTest{Int   ,  EncodeU32(uint32(Int))}, // Hack
+        WriteTest{Uint16,  EncodeU16(Uint16)},
+        WriteTest{Uint32,  EncodeU32(Uint32)},
+        WriteTest{Uint64,  EncodeU64(Uint64)},
+
+        WriteTest{&Int,    EncodeU32(uint32(Int))}, // Hack
+        WriteTest{&Int16,  EncodeU16(uint16(Int16))},
+        WriteTest{&Int32,  EncodeU32(uint32(Int32))},
+        WriteTest{&Int64,  EncodeU64(uint64(Int64))},
+
+        WriteTest{&Uint,   EncodeU32(uint32(Uint))}, // Hack
+        WriteTest{&Uint16, EncodeU16(Uint16)},
+        WriteTest{&Uint32, EncodeU32(Uint32)},
+        WriteTest{&Uint64, EncodeU64(Uint64)},
 
         WriteTest{pInt,    nil},
         WriteTest{pInt16,  nil},
         WriteTest{pInt32,  nil},
         WriteTest{pInt64,  nil},
 
-        WriteTest{Float,   *EncodeU32(math.Float32bits(float32(Float)))},
-        WriteTest{Float32, *EncodeU32(math.Float32bits(Float32))},
-        WriteTest{Float64, *EncodeU64(math.Float64bits(Float64))},
+        WriteTest{Float,   EncodeU32(math.Float32bits(float32(Float)))},
+        WriteTest{Float32, EncodeU32(math.Float32bits(Float32))},
+        WriteTest{Float64, EncodeU64(math.Float64bits(Float64))},
 
-        WriteTest{&Float,   *EncodeU32(math.Float32bits(float32(Float)))},
-        WriteTest{&Float32, *EncodeU32(math.Float32bits(Float32))},
-        WriteTest{&Float64, *EncodeU64(math.Float64bits(Float64))},
+        WriteTest{&Float,   EncodeU32(math.Float32bits(float32(Float)))},
+        WriteTest{&Float32, EncodeU32(math.Float32bits(Float32))},
+        WriteTest{&Float64, EncodeU64(math.Float64bits(Float64))},
 
         WriteTest{pFloat,   nil},
         WriteTest{pFloat32, nil},

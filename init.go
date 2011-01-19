@@ -6,9 +6,11 @@ import (
 
 func (my *MySQL) lock() {
     my.mutex.Lock()
+    //log.Println("Locked")
 }
 
 func (my *MySQL) unlock() {
+    //log.Println("Unlocking...")
     my.mutex.Unlock()
 }
 

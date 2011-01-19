@@ -99,7 +99,7 @@ func (my *MySQL) connect() (err os.Error) {
         // Send command
         my.sendCmd(_COM_QUERY, cmd)
         // Get command response
-        res := my.getResponse()
+        res := my.getResponse(false)
 
         if res.FieldCount == 0 {
             // No fields in result (OK result)
@@ -130,11 +130,12 @@ func (my *MySQL) connect() (err os.Error) {
 
 // Establishes a connection with MySQL server version 4.1 or later.
 func (my *MySQL) Connect() (err os.Error) {
+    defer my.unlock()
+    my.lock()
+
     if my.conn != nil {
         return ALREDY_CONN_ERROR
     }
-    defer my.unlock()
-    my.lock()
 
     return my.connect()
 }
@@ -157,14 +158,15 @@ func (my *MySQL) close_conn() (err os.Error) {
 
 // Close connection to the server
 func (my *MySQL) Close() (err os.Error) {
+    defer my.unlock()
+    my.lock()
+
     if my.conn == nil {
         return NOT_CONN_ERROR
     }
     if my.unreaded_rows {
         return UNREADED_ROWS_ERROR
     }
-    defer my.unlock()
-    my.lock()
 
     return my.close_conn()
 }
@@ -183,6 +185,7 @@ func (my *MySQL) Reconnect() (err os.Error) {
     if err = my.connect(); err != nil {
         return
     }
+
     // Reprepare all prepared statements
     var (
         new_stmt *Statement
@@ -207,15 +210,16 @@ func (my *MySQL) Reconnect() (err os.Error) {
 
 // Change database
 func (my *MySQL) Use(dbname string) (err os.Error) {
+    defer my.unlock()
+    defer catchOsError(&err)
+    my.lock()
+
     if my.conn == nil {
         return NOT_CONN_ERROR
     }
     if my.unreaded_rows {
         return UNREADED_ROWS_ERROR
     }
-    defer my.unlock()
-    defer catchOsError(&err)
-    my.lock()
 
     // Send command
     my.sendCmd(_COM_INIT_DB, dbname)
@@ -227,14 +231,16 @@ func (my *MySQL) Use(dbname string) (err os.Error) {
     return
 }
 
-func (my *MySQL) getResponse() (res *Result) {
+func (my *MySQL) getResponse(unlock_if_ok bool) (res *Result) {
     res, ok := my.getResult(nil).(*Result)
     if !ok {
         panic(BAD_RESULT_ERROR)
     }
     if res.FieldCount == 0 {
         // This query was ended (OK result)
-        my.unlock()
+        if unlock_if_ok {
+            my.unlock()
+        }
     } else {
         // This query can return rows
         res.db = my
@@ -257,15 +263,16 @@ func (my *MySQL) unlockIfError(err *os.Error) {
 func (my *MySQL) Start(sql string, params ...interface{}) (
         res *Result, err os.Error) {
 
+    defer my.unlockIfError(&err)
+    defer catchOsError(&err)
+    my.lock()
+
     if my.conn == nil {
         return nil, NOT_CONN_ERROR
     }
     if my.unreaded_rows {
         return nil, UNREADED_ROWS_ERROR
     }
-    defer my.unlockIfError(&err)
-    defer catchOsError(&err)
-    my.lock()
 
     if len(params) != 0 {
         sql = fmt.Sprintf(sql, params...)
@@ -274,7 +281,7 @@ func (my *MySQL) Start(sql string, params ...interface{}) (
     my.sendCmd(_COM_QUERY, sql)
 
     // Get command response
-    res = my.getResponse()
+    res = my.getResponse(true)
     return
 }
 
@@ -321,7 +328,7 @@ func (res *Result) NextResult() (next *Result, err os.Error) {
     if res.Status & _SERVER_MORE_RESULTS_EXISTS == 0 {
         return
     }
-    next = res.db.getResponse()
+    next = res.db.getResponse(true)
     return
 }
 
@@ -360,15 +367,16 @@ func (my *MySQL) Query(sql string, params ...interface{}) (
 
 // Send MySQL PING to the server.
 func (my *MySQL) Ping() (err os.Error) {
+    defer my.unlock()
+    defer catchOsError(&err)
+    my.lock()
+
     if my.conn == nil {
         return NOT_CONN_ERROR
     }
     if my.unreaded_rows {
         return UNREADED_ROWS_ERROR
     }
-    defer my.unlock()
-    defer catchOsError(&err)
-    my.lock()
 
     // Send command
     my.sendCmd(_COM_PING)
@@ -401,14 +409,15 @@ func (my *MySQL) prepare(sql string) (stmt *Statement, err os.Error) {
 
 // Prepare server side statement. Return statement handler.
 func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
+    defer my.unlock()
+    my.lock()
+
     if my.conn == nil {
         return nil, NOT_CONN_ERROR
     }
     if my.unreaded_rows {
         return nil, UNREADED_ROWS_ERROR
     }
-    defer my.unlock()
-    my.lock()
 
     stmt, err = my.prepare(sql)
     if err != nil {
@@ -488,15 +497,16 @@ func (stmt *Statement) ResetParams() {
 // them first or specify directly. After this command you may use GetRow to
 // retrieve data.
 func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error) {
+    defer stmt.db.unlockIfError(&err)
+    defer catchOsError(&err)
+    stmt.db.lock()
+
     if stmt.db.conn == nil {
         return nil, NOT_CONN_ERROR
     }
     if stmt.db.unreaded_rows {
         return nil, UNREADED_ROWS_ERROR
     }
-    defer stmt.db.unlockIfError(&err)
-    defer catchOsError(&err)
-    stmt.db.lock()
 
     // Bind parameters if any
     if len(params) != 0 {
@@ -506,7 +516,7 @@ func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error) {
     // Send EXEC command with binded parameters
     stmt.sendCmdExec()
     // Get response
-    res = stmt.db.getResponse()
+    res = stmt.db.getResponse(true)
     res.binary = true
     return
 }
@@ -535,15 +545,16 @@ func (stmt *Statement) Exec(params ...interface{}) (
 // Destroy statement on server side. Client side handler is invalid after this
 // command.
 func (stmt *Statement) Delete() (err os.Error) {
+    defer stmt.db.unlock()
+    defer catchOsError(&err)
+
+    stmt.db.lock()
     if stmt.db.conn == nil {
         return NOT_CONN_ERROR
     }
     if stmt.db.unreaded_rows {
         return UNREADED_ROWS_ERROR
     }
-    defer stmt.db.unlock()
-    defer catchOsError(&err)
-    stmt.db.lock()
 
     // Allways delete statement on client side, even if
     // the command return an error.
@@ -562,15 +573,16 @@ func (stmt *Statement) Delete() (err os.Error) {
 // Resets a prepared statement on server: data sent to the server, unbuffered
 // result sets and current errors.
 func (stmt *Statement) Reset() (err os.Error) {
+    defer stmt.db.unlock()
+    defer catchOsError(&err)
+    stmt.db.lock()
+
     if stmt.db.conn == nil {
         return NOT_CONN_ERROR
     }
     if stmt.db.unreaded_rows {
         return UNREADED_ROWS_ERROR
     }
-    defer stmt.db.unlock()
-    defer catchOsError(&err)
-    stmt.db.lock()
 
     // Next exec must send type information. We set rebind flag regardless of
     // whether the command succeeds or not.
@@ -604,6 +616,10 @@ func (stmt *Statement) Reset() (err os.Error) {
 func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (
         err os.Error) {
 
+    defer stmt.db.unlock()
+    defer catchOsError(&err)
+    stmt.db.lock()
+
     if stmt.db.conn == nil {
         return NOT_CONN_ERROR
     }
@@ -616,9 +632,6 @@ func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (
     if pkt_size -= 6; pkt_size < 0 {
         return SMALL_PKT_SIZE_ERROR
     }
-    defer stmt.db.unlock()
-    defer catchOsError(&err)
-    stmt.db.lock()
 
     switch dd := data.(type) {
     case io.Reader:

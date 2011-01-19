@@ -448,6 +448,11 @@ func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
 // can be value, pointer to value or pointer to pointer to value.
 // Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 // string, Datetime, Timestamp, Raw.
+//
+// Warning! This method isn't thread safe. If you use the same statement in
+// multiple threads, you should not use this method unless you know exactly
+// what you are doing. However, you can safely pass parameters directly to the
+// Run or Exec method, but they will be rebinded on each call.
 func (stmt *Statement) BindParams(params ...interface{}) {
     stmt.rebind = true
 
@@ -460,6 +465,7 @@ func (stmt *Statement) BindParams(params ...interface{}) {
         }
         val, ok := pval.(*reflect.StructValue)
         if ok && val.Type() != reflectDatetimeType &&
+                val.Type() != reflectDateType &&
                 val.Type() != reflectTimestampType {
             // We have struct to bind
             if val.NumField() != stmt.ParamCount {

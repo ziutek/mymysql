@@ -728,11 +728,11 @@ Prepare server side statement. Return statement handler.
 func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error)
 Automatic connect/reconnect/repeat version of Prepare
 
-func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+func (my *MySQL) Query(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
 This call Start and next call GetRow as long as it reads all rows from the
 result. Next it returns all readed rows as the slice of rows.
 
-func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+func (my *MySQL) QueryAC(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
 Automatic connect/reconnect/repeat version of Query
 
 func (my *MySQL) Reconnect() (err os.Error)
@@ -744,17 +744,11 @@ Register MySQL command/query to be executed immediately after connecting to
 the server. You may register multiple commands. They will be executed in
 the order of registration. Yhis method is mainly useful for reconnect.
 
-func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)
+func (my *MySQL) Start(sql string, params ...interface{}) (res *Result, err os.Error)
 Start new query.
 
-command can be SQL query (string) or a prepared statement (*Statement).
-
-If the command is a string and you specify the parameters, the SQL string
-will be a result of fmt.Sprintf(command, params...).
-
-If the command is a prepared statement, params will be binded to this
-statement before execution.
-
+If you specify the parameters, the SQL string will be a result of
+fmt.Sprintf(sql, params...).
 You must get all result rows (if they exists) before next query.
 
 func (my *MySQL) ThreadId() uint32
@@ -815,12 +809,19 @@ func (tr *Row) Bin(nn int) (bin []byte)
 Get the nn-th value and return it as []byte ([]byte{} if NULL)
 
 func (tr *Row) Date(nn int) (val *Date)
-Get the nn-th value and return it as Date. Return 0000-00-00 if value is NULL
-or conversion is impossible.
+It is like DateErr but return 0000-00-00 if conversion is impossible.
 
 func (tr *Row) DateErr(nn int) (val *Date, err os.Error)
 Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
 if conversion is impossible.
+
+func (tr *Row) Datetime(nn int) (val *Datetime)
+It is like DatetimeErr but return 0000-00-00 00:00:00 if conversion is
+impossible.
+
+func (tr *Row) DatetimeErr(nn int) (val *Datetime, err os.Error)
+Get the nn-th value and return it as Datetime (0000-00-00 00:00:00 if NULL).
+Return error if conversion is impossible. It can convert Date to Datetime.
 
 func (tr *Row) Int(nn int) (val int)
 Get the nn-th value and return it as int. Return 0 if value is NULL or
@@ -831,12 +832,17 @@ Get the nn-th value and return it as int (0 if NULL). Return error if
 conversion is impossible.
 
 func (tr *Row) MustDate(nn int) (val *Date)
-Get the nn-th value and return it as Date (0000-00-00 if NULL). Panic if
-conversion is impossible.
+It is like DateErr but panics if conversion is impossible.
+
+func (tr *Row) MustDatetime(nn int) (val *Datetime)
+As DatetimeErr but panics if conversion is impossible.
 
 func (tr *Row) MustInt(nn int) (val int)
 Get the nn-th value and return it as int (0 if NULL). Panic if conversion is
 impossible.
+
+func (tr *Row) MustTime(nn int) (val Time)
+It is like TimeErr but panics if conversion is impossible.
 
 func (tr *Row) MustUint(nn int) (val uint)
 Get the nn-th value and return it as uint (0 if NULL). Panic if conversion is
@@ -844,6 +850,13 @@ impossible.
 
 func (tr *Row) Str(nn int) (str string)
 Get the nn-th value and return it as string ("" if NULL)
+
+func (tr *Row) Time(nn int) (val Time)
+It is like TimeErr but return 0:00:00 if conversion is impossible.
+
+func (tr *Row) TimeErr(nn int) (val Time, err os.Error)
+Get the nn-th value and return it as Time (0:00:00 if NULL). Return error
+if conversion is impossible.
 
 func (tr *Row) Uint(nn int) (val uint)
 Get the nn-th value and return it as uint. Return 0 if value is NULL or
@@ -874,10 +887,11 @@ can be value, pointer to value or pointer to pointer to value.
 Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 string, Datetime, Timestamp, Raw.
 
-Warning! This method isn't thread safe. If you use the same statement in
-multiple threads, you should not use this method unless you know exactly
-what you are doing. However, you can safely pass parameters directly to the
-Run or Exec method, but they will be rebinded on each call.
+Warning! This method isn't thread safe. If you use the same prepared
+statement in multiple threads, you should not use this method unless you know
+exactly what you are doing. For each thread you may prepare his own statement
+or use Run, Exec or ExecAC method with parameters (but they rebind parameters
+on each call).
 
 func (stmt *Statement) Delete() (err os.Error)
 Destroy statement on server side. Client side handler is invalid after this
@@ -893,6 +907,9 @@ Automatic connect/reconnect/repeat version of Exec
 func (stmt *Statement) Reset() (err os.Error)
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
+
+func (stmt *Statement) ResetParams()
+Resets the previous parameter binding
 
 func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error)
 Execute prepared statement. If statement requires parameters you may bind
@@ -921,8 +938,12 @@ io.Reader you should properly set pkt_size. Data will be readed from
 io.Reader and send in pieces to the server until EOF.
 
 type Time int64
-MySQL TIME type in nanoseconds. Note that MySQL doesn't store fractional part
-of second, but it is permitted for temporal values.
+MySQL TIME in nanoseconds. Note that MySQL doesn't store fractional part
+of second but it is permitted for temporal values.
+
+func StrToTime(str string) *Time
+Convert string time in format [+-]H+:MM:SS[.UUUUUUUUU] to Time.
+Leading and trailing spaces are ignored. If format is invalid returns nil.
 
 func (tt *Time) String() string
 

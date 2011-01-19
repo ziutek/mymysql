@@ -1,4 +1,7 @@
-## MyMySQL v0.3.3 (2011-01-18)
+Sorry for my poor English. If you can help in improving English in this
+documentation, please contact me.
+
+## MyMySQL v0.3.3 (2011-01-19)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -8,6 +11,9 @@ The code of this package is carefuly written and has internal error handling
 using *panic()* exceptions, thus the probability of bugs in Go code or an
 unhandled internal errors should be very small. Unfortunately I'm not a MySQL
 protocol expert, so bugs in the protocol handling are possible.
+
+The package includes an extensive set of automated tests that ensure that any
+code changes during development will not break the package itself.
 
 ## Differences betwen version 0.2 and 0.3.3
 
@@ -30,7 +36,8 @@ will be executed immediately after connect. It is mainly useful with
 5. Multi statements / multi results were added.
 6. Types ENUM and SET were added for prepared statements results.
 7. *Time* and *Date* types added in v0.3.3.
-8. Since v0.3.3 *Run*, *Exec* and *ExecAC* accept parameters.
+8. Since v0.3.3 *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
+QueryAC no longer accept prepared statement as first argument.
 
 ## Instaling
 
@@ -143,7 +150,7 @@ If you do not want to load the entire result into memory you may use
 
 ## Example 2 - prepared statements
 
-You can use *Start* or *Query* method for prepared statements:
+You can use *Run* or *Exec* method for prepared statements:
 
     stmt, err := db.Prepare("insert into X values (?, ?)")
     if err != nil {
@@ -164,7 +171,7 @@ You can use *Start* or *Query* method for prepared statements:
         } else if err != nil {
             panic(err)
         }
-        _, err = db.Start(stmt, data.id, data.tax)
+        _, err = db.Run(stmt, data.id, data.tax)
         if err != nil {
             panic(err)
         }
@@ -175,10 +182,14 @@ You can use *Start* or *Query* method for prepared statements:
 assign pointer to retieved variable or nil if NULL should be stored in
 database.
 
-With *Start* and *Query* methods data are rebinded on every method call. It
-isn't efficient if statement is executer more than once. You can bind
-parameters and use *Run* method to avoid these unnecessary rebinds. The
-simplest way to bind parameters is:
+If you pass parameters to *Run* or *Exec* method, data are rebinded on every
+method call. It isn't efficient if statement is executed more than once. You
+can bind parameters and use *Run* or *Exec* method without parameters, to avoid
+these unnecessary rebinds. Warning! If you use *Bind* in multithreaded
+application, you should be sure that no other thread will use *Bind*, until you
+no longer need binded parameters.
+
+The simplest way to bind parameters is:
 
     stmt.BindParams(data.id, data.tax)
 
@@ -416,6 +427,34 @@ blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
 data to the server,  until all results and all rows  will be readed from
 the connection in first thread.
 
+Multithreading was tested on my production web application. It uses *http*
+package to serve dynamic web pages. *http* package creates one gorutine for any
+HTTP connection. Any GET request during connection causes 4-8 select queries to
+MySQL database (some of them are prepared statements). Database contains ca.
+30 tables (three largest have 82k, 73k and 3k rows). There is one persistant
+connection to MySQL server which is shared by all gorutines. Application is
+running on dual-core machine with GOMAXPROCS=2. It was tested using *siege*:
+
+    # siege my.http.server -c25 -d0 -t 30s
+    ** SIEGE 2.69
+    ** Preparing 25 concurrent users for battle.
+    The server is now under siege...
+    Lifting the server siege..      done.
+    Transactions:                   3212 hits
+    Availability:                 100.00 %
+    Elapsed time:                  29.83 secs
+    Data transferred:               3.88 MB
+    Response time:                  0.22 secs
+    Transaction rate:             107.68 trans/sec
+    Throughput:	                    0.13 MB/sec
+    Concurrency:                   23.43
+    Successful transactions:        3218
+    Failed transactions:               0
+    Longest transaction:            9.28
+    Shortest transaction:           0.01
+
+Thanks to *siege* stress tests I fixed some multi-threading bugs in v0.3.2.
+
 ## TODO
 
 1. Complete GODOC documentation
@@ -480,12 +519,18 @@ It is *GODOC.html* file embded in *README.md*.  Unfortunately, after embding lin
 <dd><a href='#Row.Bin'>func (*Row) Bin</a></dd>
 <dd><a href='#Row.Date'>func (*Row) Date</a></dd>
 <dd><a href='#Row.DateErr'>func (*Row) DateErr</a></dd>
+<dd><a href='#Row.Datetime'>func (*Row) Datetime</a></dd>
+<dd><a href='#Row.DatetimeErr'>func (*Row) DatetimeErr</a></dd>
 <dd><a href='#Row.Int'>func (*Row) Int</a></dd>
 <dd><a href='#Row.IntErr'>func (*Row) IntErr</a></dd>
 <dd><a href='#Row.MustDate'>func (*Row) MustDate</a></dd>
+<dd><a href='#Row.MustDatetime'>func (*Row) MustDatetime</a></dd>
 <dd><a href='#Row.MustInt'>func (*Row) MustInt</a></dd>
+<dd><a href='#Row.MustTime'>func (*Row) MustTime</a></dd>
 <dd><a href='#Row.MustUint'>func (*Row) MustUint</a></dd>
 <dd><a href='#Row.Str'>func (*Row) Str</a></dd>
+<dd><a href='#Row.Time'>func (*Row) Time</a></dd>
+<dd><a href='#Row.TimeErr'>func (*Row) TimeErr</a></dd>
 <dd><a href='#Row.Uint'>func (*Row) Uint</a></dd>
 <dd><a href='#Row.UintErr'>func (*Row) UintErr</a></dd>
 <dt><a href='#Statement'>type Statement</a></dt>
@@ -494,9 +539,11 @@ It is *GODOC.html* file embded in *README.md*.  Unfortunately, after embding lin
 <dd><a href='#Statement.Exec'>func (*Statement) Exec</a></dd>
 <dd><a href='#Statement.ExecAC'>func (*Statement) ExecAC</a></dd>
 <dd><a href='#Statement.Reset'>func (*Statement) Reset</a></dd>
+<dd><a href='#Statement.ResetParams'>func (*Statement) ResetParams</a></dd>
 <dd><a href='#Statement.Run'>func (*Statement) Run</a></dd>
 <dd><a href='#Statement.SendLongData'>func (*Statement) SendLongData</a></dd>
 <dt><a href='#Time'>type Time</a></dt>
+<dd><a href='#Time.StrToTime'>func StrToTime</a></dd>
 <dd><a href='#Time.String'>func (*Time) String</a></dd>
 <dt><a href='#Timestamp'>type Timestamp</a></dt>
 <dd><a href='#Timestamp.String'>func (*Timestamp) String</a></dd>
@@ -1184,7 +1231,7 @@ Return true if error is network error or UnexpectedEOF.
 <h2 id="NstrToNbin">func <a href="/mymysql/addons.go?s=144:181#L1">NstrToNbin</a></h2>
 <p><code>func NstrToNbin(nstr *string) *[]byte</code></p>
 
-<h2 id="Blob">type <a href="/mymysql/binding.go?s=1508:1524#L61">Blob</a></h2>
+<h2 id="Blob">type <a href="/mymysql/binding.go?s=1502:1518#L61">Blob</a></h2>
 
 <p><pre>type Blob []byte</pre></p>
 <h2 id="Date">type <a href="/mymysql/binding.go?s=591:648#L20">Date</a></h2>
@@ -1288,57 +1335,57 @@ for create connection. user and passwd are for authentication. Optional db
 is database name (you may not specifi it and use Use() method later).
 </p>
 
-<h3 id="MySQL.Close">func (*MySQL) <a href="/mymysql/mysql.go?s=3873:3912#L149">Close</a></h3>
+<h3 id="MySQL.Close">func (*MySQL) <a href="/mymysql/mysql.go?s=3879:3918#L150">Close</a></h3>
 <p><code>func (my *MySQL) Close() (err os.Error)</code></p>
 <p>
 Close connection to the server
 </p>
 
-<h3 id="MySQL.Connect">func (*MySQL) <a href="/mymysql/mysql.go?s=3304:3345#L122">Connect</a></h3>
+<h3 id="MySQL.Connect">func (*MySQL) <a href="/mymysql/mysql.go?s=3309:3350#L122">Connect</a></h3>
 <p><code>func (my *MySQL) Connect() (err os.Error)</code></p>
 <p>
 Establishes a connection with MySQL server version 4.1 or later.
 </p>
 
-<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go?s=9510:9548#L369">Ping</a></h3>
+<h3 id="MySQL.Ping">func (*MySQL) <a href="/mymysql/mysql.go?s=9009:9047#L359">Ping</a></h3>
 <p><code>func (my *MySQL) Ping() (err os.Error)</code></p>
 <p>
 Send MySQL PING to the server.
 </p>
 
-<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go?s=10422:10490#L410">Prepare</a></h3>
+<h3 id="MySQL.Prepare">func (*MySQL) <a href="/mymysql/mysql.go?s=9922:9990#L401">Prepare</a></h3>
 <p><code>func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)</code></p>
 <p>
 Prepare server side statement. Return statement handler.
 </p>
 
-<h3 id="MySQL.PrepareAC">func (*MySQL) <a href="/mymysql/autoconnect.go?s=1844:1914#L73">PrepareAC</a></h3>
+<h3 id="MySQL.PrepareAC">func (*MySQL) <a href="/mymysql/autoconnect.go?s=1831:1901#L73">PrepareAC</a></h3>
 <p><code>func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error)</code></p>
 <p>
 Automatic connect/reconnect/repeat version of Prepare
 </p>
 
-<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go?s=9076:9192#L349">Query</a></h3>
-<p><code>func (my *MySQL) Query(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
+<h3 id="MySQL.Query">func (*MySQL) <a href="/mymysql/mysql.go?s=8588:8695#L339">Query</a></h3>
+<p><code>func (my *MySQL) Query(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 <p>
 This call Start and next call GetRow as long as it reads all rows from the
 result. Next it returns all readed rows as the slice of rows.
 </p>
 
-<h3 id="MySQL.QueryAC">func (*MySQL) <a href="/mymysql/autoconnect.go?s=1362:1480#L54">QueryAC</a></h3>
-<p><code>func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
+<h3 id="MySQL.QueryAC">func (*MySQL) <a href="/mymysql/autoconnect.go?s=1362:1471#L54">QueryAC</a></h3>
+<p><code>func (my *MySQL) QueryAC(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 <p>
 Automatic connect/reconnect/repeat version of Query
 </p>
 
-<h3 id="MySQL.Reconnect">func (*MySQL) <a href="/mymysql/mysql.go?s=4231:4274#L164">Reconnect</a></h3>
+<h3 id="MySQL.Reconnect">func (*MySQL) <a href="/mymysql/mysql.go?s=4238:4281#L166">Reconnect</a></h3>
 <p><code>func (my *MySQL) Reconnect() (err os.Error)</code></p>
 <p>
 Close and reopen connection in one, thread-safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 </p>
 
-<h3 id="MySQL.Register">func (*MySQL) <a href="/mymysql/mysql.go?s=18441:18478#L675">Register</a></h3>
+<h3 id="MySQL.Register">func (*MySQL) <a href="/mymysql/mysql.go?s=18178:18215#L680">Register</a></h3>
 <p><code>func (my *MySQL) Register(sql string)</code></p>
 <p>
 Register MySQL command/query to be executed immediately after connecting to
@@ -1346,33 +1393,24 @@ the server. You may register multiple commands. They will be executed in
 the order of registration. Yhis method is mainly useful for reconnect.
 </p>
 
-<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go?s=6402:6505#L253">Start</a></h3>
-<p><code>func (my *MySQL) Start(command interface{}, params ...interface{}) (res *Result, err os.Error)</code></p>
+<h3 id="MySQL.Start">func (*MySQL) <a href="/mymysql/mysql.go?s=6248:6342#L253">Start</a></h3>
+<p><code>func (my *MySQL) Start(sql string, params ...interface{}) (res *Result, err os.Error)</code></p>
 <p>
 Start new query.
 </p>
 <p>
-command can be SQL query (string) or a prepared statement (*Statement).
-</p>
-<p>
-If the command is a string and you specify the parameters, the SQL string
-will be a result of fmt.Sprintf(command, params...).
-</p>
-<p>
-If the command is a prepared statement, params will be binded to this
-statement before execution.
-</p>
-<p>
+If you specify the parameters, the SQL string will be a result of
+fmt.Sprintf(sql, params...).
 You must get all result rows (if they exists) before next query.
 </p>
 
-<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go?s=18146:18180#L668">ThreadId</a></h3>
+<h3 id="MySQL.ThreadId">func (*MySQL) <a href="/mymysql/mysql.go?s=17883:17917#L673">ThreadId</a></h3>
 <p><code>func (my *MySQL) ThreadId() uint32</code></p>
 <p>
 Returns the thread ID of the current connection.
 </p>
 
-<h3 id="MySQL.Use">func (*MySQL) <a href="/mymysql/mysql.go?s=5102:5152#L199">Use</a></h3>
+<h3 id="MySQL.Use">func (*MySQL) <a href="/mymysql/mysql.go?s=5110:5160#L202">Use</a></h3>
 <p><code>func (my *MySQL) Use(dbname string) (err os.Error)</code></p>
 <p>
 Change database
@@ -1384,7 +1422,7 @@ Change database
 Automatic connect/reconnect/repeat version of Use
 </p>
 
-<h2 id="Raw">type <a href="/mymysql/binding.go?s=1526:1576#L63">Raw</a></h2>
+<h2 id="Raw">type <a href="/mymysql/binding.go?s=1520:1570#L63">Raw</a></h2>
 
 <p><pre>type Raw struct {
 Typ uint16
@@ -1404,7 +1442,7 @@ WarningCount int
 Status       uint16
 // contains unexported fields
 }</pre></p>
-<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go?s=8796:8835#L340">End</a></h3>
+<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go?s=8308:8347#L330">End</a></h3>
 <p><code>func (res *Result) End() (err os.Error)</code></p>
 <p>
 Read all unreaded rows and discard them. This function is useful if you
@@ -1414,14 +1452,14 @@ read/discard all rows in this result, before use other method that sends
 data to the server.
 </p>
 
-<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go?s=7702:7754#L308">GetRow</a></h3>
+<h3 id="Result.GetRow">func (*Result) <a href="/mymysql/mysql.go?s=7210:7262#L298">GetRow</a></h3>
 <p><code>func (res *Result) GetRow() (row *Row, err os.Error)</code></p>
 <p>
 Get the data row from a server. This method reads one row of result directly
 from network connection (without rows buffering on client side).
 </p>
 
-<h3 id="Result.NextResult">func (*Result) <a href="/mymysql/mysql.go?s=8285:8345#L327">NextResult</a></h3>
+<h3 id="Result.NextResult">func (*Result) <a href="/mymysql/mysql.go?s=7793:7853#L317">NextResult</a></h3>
 <p><code>func (res *Result) NextResult() (next *Result, err os.Error)</code></p>
 <p>
 This function is used when last query was the multi result query.
@@ -1451,69 +1489,106 @@ Data []interface{}
 Get the nn-th value and return it as []byte ([]byte{} if NULL)
 </p>
 
-<h3 id="Row.Date">func (*Row) <a href="/mymysql/result.go?s=5228:5267#L202">Date</a></h3>
+<h3 id="Row.Date">func (*Row) <a href="/mymysql/result.go?s=5072:5111#L198">Date</a></h3>
 <p><code>func (tr *Row) Date(nn int) (val *Date)</code></p>
 <p>
-Get the nn-th value and return it as Date. Return 0000-00-00 if value is NULL
-or conversion is impossible.
+It is like DateErr but return 0000-00-00 if conversion is impossible.
 </p>
 
-<h3 id="Row.DateErr">func (*Row) <a href="/mymysql/result.go?s=4527:4583#L175">DateErr</a></h3>
+<h3 id="Row.DateErr">func (*Row) <a href="/mymysql/result.go?s=4423:4479#L171">DateErr</a></h3>
 <p><code>func (tr *Row) DateErr(nn int) (val *Date, err os.Error)</code></p>
 <p>
 Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
 if conversion is impossible.
 </p>
 
-<h3 id="Row.Int">func (*Row) <a href="/mymysql/result.go?s=3168:3204#L125">Int</a></h3>
+<h3 id="Row.Datetime">func (*Row) <a href="/mymysql/result.go?s=6112:6159#L238">Datetime</a></h3>
+<p><code>func (tr *Row) Datetime(nn int) (val *Datetime)</code></p>
+<p>
+It is like DatetimeErr but return 0000-00-00 00:00:00 if conversion is
+impossible.
+</p>
+
+<h3 id="Row.DatetimeErr">func (*Row) <a href="/mymysql/result.go?s=5364:5428#L208">DatetimeErr</a></h3>
+<p><code>func (tr *Row) DatetimeErr(nn int) (val *Datetime, err os.Error)</code></p>
+<p>
+Get the nn-th value and return it as Datetime (0000-00-00 00:00:00 if NULL).
+Return error if conversion is impossible. It can convert Date to Datetime.
+</p>
+
+<h3 id="Row.Int">func (*Row) <a href="/mymysql/result.go?s=3064:3100#L121">Int</a></h3>
 <p><code>func (tr *Row) Int(nn int) (val int)</code></p>
 <p>
 Get the nn-th value and return it as int. Return 0 if value is NULL or
 conversion is impossible.
 </p>
 
-<h3 id="Row.IntErr">func (*Row) <a href="/mymysql/result.go?s=1944:1997#L77">IntErr</a></h3>
+<h3 id="Row.IntErr">func (*Row) <a href="/mymysql/result.go?s=1840:1893#L73">IntErr</a></h3>
 <p><code>func (tr *Row) IntErr(nn int) (val int, err os.Error)</code></p>
 <p>
 Get the nn-th value and return it as int (0 if NULL). Return error if
 conversion is impossible.
 </p>
 
-<h3 id="Row.MustDate">func (*Row) <a href="/mymysql/result.go?s=4979:5022#L192">MustDate</a></h3>
+<h3 id="Row.MustDate">func (*Row) <a href="/mymysql/result.go?s=4863:4906#L189">MustDate</a></h3>
 <p><code>func (tr *Row) MustDate(nn int) (val *Date)</code></p>
 <p>
-Get the nn-th value and return it as Date (0000-00-00 if NULL). Panic if
-conversion is impossible.
+It is like DateErr but panics if conversion is impossible.
 </p>
 
-<h3 id="Row.MustInt">func (*Row) <a href="/mymysql/result.go?s=2933:2973#L115">MustInt</a></h3>
+<h3 id="Row.MustDatetime">func (*Row) <a href="/mymysql/result.go?s=5875:5926#L228">MustDatetime</a></h3>
+<p><code>func (tr *Row) MustDatetime(nn int) (val *Datetime)</code></p>
+<p>
+As DatetimeErr but panics if conversion is impossible.
+</p>
+
+<h3 id="Row.MustInt">func (*Row) <a href="/mymysql/result.go?s=2829:2869#L111">MustInt</a></h3>
 <p><code>func (tr *Row) MustInt(nn int) (val int)</code></p>
 <p>
 Get the nn-th value and return it as int (0 if NULL). Panic if conversion is
 impossible.
 </p>
 
-<h3 id="Row.MustUint">func (*Row) <a href="/mymysql/result.go?s=4093:4135#L158">MustUint</a></h3>
+<h3 id="Row.MustTime">func (*Row) <a href="/mymysql/result.go?s=6859:6901#L270">MustTime</a></h3>
+<p><code>func (tr *Row) MustTime(nn int) (val Time)</code></p>
+<p>
+It is like TimeErr but panics if conversion is impossible.
+</p>
+
+<h3 id="Row.MustUint">func (*Row) <a href="/mymysql/result.go?s=3989:4031#L154">MustUint</a></h3>
 <p><code>func (tr *Row) MustUint(nn int) (val uint)</code></p>
 <p>
 Get the nn-th value and return it as uint (0 if NULL). Panic if conversion is
 impossible.
 </p>
 
-<h3 id="Row.Str">func (*Row) <a href="/mymysql/result.go?s=1570:1609#L61">Str</a></h3>
+<h3 id="Row.Str">func (*Row) <a href="/mymysql/result.go?s=1514:1553#L59">Str</a></h3>
 <p><code>func (tr *Row) Str(nn int) (str string)</code></p>
 <p>
 Get the nn-th value and return it as string (&#34;&#34; if NULL)
 </p>
 
-<h3 id="Row.Uint">func (*Row) <a href="/mymysql/result.go?s=4332:4370#L168">Uint</a></h3>
+<h3 id="Row.Time">func (*Row) <a href="/mymysql/result.go?s=7064:7102#L279">Time</a></h3>
+<p><code>func (tr *Row) Time(nn int) (val Time)</code></p>
+<p>
+It is like TimeErr but return 0:00:00 if conversion is impossible.
+</p>
+
+<h3 id="Row.TimeErr">func (*Row) <a href="/mymysql/result.go?s=6371:6426#L248">TimeErr</a></h3>
+<p><code>func (tr *Row) TimeErr(nn int) (val Time, err os.Error)</code></p>
+<p>
+Get the nn-th value and return it as Time (0:00:00 if NULL). Return error
+if conversion is impossible.
+</p>
+
+<h3 id="Row.Uint">func (*Row) <a href="/mymysql/result.go?s=4228:4266#L164">Uint</a></h3>
 <p><code>func (tr *Row) Uint(nn int) (val uint)</code></p>
 <p>
 Get the nn-th value and return it as uint. Return 0 if value is NULL or
 conversion is impossible.
 </p>
 
-<h3 id="Row.UintErr">func (*Row) <a href="/mymysql/result.go?s=3351:3406#L132">UintErr</a></h3>
+<h3 id="Row.UintErr">func (*Row) <a href="/mymysql/result.go?s=3247:3302#L128">UintErr</a></h3>
 <p><code>func (tr *Row) UintErr(nn int) (val uint, err os.Error)</code></p>
 <p>
 Get the nn-th value and return it as uint (0 if NULL). Return error if
@@ -1532,7 +1607,7 @@ WarningCount int
 Status       uint16
 // contains unexported fields
 }</pre></p>
-<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go?s=11639:11695#L446">BindParams</a></h3>
+<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go?s=11179:11235#L439">BindParams</a></h3>
 <p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>
 <p>
 Bind input data for the parameter markers in the SQL statement that was
@@ -1546,40 +1621,47 @@ Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
 string, Datetime, Timestamp, Raw.
 </p>
 <p>
-Warning! This method isn&#39;t thread safe. If you use the same statement in
-multiple threads, you should not use this method unless you know exactly
-what you are doing. However, you can safely pass parameters directly to the
-Run or Exec method, but they will be rebinded on each call.
+Warning! This method isn&#39;t thread safe. If you use the same prepared
+statement in multiple threads, you should not use this method unless you know
+exactly what you are doing. For each thread you may prepare his own statement
+or use Run, Exec or ExecAC method with parameters (but they rebind parameters
+on each call).
 </p>
 
-<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go?s=14103:14149#L535">Delete</a></h3>
+<h3 id="Statement.Delete">func (*Statement) <a href="/mymysql/mysql.go?s=13837:13883#L537">Delete</a></h3>
 <p><code>func (stmt *Statement) Delete() (err os.Error)</code></p>
 <p>
 Destroy statement on server side. Client side handler is invalid after this
 command.
 </p>
 
-<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go?s=13637:13737#L514">Exec</a></h3>
+<h3 id="Statement.Exec">func (*Statement) <a href="/mymysql/mysql.go?s=13371:13471#L516">Exec</a></h3>
 <p><code>func (stmt *Statement) Exec(params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 <p>
 This call Run and next call GetRow once or more times. It read all rows
 from connection and returns they as a slice.
 </p>
 
-<h3 id="Statement.ExecAC">func (*Statement) <a href="/mymysql/autoconnect.go?s=2256:2358#L90">ExecAC</a></h3>
+<h3 id="Statement.ExecAC">func (*Statement) <a href="/mymysql/autoconnect.go?s=2243:2345#L90">ExecAC</a></h3>
 <p><code>func (stmt *Statement) ExecAC(params ...interface{}) (rows []*Row, res *Result, err os.Error)</code></p>
 <p>
 Automatic connect/reconnect/repeat version of Exec
 </p>
 
-<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go?s=14826:14871#L562">Reset</a></h3>
+<h3 id="Statement.Reset">func (*Statement) <a href="/mymysql/mysql.go?s=14561:14606#L565">Reset</a></h3>
 <p><code>func (stmt *Statement) Reset() (err os.Error)</code></p>
 <p>
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 </p>
 
-<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go?s=12943:13020#L488">Run</a></h3>
+<h3 id="Statement.ResetParams">func (*Statement) <a href="/mymysql/mysql.go?s=12353:12389#L479">ResetParams</a></h3>
+<p><code>func (stmt *Statement) ResetParams()</code></p>
+<p>
+Resets the previous parameter binding
+</p>
+
+<h3 id="Statement.Run">func (*Statement) <a href="/mymysql/mysql.go?s=12672:12749#L489">Run</a></h3>
 <p><code>func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error)</code></p>
 <p>
 Execute prepared statement. If statement requires parameters you may bind
@@ -1587,7 +1669,7 @@ them first or specify directly. After this command you may use GetRow to
 retrieve data.
 </p>
 
-<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go?s=16368:16469#L602">SendLongData</a></h3>
+<h3 id="Statement.SendLongData">func (*Statement) <a href="/mymysql/mysql.go?s=16104:16205#L606">SendLongData</a></h3>
 <p><code>func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)</code></p>
 <p>
 Send long data to MySQL server in chunks.
@@ -1615,14 +1697,21 @@ io.Reader you should properly set pkt_size. Data will be readed from
 io.Reader and send in pieces to the server until EOF.
 </p>
 
-<h2 id="Time">type <a href="/mymysql/binding.go?s=1039:1054#L38">Time</a></h2>
+<h2 id="Time">type <a href="/mymysql/binding.go?s=1033:1048#L38">Time</a></h2>
 <p>
-MySQL TIME type in nanoseconds. Note that MySQL doesn&#39;t store fractional part
-of second, but it is permitted for temporal values.
+MySQL TIME in nanoseconds. Note that MySQL doesn&#39;t store fractional part
+of second but it is permitted for temporal values.
 </p>
 
 <p><pre>type Time int64</pre></p>
-<h3 id="Time.String">func (*Time) <a href="/mymysql/binding.go?s=1055:1086#L39">String</a></h3>
+<h3 id="Time.StrToTime">func <a href="/mymysql/common.go?s=4063:4095#L167">StrToTime</a></h3>
+<p><code>func StrToTime(str string) *Time</code></p>
+<p>
+Convert string time in format [+-]H+:MM:SS[.UUUUUUUUU] to Time.
+Leading and trailing spaces are ignored. If format is invalid returns nil.
+</p>
+
+<h3 id="Time.String">func (*Time) <a href="/mymysql/binding.go?s=1049:1080#L39">String</a></h3>
 <p><code>func (tt *Time) String() string</code></p>
 
 <h2 id="Timestamp">type <a href="/mymysql/binding.go?s=801:824#L31">Timestamp</a></h2>

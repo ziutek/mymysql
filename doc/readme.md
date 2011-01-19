@@ -1,4 +1,7 @@
-## MyMySQL v0.3.3 (2011-01-18)
+Sorry for my poor English. If you can help in improving English in this
+documentation, please contact me.
+
+## MyMySQL v0.3.3 (2011-01-19)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -8,6 +11,9 @@ The code of this package is carefuly written and has internal error handling
 using *panic()* exceptions, thus the probability of bugs in Go code or an
 unhandled internal errors should be very small. Unfortunately I'm not a MySQL
 protocol expert, so bugs in the protocol handling are possible.
+
+The package includes an extensive set of automated tests that ensure that any
+code changes during development will not break the package itself.
 
 ## Differences betwen version 0.2 and 0.3.3
 
@@ -30,7 +36,8 @@ will be executed immediately after connect. It is mainly useful with
 5. Multi statements / multi results were added.
 6. Types ENUM and SET were added for prepared statements results.
 7. *Time* and *Date* types added in v0.3.3.
-8. Since v0.3.3 *Run*, *Exec* and *ExecAC* accept parameters.
+8. Since v0.3.3 *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
+QueryAC no longer accept prepared statement as first argument.
 
 ## Instaling
 
@@ -419,6 +426,34 @@ If one thread is calling *Start* or *Run* method, other threads will be
 blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
 data to the server,  until all results and all rows  will be readed from
 the connection in first thread.
+
+Multithreading was tested on my production web application. It uses *http*
+package to serve dynamic web pages. *http* package creates one gorutine for any
+HTTP connection. Any GET request during connection causes 4-8 select queries to
+MySQL database (some of them are prepared statements). Database contains ca.
+30 tables (three largest have 82k, 73k and 3k rows). There is one persistant
+connection to MySQL server which is shared by all gorutines. Application is
+running on dual-core machine with GOMAXPROCS=2. It was tested using *siege*:
+
+    # siege my.http.server -c25 -d0 -t 30s
+    ** SIEGE 2.69
+    ** Preparing 25 concurrent users for battle.
+    The server is now under siege...
+    Lifting the server siege..      done.
+    Transactions:                   3212 hits
+    Availability:                 100.00 %
+    Elapsed time:                  29.83 secs
+    Data transferred:               3.88 MB
+    Response time:                  0.22 secs
+    Transaction rate:             107.68 trans/sec
+    Throughput:	                    0.13 MB/sec
+    Concurrency:                   23.43
+    Successful transactions:        3218
+    Failed transactions:               0
+    Longest transaction:            9.28
+    Shortest transaction:           0.01
+
+Thanks to *siege* stress tests I fixed some multi-threading bugs in v0.3.2.
 
 ## TODO
 

@@ -26,8 +26,13 @@ type RowsResErr struct {
     err  os.Error
 }
 
-func query(cmd interface{}, a ...interface{}) *RowsResErr {
-    rows, res, err := db.Query(cmd, a...)
+func query(sql string, params ...interface{}) *RowsResErr {
+    rows, res, err := db.Query(sql, params...)
+    return &RowsResErr{rows, res, err}
+}
+
+func exec(stmt *Statement, params ...interface{}) *RowsResErr {
+    rows, res, err := stmt.Exec(params...)
     return &RowsResErr{rows, res, err}
 }
 
@@ -319,7 +324,7 @@ func TestPrepared(t *testing.T) {
 
     for _, row := range exp_rows {
         checkErrWarn(t,
-            query(ins.stmt, row.Data[0], row.Data[1], row.Data[2]),
+            exec(ins.stmt, row.Data[0], row.Data[1], row.Data[2]),
             cmdOK(1, true),
         )
     }
@@ -359,8 +364,8 @@ func TestPrepared(t *testing.T) {
         }
     }
 
-    checkErrWarn(t, query(sel.stmt, 2, "Taki tekst"), selectOK(exp_rows, true))
-    checkErrWarnRows(t, query(all.stmt), selectOK(exp_rows, true))
+    checkErrWarn(t, exec(sel.stmt, 2, "Taki tekst"), selectOK(exp_rows, true))
+    checkErrWarnRows(t, exec(all.stmt), selectOK(exp_rows, true))
 
     checkResult(t, query("drop table P"), cmdOK(0, false))
 
@@ -419,19 +424,19 @@ func TestVarBinding(t *testing.T) {
     sel, err := db.Prepare("select str from T where id = ?")
     checkErr(t, err, nil)
 
-    rows, _, err := db.Query(sel, 1)
+    rows, _, err := sel.Exec(1)
     checkErr(t, err, nil)
     if len(rows) != 1 || bytes.Compare([]byte(s1), rows[0].Bin(0)) != 0 {
         t.Fatal("First string don't match")
     }
 
-    rows, _, err = db.Query(sel, 2)
+    rows, _, err = sel.Exec(2)
     checkErr(t, err, nil)
     if len(rows) != 1 || bytes.Compare([]byte(s2), rows[0].Bin(0)) != 0 {
         t.Fatal("Second string don't match")
     }
 
-    rows, _, err = db.Query(sel, 3)
+    rows, _, err = sel.Exec(3)
     checkErr(t, err, nil)
     if len(rows) != 1 || bytes.Compare([]byte(ss), rows[0].Bin(0)) != 0 {
         t.Fatal("Thrid string don't match")
@@ -894,14 +899,14 @@ func BenchmarkPreparedInsertSelect(b *testing.B) {
     check(err)
 
     for ii := 0; ii < 10000; ii++ {
-        _, err := db.Start(ins, fmt.Sprintf("%d-%d-%d", ii, ii, ii), ii)
+        _, err := ins.Run(fmt.Sprintf("%d-%d-%d", ii, ii, ii), ii)
         check(err)
     }
 
     b.StartTimer()
 
     for ii := 0; ii < b.N; ii++ {
-        res, err := db.Start(sel)
+        res, err := sel.Run()
         check(err)
         for {
             row, err := res.GetRow()

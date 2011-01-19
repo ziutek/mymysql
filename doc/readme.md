@@ -143,7 +143,7 @@ If you do not want to load the entire result into memory you may use
 
 ## Example 2 - prepared statements
 
-You can use *Start* or *Query* method for prepared statements:
+You can use *Run* or *Exec* method for prepared statements:
 
     stmt, err := db.Prepare("insert into X values (?, ?)")
     if err != nil {
@@ -164,7 +164,7 @@ You can use *Start* or *Query* method for prepared statements:
         } else if err != nil {
             panic(err)
         }
-        _, err = db.Start(stmt, data.id, data.tax)
+        _, err = db.Run(stmt, data.id, data.tax)
         if err != nil {
             panic(err)
         }
@@ -175,10 +175,14 @@ You can use *Start* or *Query* method for prepared statements:
 assign pointer to retieved variable or nil if NULL should be stored in
 database.
 
-With *Start* and *Query* methods data are rebinded on every method call. It
-isn't efficient if statement is executer more than once. You can bind
-parameters and use *Run* method to avoid these unnecessary rebinds. The
-simplest way to bind parameters is:
+If you pass parameters to *Run* or *Exec* method, data are rebinded on every
+method call. It isn't efficient if statement is executed more than once. You
+can bind parameters and use *Run* or *Exec* method without parameters, to avoid
+these unnecessary rebinds. Warning! If you use *Bind* in multithreaded
+application, you should be sure that no other thread will use *Bind*, until you
+no longer need binded parameters.
+
+The simplest way to bind parameters is:
 
     stmt.BindParams(data.id, data.tax)
 

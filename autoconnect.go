@@ -61,7 +61,7 @@ func (my *MySQL) UseAC(dbname string) (err os.Error) {
 }
 
 // Automatic connect/reconnect/repeat version of Query
-func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (
+func (my *MySQL) QueryAC(sql string, params ...interface{}) (
         rows []*Row, res *Result, err os.Error) {
 
     if err = my.connectIfNotConnected(); err != nil {
@@ -69,7 +69,7 @@ func (my *MySQL) QueryAC(command interface{}, params ...interface{}) (
     }
     nn := 0
     for {
-        if rows, res, err = my.Query(command, params...); err == nil {
+        if rows, res, err = my.Query(sql, params...); err == nil {
             return
         }
         if my.reconnectIfNetErr(&nn, &err); err != nil {

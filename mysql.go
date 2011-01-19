@@ -251,48 +251,31 @@ func (my *MySQL) unlockIfError(err *os.Error) {
 
 // Start new query.
 //
-// command can be SQL query (string) or a prepared statement (*Statement).
-//
-// If the command is a string and you specify the parameters, the SQL string
-// will be a result of fmt.Sprintf(command, params...).
-//
-// If the command is a prepared statement, params will be binded to this
-// statement before execution.
-//
+// If you specify the parameters, the SQL string will be a result of
+// fmt.Sprintf(sql, params...).
 // You must get all result rows (if they exists) before next query.
-func (my *MySQL) Start(command interface{}, params ...interface{}) (
+func (my *MySQL) Start(sql string, params ...interface{}) (
         res *Result, err os.Error) {
 
-    // Check type of command
-    switch cmd := command.(type) {
-    case *Statement:
-        // Prepared statement
-        return cmd.Run(params...)
-
-    case string:
-        // Text SQL
-        if my.conn == nil {
-            return nil, NOT_CONN_ERROR
-        }
-        if my.unreaded_rows {
-            return nil, UNREADED_ROWS_ERROR
-        }
-        defer my.unlockIfError(&err)
-        defer catchOsError(&err)
-        my.lock()
-
-        // Send query
-        if len(params) == 0 {
-            my.sendCmd(_COM_QUERY, cmd)
-        } else {
-            my.sendCmd(_COM_QUERY, fmt.Sprintf(cmd, params...))
-        }
-
-        // Get command response
-        res = my.getResponse()
-        return
+    if my.conn == nil {
+        return nil, NOT_CONN_ERROR
     }
-    return nil, BAD_COMMAND_ERROR
+    if my.unreaded_rows {
+        return nil, UNREADED_ROWS_ERROR
+    }
+    defer my.unlockIfError(&err)
+    defer catchOsError(&err)
+    my.lock()
+
+    if len(params) != 0 {
+        sql = fmt.Sprintf(sql, params...)
+    }
+    // Send query
+    my.sendCmd(_COM_QUERY, sql)
+
+    // Get command response
+    res = my.getResponse()
+    return
 }
 
 
@@ -356,10 +339,10 @@ func (res *Result) End() (err os.Error) {
 
 // This call Start and next call GetRow as long as it reads all rows from the
 // result. Next it returns all readed rows as the slice of rows.
-func (my *MySQL) Query(command interface{}, params ...interface{}) (
+func (my *MySQL) Query(sql string, params ...interface{}) (
         rows []*Row, res *Result, err os.Error) {
 
-    res, err = my.Start(command, params...)
+    res, err = my.Start(sql, params...)
     if err != nil {
         return
     }
@@ -490,6 +473,14 @@ func (stmt *Statement) BindParams(params ...interface{}) {
             pval = vv.Elem()
         }
         stmt.params[ii] = bindValue(pval)
+    }
+}
+
+// Resets the previous parameter binding
+func (stmt *Statement) ResetParams() {
+    stmt.rebind = true
+    for ii := 0; ii < stmt.ParamCount; ii ++ {
+        stmt.params[ii] = nil
     }
 }
 

@@ -170,10 +170,8 @@ const (
 )
 
 var (
-    _SIZE_OF_INT   int
-    _SIZE_OF_FLOAT int
-    _INT_TYPE      uint16
-    _FLOAT_TYPE    uint16
+    _SIZE_OF_INT int
+    _INT_TYPE    uint16
 )
 
 func init() {
@@ -186,15 +184,5 @@ func init() {
         _SIZE_OF_INT = 8
     default:
         panic("bad int size")
-    }
-    switch strconv.FloatSize {
-    case 32:
-        _FLOAT_TYPE = MYSQL_TYPE_FLOAT
-        _SIZE_OF_FLOAT = 4
-    case 64:
-        _FLOAT_TYPE = MYSQL_TYPE_DOUBLE
-        _SIZE_OF_FLOAT = 8
-    default:
-        panic("bad float size")
     }
 }

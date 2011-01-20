@@ -185,9 +185,6 @@ func mysqlIntType(kind reflect.Kind) (uint16, int) {
 
 func mysqlFloatType(kind reflect.Kind) (uint16, int) {
     switch kind {
-    case reflect.Float:
-        return _FLOAT_TYPE, _SIZE_OF_FLOAT
-
     case reflect.Float32:
         return MYSQL_TYPE_FLOAT, 4
 

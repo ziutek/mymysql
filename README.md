@@ -155,7 +155,7 @@ You can use *Run* or *Exec* method for prepared statements:
 
     type Data struct {
         id  int
-        tax *float // nil means NULL
+        tax *float32 // nil means NULL
     }
 
     data = new(Data)

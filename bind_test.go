@@ -37,9 +37,8 @@ var (
     Int    = int(7)
     Uint   = uint(8)
 
-    Float   = float(3.14159e3)
     Float32 = float32(1e10)
-    Float64 = float64(256e256)
+    Float64 = 256e256
 
     pInt8    *int8
     pUint8   *uint8
@@ -51,9 +50,8 @@ var (
     pUint64  *uint64
     pInt     *int
     pUint    *uint
-    pFloat   *float
-    pFloat32 *float
-    pFloat64 *float
+    pFloat32 *float32
+    pFloat64 *float64
 )
 
 type BindTest struct {
@@ -130,11 +128,9 @@ var bindTests = []BindTest {
 
     BindTest{Float32, MYSQL_TYPE_FLOAT,   false, 4},
     BindTest{Float64, MYSQL_TYPE_DOUBLE,  false, 8},
-    BindTest{Float,   MYSQL_TYPE_FLOAT,   false, 4}, // Hack
 
     BindTest{&Float32, MYSQL_TYPE_FLOAT,  true,  4},
     BindTest{&Float64, MYSQL_TYPE_DOUBLE, true,  8},
-    BindTest{&Float,   MYSQL_TYPE_FLOAT,  true,  4}, // Hack
 }
 
 func TestBind(t *testing.T) {
@@ -258,15 +254,12 @@ func init() {
         WriteTest{pInt32,  nil},
         WriteTest{pInt64,  nil},
 
-        WriteTest{Float,   EncodeU32(math.Float32bits(float32(Float)))},
         WriteTest{Float32, EncodeU32(math.Float32bits(Float32))},
         WriteTest{Float64, EncodeU64(math.Float64bits(Float64))},
 
-        WriteTest{&Float,   EncodeU32(math.Float32bits(float32(Float)))},
         WriteTest{&Float32, EncodeU32(math.Float32bits(Float32))},
         WriteTest{&Float64, EncodeU64(math.Float64bits(Float64))},
 
-        WriteTest{pFloat,   nil},
         WriteTest{pFloat32, nil},
         WriteTest{pFloat64, nil},
     }

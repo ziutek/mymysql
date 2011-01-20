@@ -15,7 +15,7 @@ protocol expert, so bugs in the protocol handling are possible.
 The package includes an extensive set of automated tests that ensure that any
 code changes during development will not break the package itself.
 
-## Differences betwen version 0.2 and 0.3.3
+## Differences betwen version 0.2 and 0.3.4
 
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
 with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*

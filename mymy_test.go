@@ -479,7 +479,7 @@ func TestDate(t *testing.T) {
         t.Fatal("Bad tt", rows[0].Data[1].(Time))
     }
 
-    //checkResult(t, query("drop table D"), cmdOK(0, false))
+    checkResult(t, query("drop table D"), cmdOK(0, false))
     dbClose(t)
 }
 

@@ -140,6 +140,11 @@ func (my *MySQL) Connect() (err os.Error) {
     return my.connect()
 }
 
+// Check if connection is established
+func (my *MySQL) IsConnected() bool {
+    return my.conn != nil
+}
+
 // Thread unsafe close
 func (my *MySQL) close_conn() (err os.Error) {
     defer catchOsError(&err)

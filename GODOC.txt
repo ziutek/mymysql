@@ -719,6 +719,9 @@ Close connection to the server
 func (my *MySQL) Connect() (err os.Error)
 Establishes a connection with MySQL server version 4.1 or later.
 
+func (my *MySQL) IsConnected() bool
+Check if connection is established
+
 func (my *MySQL) Ping() (err os.Error)
 Send MySQL PING to the server.
 

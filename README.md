@@ -43,9 +43,27 @@ older Go release use mymysql v0.3.3
 
 ## Instaling
 
+### Using *goinstall* - prefered way:
+
+     $ goinstall github.com/ziutek/mymysql
+
+After this command *mymysql* is ready to use. You may find source in
+
+    $GOROOT/src/pkg/github.com/ziutek/mymysql
+
+directory. If you install *mymysql* this way you must use full path to import
+it into your application.
+
+You can use `goinstall -u -a` for update all installed packages.
+
+### Using *git clone* command:
+
     $ git clone git://github.com/ziutek/mymysql
     $ cd mymysql
     $ make install
+
+but it isn't preferred way. Because examples (and perhaps other packages)
+use full path (*github.com/ziutek/mymysql*) for import.
 
 ## Testing
 
@@ -67,7 +85,7 @@ The default MySQL test server address is *127.0.0.1:3306*. You may change it in
 
 Next run tests:
 
-    $ cd mymysql
+    $ cd $GOROOT/src/pkg/github.com/ziutek/mymysql
     $ gotest -v
 
 ## Interface
@@ -76,7 +94,7 @@ In *GODOC.html* or *GODOC.txt* you can find the full documentation of this packa
 
 ## Example 1
 
-    import "mymy"
+    import "github.com/ziutek/mymysql"
 
     db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
     db.Debug = true

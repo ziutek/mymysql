@@ -94,7 +94,9 @@ In *GODOC.html* or *GODOC.txt* you can find the full documentation of this packa
 
 ## Example 1
 
-    import "github.com/ziutek/mymysql"
+    import (
+        mymy "github.com/ziutek/mymysql"
+    )
 
     db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
     db.Debug = true

@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-TARG=mymy
+TARG=github.com/ziutek/mymysql
 GOFILES=\
 	mysql.go\
 	init.go\

@@ -1,6 +1,6 @@
 PACKAGE
 
-package mymy
+package mymysql
 import "mymysql"
 
 CONSTANTS
@@ -621,6 +621,9 @@ func EncodeU32(val uint32) []byte
 
 func EncodeU64(val uint64) []byte
 
+func (stmt *Statement) ExecAC(params ...interface{}) (rows []*Row, res *Result, err os.Error)
+Automatic connect/reconnect/repeat version of Exec
+
 func IsDateZero(dd *Date) bool
 True if date is 0000-00-00
 
@@ -633,6 +636,15 @@ Return true if error is network error or UnexpectedEOF.
 func NbinToNstr(nbin *[]byte) *string
 
 func NstrToNbin(nstr *string) *[]byte
+
+func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error)
+Automatic connect/reconnect/repeat version of Prepare
+
+func (my *MySQL) QueryAC(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+Automatic connect/reconnect/repeat version of Query
+
+func (my *MySQL) UseAC(dbname string) (err os.Error)
+Automatic connect/reconnect/repeat version of Use
 
 
 TYPES
@@ -678,267 +690,10 @@ Code for error number.
 
 func (err Error) String() string
 
-type Field struct {
-    Catalog  string
-    Db       string
-    Table    string
-    OrgTable string
-    Name     string
-    OrgName  string
-    DispLen  uint32
-    //  Charset  uint16
-    Flags uint16
-    Type  byte
-    Scale byte
-}
-
-type MySQL struct {
-
-    // Maximum packet size that client can accept from server.
-    // Default 16*1024*1024-1. You may change it before connect.
-    MaxPktSize int
-
-    // Debug logging. You may change it at any time.
-    Debug bool
-
-    // Maximum reconnect retries - for XxxAC methods. Default is 5 which
-    // means 1+2+3+4+5 = 15 seconds before return an error.
-    MaxRetries int
-    // contains unexported fields
-}
-MySQL connection handler
-
-func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL)
-Create new MySQL handler. The first three arguments are passed to net.Bind
-for create connection. user and passwd are for authentication. Optional db
-is database name (you may not specifi it and use Use() method later).
-
-func (my *MySQL) Close() (err os.Error)
-Close connection to the server
-
-func (my *MySQL) Connect() (err os.Error)
-Establishes a connection with MySQL server version 4.1 or later.
-
-func (my *MySQL) IsConnected() bool
-Check if connection is established
-
-func (my *MySQL) Ping() (err os.Error)
-Send MySQL PING to the server.
-
-func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)
-Prepare server side statement. Return statement handler.
-
-func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error)
-Automatic connect/reconnect/repeat version of Prepare
-
-func (my *MySQL) Query(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
-This call Start and next call GetRow as long as it reads all rows from the
-result. Next it returns all readed rows as the slice of rows.
-
-func (my *MySQL) QueryAC(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
-Automatic connect/reconnect/repeat version of Query
-
-func (my *MySQL) Reconnect() (err os.Error)
-Close and reopen connection in one, thread-safe operation.
-Ignore unreaded rows, reprepare all prepared statements.
-
-func (my *MySQL) Register(sql string)
-Register MySQL command/query to be executed immediately after connecting to
-the server. You may register multiple commands. They will be executed in
-the order of registration. Yhis method is mainly useful for reconnect.
-
-func (my *MySQL) Start(sql string, params ...interface{}) (res *Result, err os.Error)
-Start new query.
-
-If you specify the parameters, the SQL string will be a result of
-fmt.Sprintf(sql, params...).
-You must get all result rows (if they exists) before next query.
-
-func (my *MySQL) ThreadId() uint32
-Returns the thread ID of the current connection.
-
-func (my *MySQL) Use(dbname string) (err os.Error)
-Change database
-
-func (my *MySQL) UseAC(dbname string) (err os.Error)
-Automatic connect/reconnect/repeat version of Use
-
 type Raw struct {
     Typ uint16
     Val *[]byte
 }
-
-type Result struct {
-    FieldCount int
-    Fields     []*Field       // Fields table
-    Map        map[string]int // Maps field name to column number
-
-    Message      []byte
-    AffectedRows uint64
-    InsertId     uint64
-    WarningCount int
-    Status       uint16
-    // contains unexported fields
-}
-
-func (res *Result) End() (err os.Error)
-Read all unreaded rows and discard them. This function is useful if you
-don't want to use the remaining rows. It has an impact only on current
-result. If there is multi result query, you must use NextResult method and
-read/discard all rows in this result, before use other method that sends
-data to the server.
-
-func (res *Result) GetRow() (row *Row, err os.Error)
-Get the data row from a server. This method reads one row of result directly
-from network connection (without rows buffering on client side).
-
-func (res *Result) NextResult() (next *Result, err os.Error)
-This function is used when last query was the multi result query.
-Return the next result or nil if no more resuts exists.
-
-type Row struct {
-    Data []interface{}
-}
-Result row. Data field is a slice that contains values for any column of
-received row.
-
-If row is a result of ordinary text query, an element of Data field can be
-[]byte slice, contained result text or nil if NULL is returned.
-
-If it is result of prepared statement execution, an element of Data field can
-be: intXX, uintXX, floatXX, []byte, *Date, *Datetime, Time or nil
-
-func (tr *Row) Bin(nn int) (bin []byte)
-Get the nn-th value and return it as []byte ([]byte{} if NULL)
-
-func (tr *Row) Date(nn int) (val *Date)
-It is like DateErr but return 0000-00-00 if conversion is impossible.
-
-func (tr *Row) DateErr(nn int) (val *Date, err os.Error)
-Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
-if conversion is impossible.
-
-func (tr *Row) Datetime(nn int) (val *Datetime)
-It is like DatetimeErr but return 0000-00-00 00:00:00 if conversion is
-impossible.
-
-func (tr *Row) DatetimeErr(nn int) (val *Datetime, err os.Error)
-Get the nn-th value and return it as Datetime (0000-00-00 00:00:00 if NULL).
-Return error if conversion is impossible. It can convert Date to Datetime.
-
-func (tr *Row) Int(nn int) (val int)
-Get the nn-th value and return it as int. Return 0 if value is NULL or
-conversion is impossible.
-
-func (tr *Row) IntErr(nn int) (val int, err os.Error)
-Get the nn-th value and return it as int (0 if NULL). Return error if
-conversion is impossible.
-
-func (tr *Row) MustDate(nn int) (val *Date)
-It is like DateErr but panics if conversion is impossible.
-
-func (tr *Row) MustDatetime(nn int) (val *Datetime)
-As DatetimeErr but panics if conversion is impossible.
-
-func (tr *Row) MustInt(nn int) (val int)
-Get the nn-th value and return it as int (0 if NULL). Panic if conversion is
-impossible.
-
-func (tr *Row) MustTime(nn int) (val Time)
-It is like TimeErr but panics if conversion is impossible.
-
-func (tr *Row) MustUint(nn int) (val uint)
-Get the nn-th value and return it as uint (0 if NULL). Panic if conversion is
-impossible.
-
-func (tr *Row) Str(nn int) (str string)
-Get the nn-th value and return it as string ("" if NULL)
-
-func (tr *Row) Time(nn int) (val Time)
-It is like TimeErr but return 0:00:00 if conversion is impossible.
-
-func (tr *Row) TimeErr(nn int) (val Time, err os.Error)
-Get the nn-th value and return it as Time (0:00:00 if NULL). Return error
-if conversion is impossible.
-
-func (tr *Row) Uint(nn int) (val uint)
-Get the nn-th value and return it as uint. Return 0 if value is NULL or
-conversion is impossible.
-
-func (tr *Row) UintErr(nn int) (val uint, err os.Error)
-Get the nn-th value and return it as uint (0 if NULL). Return error if
-conversion is impossible.
-
-type Statement struct {
-    Fields []*Field
-    Map    map[string]int // Maps field name to column number
-
-    FieldCount   int
-    ParamCount   int
-    WarningCount int
-    Status       uint16
-    // contains unexported fields
-}
-
-func (stmt *Statement) BindParams(params ...interface{})
-Bind input data for the parameter markers in the SQL statement that was
-passed to Prepare.
-
-params may be a parameter list (slice), a struct or a pointer to the struct.
-A struct field can by value or pointer to value. A parameter (slice element)
-can be value, pointer to value or pointer to pointer to value.
-Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
-string, Datetime, Date, Time, Timestamp, Raw.
-
-Warning! This method isn't thread safe. If you use the same prepared
-statement in multiple threads, you should not use this method unless you know
-exactly what you are doing. For each thread you may prepare its own statement
-or use Run, Exec or ExecAC method with parameters (but they rebind parameters
-on each call).
-
-func (stmt *Statement) Delete() (err os.Error)
-Destroy statement on server side. Client side handler is invalid after this
-command.
-
-func (stmt *Statement) Exec(params ...interface{}) (rows []*Row, res *Result, err os.Error)
-This call Run and next call GetRow once or more times. It read all rows
-from connection and returns they as a slice.
-
-func (stmt *Statement) ExecAC(params ...interface{}) (rows []*Row, res *Result, err os.Error)
-Automatic connect/reconnect/repeat version of Exec
-
-func (stmt *Statement) Reset() (err os.Error)
-Resets a prepared statement on server: data sent to the server, unbuffered
-result sets and current errors.
-
-func (stmt *Statement) ResetParams()
-Resets the previous parameter binding
-
-func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error)
-Execute prepared statement. If statement requires parameters you may bind
-them first or specify directly. After this command you may use GetRow to
-retrieve data.
-
-func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)
-Send long data to MySQL server in chunks.
-You can call this method after Bind and before Run/Execute. It can be called
-multiple times for one parameter to send TEXT or BLOB data in chunks.
-
-pnum     - Parameter number to associate the data with.
-
-data     - Data source string, []byte or io.Reader.
-
-pkt_size - It must be must be greater than 6 and less or equal to MySQL
-max_allowed_packet variable. You can obtain value of this variable
-using such query: SHOW variables WHERE Variable_name = 'max_allowed_packet'
-If data source is io.Reader then (pkt_size - 6) is size of a buffer that
-will be allocated for reading.
-
-If you have data source of type string or []byte in one piece you may
-properly set pkt_size and call this method once. If you have data in
-multiple pieces you can call this method multiple times. If data source is
-io.Reader you should properly set pkt_size. Data will be readed from
-io.Reader and send in pieces to the server until EOF.
 
 type Time int64
 MySQL TIME in nanoseconds. Note that MySQL doesn't store fractional part
@@ -954,6 +709,10 @@ type Timestamp Datetime
 
 func (ts *Timestamp) String() string
 
+
+OTHER PACKAGES
+
+mymy
 
 SUBDIRECTORIES
 

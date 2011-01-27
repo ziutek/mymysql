@@ -1,4 +1,4 @@
-package mymy
+package mymysql
 
 import "strconv"
 

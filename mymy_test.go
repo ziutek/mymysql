@@ -1,4 +1,4 @@
-package mymy
+package mymysql
 
 import (
     "testing"
@@ -756,7 +756,7 @@ func TestSendLongData(t *testing.T) {
     }
 
     // Send long data from io.Reader twice
-    filename := "_test/mymy.a"
+    filename := "_test/github.com/ziutek/mymysql.a"
     file, err := os.Open(filename, os.O_RDONLY, 0)
     checkErr(t, err, nil)
     checkErr(t, ins.SendLongData(1, file,  128*1024), nil)

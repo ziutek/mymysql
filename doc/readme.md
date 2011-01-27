@@ -43,7 +43,7 @@ older Go release use mymysql v0.3.3
 
 ## Instaling
 
-### Using *goinstall* - prefered way:
+### Using *goinstall* - preferred way:
 
      $ goinstall github.com/ziutek/mymysql
 
@@ -51,8 +51,7 @@ After this command *mymysql* is ready to use. You may find source in
 
     $GOROOT/src/pkg/github.com/ziutek/mymysql
 
-directory. If you install *mymysql* this way you must use full path to import
-it into your application.
+directory.
 
 You can use `goinstall -u -a` for update all installed packages.
 
@@ -61,9 +60,6 @@ You can use `goinstall -u -a` for update all installed packages.
     $ git clone git://github.com/ziutek/mymysql
     $ cd mymysql
     $ make install
-
-but it isn't preferred way. Because examples (and perhaps other packages)
-use full path (*github.com/ziutek/mymysql*) for import.
 
 ## Testing
 

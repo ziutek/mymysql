@@ -3,7 +3,7 @@ package main
 import (
     "os"
     "fmt"
-    "mymy"
+    mymy "github.com/ziutek/mymysql"
 )
 
 func printOK() {

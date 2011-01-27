@@ -3,7 +3,7 @@ package main
 import (
     "os"
     "fmt"
-    "mymy"
+    mymy "github.com/ziutek/mymysql"
 )
 
 func printOK() {
@@ -89,7 +89,7 @@ func main() {
     printOK()
 
     fmt.Println("Select from A... ")
-    rows, res := checkedResult(db.Query(sel, 0))
+    rows, res := checkedResult(sel.Exec(0))
     name   := res.Map["name"]
     number := res.Map["number"]
     for ii, row := range rows {

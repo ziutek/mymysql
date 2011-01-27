@@ -7,7 +7,7 @@ import (
     "fmt"
     "http"
     "strings"
-    "mymy"
+    mymy "github.com/ziutek/mymysql"
 )
 
 func printOK() {
@@ -93,7 +93,7 @@ func main() {
     fmt.Println()
 
     fmt.Print("Select from 'web' table... ")
-    rows, res, err := db.Query(sel)
+    rows, res, err := sel.Exec()
     checkError(err)
     printOK()
 

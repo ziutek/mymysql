@@ -1,13 +1,13 @@
 package main
 
 import (
-    "mymy"
     "fmt"
     "os"
     "time"
     "io"
     "net"
     "log"
+    mymy "github.com/ziutek/mymysql"
 )
 
 type ReconDB struct {
@@ -63,10 +63,10 @@ func (rdb *ReconDB) Close() (err os.Error) {
     return rdb.my.Close()
 }
 
-func (rdb *ReconDB) Query(command interface{}, params ...interface{}) (
+func (rdb *ReconDB) Query(sql string , params ...interface{}) (
         rows []*mymy.Row, res *mymy.Result, err os.Error) {
     for nn := 0; nn < rdb.MaxRetries; nn++ {
-        rows, res, err = rdb.my.Query(command, params...)
+        rows, res, err = rdb.my.Query(sql, params...)
         if err == nil {
             break
         }

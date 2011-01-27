@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.3.4 (2011-01-20)
+## MyMySQL v0.3.5 (2011-01-27)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -40,8 +40,11 @@ will be executed immediately after connect. It is mainly useful with
 QueryAC no longer accept prepared statement as first argument.
 9. In v0.3.4 float type disappeared because Go release.2011-01-20. If you use
 older Go release use mymysql v0.3.3 
+10. IsConnected() method was added in v0.3.5.
+11. In v0.3.5 package name was changed from *mymy* to *mymysql*. Now the
+package name corresponds to the name of Github repository.
 
-## Instaling
+## Installing
 
 ### Using *goinstall* - preferred way:
 

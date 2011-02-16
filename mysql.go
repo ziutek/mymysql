@@ -696,3 +696,12 @@ func (my *MySQL) ThreadId() uint32 {
 func (my *MySQL) Register(sql string) {
     my.init_cmds = append(my.init_cmds, sql)
 }
+
+// Escapes special characters in the txt, so it is safe to place returned string
+// to Query or Start method.
+func (my *MySQL) EscapeString(txt string) string {
+    if my.Status & _SERVER_STATUS_NO_BACKSLASH_ESCAPES != 0 {
+        return escapeQuotes(txt)
+    }
+    return escapeString(txt)
+}

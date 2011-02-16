@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.3.5 (2011-01-27)
+## MyMySQL v0.3.6 (2011-02-16)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -9,13 +9,16 @@ production application (December 2010).
 
 The code of this package is carefuly written and has internal error handling
 using *panic()* exceptions, thus the probability of bugs in Go code or an
-unhandled internal errors should be very small. Unfortunately I'm not a MySQL
-protocol expert, so bugs in the protocol handling are possible.
+unhandled internal errors should be very small.
+
+This package works with the MySQL protocol version 4.1 or greater. It definitely
+works well with MySQL 5.0 and 5.1 (I use these versions of MySQL for my
+production application).
 
 The package includes an extensive set of automated tests that ensure that any
 code changes during development will not break the package itself.
 
-## Differences betwen version 0.2 and 0.3.4
+## Differences betwen version 0.2 and 0.3.6
 
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
 with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
@@ -34,15 +37,16 @@ database. This interface does not appear to be useful with local transactions.
 will be executed immediately after connect. It is mainly useful with
 *Reconnect* method and autoreconn interface.
 5. Multi statements / multi results were added.
-6. Types ENUM and SET were added for prepared statements results.
+6. Types *ENUM* and *SET* were added for prepared statements results.
 7. *Time* and *Date* types added in v0.3.3.
 8. Since v0.3.3 *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
-QueryAC no longer accept prepared statement as first argument.
+*QueryAC* no longer accept prepared statement as first argument.
 9. In v0.3.4 float type disappeared because Go release.2011-01-20. If you use
 older Go release use mymysql v0.3.3 
-10. IsConnected() method was added in v0.3.5.
+10. *IsConnected()* method was added in v0.3.5.
 11. In v0.3.5 package name was changed from *mymy* to *mymysql*. Now the
 package name corresponds to the name of Github repository.
+12. The *EscapeString* method was added in v0.3.6.
 
 ## Installing
 

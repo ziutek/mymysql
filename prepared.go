@@ -91,6 +91,7 @@ loop:
         case pkt0 == 254:
             // EOF packet
             stmt.WarningCount, stmt.Status = my.getEofPacket(pr)
+            stmt.db.Status = stmt.Status
             return stmt
 
         case pkt0 > 0 && pkt0 < 251 && (stmt.FieldCount < len(stmt.Fields) ||
@@ -123,6 +124,7 @@ func (my *MySQL) getPrepareOkPacket(pr *pktReader) (stmt *Statement) {
 
     stmt = new(Statement)
     // First byte was readed by getPrepRes
+    stmt.db     = my
     stmt.id     = readU32(pr)
     stmt.Fields = make([]*Field, int(readU16(pr))) // FieldCount
     stmt.params = make([]*paramValue, int(readU16(pr))) // ParamCount

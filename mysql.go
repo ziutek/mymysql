@@ -42,6 +42,9 @@ type MySQL struct {
     init_cmds []string // MySQL commands/queries executed after connect
     stmt_map  map[uint32]*Statement // For reprepare during reconnect
 
+    // Current status of MySQL server connection
+    Status   uint16
+
     // Maximum packet size that client can accept from server.
     // Default 16*1024*1024-1. You may change it before connect.
     MaxPktSize int
@@ -248,7 +251,6 @@ func (my *MySQL) getResponse(unlock_if_ok bool) (res *Result) {
         }
     } else {
         // This query can return rows
-        res.db = my
         my.unreaded_rows = true
     }
     return
@@ -429,7 +431,6 @@ func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
         return
     }
     // Connect statement with database handler
-    stmt.db = my
     my.stmt_map[stmt.id] = stmt
     // Save SQL for reconnect
     stmt.sql = sql

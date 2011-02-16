@@ -27,9 +27,9 @@ func (my *MySQL) init() {
     my.info.thr_id   = readU32(pr)
     readFull(pr, my.info.scramble[0:8])
     read(pr, 1)
-    my.info.caps     = readU16(pr)
-    my.info.lang     = readByte(pr)
-    status          := readU16(pr)
+    my.info.caps = readU16(pr)
+    my.info.lang = readByte(pr)
+    my.Status    = readU16(pr)
     read(pr, 13)
     readFull(pr, my.info.scramble[8:])
     // Skip other information
@@ -37,7 +37,7 @@ func (my *MySQL) init() {
 
     if my.Debug {
         log.Printf(tab8s + "ProtVer=%d, ServVer=\"%s\" Status=0x%x",
-            my.info.prot_ver, my.info.serv_ver, status,
+            my.info.prot_ver, my.info.serv_ver, my.Status,
         )
     }
 }

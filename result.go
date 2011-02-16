@@ -33,8 +33,15 @@ type Result struct {
 
     Message       []byte
     AffectedRows  uint64
+
+    // Primary key value (useful for AUTO_INCREMENT primary keys)
     InsertId      uint64
+
+    // Number of warinigs during command execution
+    // You can use the SHOW WARNINGS query for details.
     WarningCount  int
+
+    // MySQL server status immediately after the query execution
     Status        uint16
 }
 
@@ -317,6 +324,7 @@ loop:
         case pkt0 == 254:
             // EOF packet
             res.WarningCount, res.Status = my.getEofPacket(pr)
+            my.Status = res.Status
             return res
 
         case pkt0 > 0 && pkt0 < 251 && res.FieldCount < len(res.Fields):
@@ -347,9 +355,11 @@ func (my *MySQL) getOkPacket(pr *pktReader) (res *Result) {
     }
     res = new(Result)
     // First byte was readed by getResult
+    res.db           = my
     res.AffectedRows = readNotNullU64(pr)
     res.InsertId     = readNotNullU64(pr)
     res.Status       = readU16(pr)
+    my.Status        = res.Status
     res.WarningCount = int(readU16(pr))
     res.Message      = pr.readAll()
     pr.checkEof()
@@ -407,6 +417,7 @@ func (my *MySQL) getResSetHeadPacket(pr *pktReader) (res *Result) {
     pr.checkEof()
 
     res = &Result {
+        db:     my,
         Fields: make([]*Field, field_count),
         Map:    make(map[string]int),
     }

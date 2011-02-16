@@ -114,9 +114,8 @@ func checkResult(t *testing.T, res, exp *RowsResErr) {
 }
 
 func cmdOK(affected uint64, binary bool) *RowsResErr {
-    return &RowsResErr {
-        res:  &Result{binary: binary, Status: 0x2, AffectedRows: affected},
-    }
+    return &RowsResErr{res: &Result{db: db, binary: binary, Status: 0x2,
+                                    AffectedRows: affected}}
 }
 
 func selectOK(rows []*Row, binary bool) (exp *RowsResErr) {

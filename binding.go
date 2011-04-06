@@ -89,7 +89,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
         return &paramValue{typ: MYSQL_TYPE_NULL}
     }
 
-    out = &paramValue{addr: unsafePointer(val.Addr())}
+    out = &paramValue{addr: unsafePointer(val.UnsafeAddr())}
     typ := val.Type()
 
     // Dereference type

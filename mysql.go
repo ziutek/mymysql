@@ -85,10 +85,43 @@ func (my *MySQL) connect() (err os.Error) {
     defer catchOsError(&err)
 
     // Make connection
-    my.conn, err = net.Dial(my.proto, my.laddr, my.raddr)
-    if err != nil {
-        return
+    switch my.proto {
+    case "tcp", "tcp4", "tcp6":
+        var la, ra *net.TCPAddr
+        if my.laddr != "" {
+            if la, err = net.ResolveTCPAddr(my.laddr); err != nil {
+                return
+            }
+        }
+        if my.raddr != "" {
+            if ra, err = net.ResolveTCPAddr(my.raddr); err != nil {
+                return
+            }
+        }
+        if my.conn, err = net.DialTCP(my.proto, la, ra); err != nil {
+            return
+        }
+
+    case "unix":
+        var la, ra *net.UnixAddr
+        if my.raddr != "" {
+            if ra, err = net.ResolveUnixAddr(my.proto, my.raddr); err != nil {
+                return
+            }
+        }
+        if my.laddr != "" {
+            if la, err = net.ResolveUnixAddr(my.proto, my.laddr); err != nil {
+                return
+            }
+        }
+        if my.conn, err = net.DialUnix(my.proto, la, ra); err != nil {
+            return
+        }
+
+    default:
+        err = net.UnknownNetworkError(my.proto)
     }
+
     my.rd = bufio.NewReader(my.conn)
     my.wr = bufio.NewWriter(my.conn)
 

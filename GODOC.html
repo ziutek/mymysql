@@ -810,18 +810,18 @@ MySQL types are marked with a comment contains mymysql type that uses it.
 
 			<pre>const (
     MYSQL_TYPE_DECIMAL     = 0x00
-    MYSQL_TYPE_TINY        = 0x01 <span class ="comment">// int8, uint8</span>
-    MYSQL_TYPE_SHORT       = 0x02 <span class ="comment">// int16, uint16</span>
-    MYSQL_TYPE_LONG        = 0x03 <span class ="comment">// int32, uint32</span>
-    MYSQL_TYPE_FLOAT       = 0x04 <span class ="comment">// float32</span>
-    MYSQL_TYPE_DOUBLE      = 0x05 <span class ="comment">// float64</span>
-    MYSQL_TYPE_NULL        = 0x06 <span class ="comment">// nil</span>
-    MYSQL_TYPE_TIMESTAMP   = 0x07 <span class ="comment">// *Timestamp</span>
-    MYSQL_TYPE_LONGLONG    = 0x08 <span class ="comment">// int64, uint64</span>
+    MYSQL_TYPE_TINY        = 0x01 <span class="comment">// int8, uint8</span>
+    MYSQL_TYPE_SHORT       = 0x02 <span class="comment">// int16, uint16</span>
+    MYSQL_TYPE_LONG        = 0x03 <span class="comment">// int32, uint32</span>
+    MYSQL_TYPE_FLOAT       = 0x04 <span class="comment">// float32</span>
+    MYSQL_TYPE_DOUBLE      = 0x05 <span class="comment">// float64</span>
+    MYSQL_TYPE_NULL        = 0x06 <span class="comment">// nil</span>
+    MYSQL_TYPE_TIMESTAMP   = 0x07 <span class="comment">// *Timestamp</span>
+    MYSQL_TYPE_LONGLONG    = 0x08 <span class="comment">// int64, uint64</span>
     MYSQL_TYPE_INT24       = 0x09
-    MYSQL_TYPE_DATE        = 0x0a <span class ="comment">// *Date</span>
-    MYSQL_TYPE_TIME        = 0x0b <span class ="comment">// Time</span>
-    MYSQL_TYPE_DATETIME    = 0x0c <span class ="comment">// *Datetime</span>
+    MYSQL_TYPE_DATE        = 0x0a <span class="comment">// *Date</span>
+    MYSQL_TYPE_TIME        = 0x0b <span class="comment">// Time</span>
+    MYSQL_TYPE_DATETIME    = 0x0c <span class="comment">// *Datetime</span>
     MYSQL_TYPE_YEAR        = 0x0d
     MYSQL_TYPE_NEWDATE     = 0x0e
     MYSQL_TYPE_VARCHAR     = 0x0f
@@ -832,9 +832,9 @@ MySQL types are marked with a comment contains mymysql type that uses it.
     MYSQL_TYPE_TINY_BLOB   = 0xf9
     MYSQL_TYPE_MEDIUM_BLOB = 0xfa
     MYSQL_TYPE_LONG_BLOB   = 0xfb
-    MYSQL_TYPE_BLOB        = 0xfc <span class ="comment">// Blob</span>
-    MYSQL_TYPE_VAR_STRING  = 0xfd <span class ="comment">// []byte</span>
-    MYSQL_TYPE_STRING      = 0xfe <span class ="comment">// string</span>
+    MYSQL_TYPE_BLOB        = 0xfc <span class="comment">// Blob</span>
+    MYSQL_TYPE_VAR_STRING  = 0xfd <span class="comment">// []byte</span>
+    MYSQL_TYPE_STRING      = 0xfe <span class="comment">// string</span>
     MYSQL_TYPE_GEOMETRY    = 0xff
 
     MYSQL_UNSIGNED_MASK = uint16(1 &lt;&lt; 15)
@@ -851,47 +851,47 @@ better preformance use []byte.
 </p>
 
 			<pre>const (
-    <span class ="comment">// Client send and receive, mymysql representation for send / receive</span>
-    TINYINT   = MYSQL_TYPE_TINY      <span class ="comment">// int8 / int8</span>
-    SMALLINT  = MYSQL_TYPE_SHORT     <span class ="comment">// int16 / int16</span>
-    INT       = MYSQL_TYPE_LONG      <span class ="comment">// int32 / int32</span>
-    BIGINT    = MYSQL_TYPE_LONGLONG  <span class ="comment">// int64 / int64</span>
-    FLOAT     = MYSQL_TYPE_FLOAT     <span class ="comment">// float32 / float32</span>
-    DOUBLE    = MYSQL_TYPE_DOUBLE    <span class ="comment">// float64 / float32</span>
-    TIME      = MYSQL_TYPE_TIME      <span class ="comment">// Time / Time</span>
-    DATE      = MYSQL_TYPE_DATE      <span class ="comment">// *Date / *Date</span>
-    DATETIME  = MYSQL_TYPE_DATETIME  <span class ="comment">// *Datetime / *Datetime</span>
-    TIMESTAMP = MYSQL_TYPE_TIMESTAMP <span class ="comment">// *Timestamp / *Datetime</span>
-    CHAR      = MYSQL_TYPE_STRING    <span class ="comment">// string / []byte</span>
-    BLOB      = MYSQL_TYPE_BLOB      <span class ="comment">// Blob / []byte</span>
-    NULL      = MYSQL_TYPE_NULL      <span class ="comment">// nil</span>
+    <span class="comment">// Client send and receive, mymysql representation for send / receive</span>
+    TINYINT   = MYSQL_TYPE_TINY      <span class="comment">// int8 / int8</span>
+    SMALLINT  = MYSQL_TYPE_SHORT     <span class="comment">// int16 / int16</span>
+    INT       = MYSQL_TYPE_LONG      <span class="comment">// int32 / int32</span>
+    BIGINT    = MYSQL_TYPE_LONGLONG  <span class="comment">// int64 / int64</span>
+    FLOAT     = MYSQL_TYPE_FLOAT     <span class="comment">// float32 / float32</span>
+    DOUBLE    = MYSQL_TYPE_DOUBLE    <span class="comment">// float64 / float32</span>
+    TIME      = MYSQL_TYPE_TIME      <span class="comment">// Time / Time</span>
+    DATE      = MYSQL_TYPE_DATE      <span class="comment">// *Date / *Date</span>
+    DATETIME  = MYSQL_TYPE_DATETIME  <span class="comment">// *Datetime / *Datetime</span>
+    TIMESTAMP = MYSQL_TYPE_TIMESTAMP <span class="comment">// *Timestamp / *Datetime</span>
+    CHAR      = MYSQL_TYPE_STRING    <span class="comment">// string / []byte</span>
+    BLOB      = MYSQL_TYPE_BLOB      <span class="comment">// Blob / []byte</span>
+    NULL      = MYSQL_TYPE_NULL      <span class="comment">// nil</span>
 
 
-    <span class ="comment">// Client send only, mymysql representation for send</span>
-    OUT_TEXT      = MYSQL_TYPE_STRING <span class ="comment">// string</span>
-    OUT_VARCHAR   = MYSQL_TYPE_STRING <span class ="comment">// string</span>
-    OUT_BINARY    = MYSQL_TYPE_BLOB   <span class ="comment">// Blob</span>
-    OUT_VARBINARY = MYSQL_TYPE_BLOB   <span class ="comment">// Blob</span>
+    <span class="comment">// Client send only, mymysql representation for send</span>
+    OUT_TEXT      = MYSQL_TYPE_STRING <span class="comment">// string</span>
+    OUT_VARCHAR   = MYSQL_TYPE_STRING <span class="comment">// string</span>
+    OUT_BINARY    = MYSQL_TYPE_BLOB   <span class="comment">// Blob</span>
+    OUT_VARBINARY = MYSQL_TYPE_BLOB   <span class="comment">// Blob</span>
 
 
-    <span class ="comment">// Client receive only, mymysql representation for receive</span>
-    IN_MEDIUMINT  = MYSQL_TYPE_INT24       <span class ="comment">// int32</span>
-    IN_YEAR       = MYSQL_TYPE_SHORT       <span class ="comment">// int16</span>
-    IN_BINARY     = MYSQL_TYPE_STRING      <span class ="comment">// []byte</span>
-    IN_VARCHAR    = MYSQL_TYPE_VAR_STRING  <span class ="comment">// []byte</span>
-    IN_VARBINARY  = MYSQL_TYPE_VAR_STRING  <span class ="comment">// []byte</span>
-    IN_TINYBLOB   = MYSQL_TYPE_TINY_BLOB   <span class ="comment">// []byte</span>
-    IN_TINYTEXT   = MYSQL_TYPE_TINY_BLOB   <span class ="comment">// []byte</span>
-    IN_TEXT       = MYSQL_TYPE_BLOB        <span class ="comment">// []byte</span>
-    IN_MEDIUMBLOB = MYSQL_TYPE_MEDIUM_BLOB <span class ="comment">// []byte</span>
-    IN_MEDIUMTEXT = MYSQL_TYPE_MEDIUM_BLOB <span class ="comment">// []byte</span>
-    IN_LONGBLOB   = MYSQL_TYPE_LONG_BLOB   <span class ="comment">// []byte</span>
-    IN_LONGTEXT   = MYSQL_TYPE_LONG_BLOB   <span class ="comment">// []byte</span>
+    <span class="comment">// Client receive only, mymysql representation for receive</span>
+    IN_MEDIUMINT  = MYSQL_TYPE_INT24       <span class="comment">// int32</span>
+    IN_YEAR       = MYSQL_TYPE_SHORT       <span class="comment">// int16</span>
+    IN_BINARY     = MYSQL_TYPE_STRING      <span class="comment">// []byte</span>
+    IN_VARCHAR    = MYSQL_TYPE_VAR_STRING  <span class="comment">// []byte</span>
+    IN_VARBINARY  = MYSQL_TYPE_VAR_STRING  <span class="comment">// []byte</span>
+    IN_TINYBLOB   = MYSQL_TYPE_TINY_BLOB   <span class="comment">// []byte</span>
+    IN_TINYTEXT   = MYSQL_TYPE_TINY_BLOB   <span class="comment">// []byte</span>
+    IN_TEXT       = MYSQL_TYPE_BLOB        <span class="comment">// []byte</span>
+    IN_MEDIUMBLOB = MYSQL_TYPE_MEDIUM_BLOB <span class="comment">// []byte</span>
+    IN_MEDIUMTEXT = MYSQL_TYPE_MEDIUM_BLOB <span class="comment">// []byte</span>
+    IN_LONGBLOB   = MYSQL_TYPE_LONG_BLOB   <span class="comment">// []byte</span>
+    IN_LONGTEXT   = MYSQL_TYPE_LONG_BLOB   <span class="comment">// []byte</span>
 
 
-    <span class ="comment">// MySQL 5.x specific</span>
-    IN_DECIMAL = MYSQL_TYPE_NEWDECIMAL <span class ="comment">// TODO</span>
-    IN_BIT     = MYSQL_TYPE_BIT        <span class ="comment">// []byte</span>
+    <span class="comment">// MySQL 5.x specific</span>
+    IN_DECIMAL = MYSQL_TYPE_NEWDECIMAL <span class="comment">// TODO</span>
+    IN_BIT     = MYSQL_TYPE_BIT        <span class="comment">// []byte</span>
 )</pre>
 		<h2 id="Variables">Variables</h2>
 			
@@ -1048,7 +1048,7 @@ Code for error number.
     Name     string
     OrgName  string
     DispLen  uint32
-    <span class ="comment">//  Charset  uint16</span>
+    <span class="comment">//  Charset  uint16</span>
     Flags uint16
     Type  byte
     Scale byte
@@ -1060,20 +1060,20 @@ MySQL connection handler
 
 			<p><pre>type MySQL struct {
 
-    <span class ="comment">// Current status of MySQL server connection</span>
+    <span class="comment">// Current status of MySQL server connection</span>
     Status uint16
 
-    <span class ="comment">// Maximum packet size that client can accept from server.</span>
-    <span class ="comment">// Default 16*1024*1024-1. You may change it before connect.</span>
+    <span class="comment">// Maximum packet size that client can accept from server.</span>
+    <span class="comment">// Default 16*1024*1024-1. You may change it before connect.</span>
     MaxPktSize int
 
-    <span class ="comment">// Debug logging. You may change it at any time.</span>
+    <span class="comment">// Debug logging. You may change it at any time.</span>
     Debug bool
 
-    <span class ="comment">// Maximum reconnect retries - for XxxAC methods. Default is 5 which</span>
-    <span class ="comment">// means 1+2+3+4+5 = 15 seconds before return an error.</span>
+    <span class="comment">// Maximum reconnect retries - for XxxAC methods. Default is 5 which</span>
+    <span class="comment">// means 1+2+3+4+5 = 15 seconds before return an error.</span>
     MaxRetries int
-    <span class ="comment">// contains unexported fields</span>
+    <span class="comment">// contains unexported fields</span>
 }</pre></p>
 				<h3 id="MySQL.New">func <a href="/mymysql/mysql.go?s=1590:1666#L53">New</a></h3>
 				<p><code>func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL)</code></p>
@@ -1193,22 +1193,22 @@ Automatic connect/reconnect/repeat version of Use
 			
 			<p><pre>type Result struct {
     FieldCount int
-    Fields     []*Field       <span class ="comment">// Fields table</span>
-    Map        map[string]int <span class ="comment">// Maps field name to column number</span>
+    Fields     []*Field       <span class="comment">// Fields table</span>
+    Map        map[string]int <span class="comment">// Maps field name to column number</span>
 
     Message      []byte
     AffectedRows uint64
 
-    <span class ="comment">// Primary key value (useful for AUTO_INCREMENT primary keys)</span>
+    <span class="comment">// Primary key value (useful for AUTO_INCREMENT primary keys)</span>
     InsertId uint64
 
-    <span class ="comment">// Number of warinigs during command execution</span>
-    <span class ="comment">// You can use the SHOW WARNINGS query for details.</span>
+    <span class="comment">// Number of warinigs during command execution</span>
+    <span class="comment">// You can use the SHOW WARNINGS query for details.</span>
     WarningCount int
 
-    <span class ="comment">// MySQL server status immediately after the query execution</span>
+    <span class="comment">// MySQL server status immediately after the query execution</span>
     Status uint16
-    <span class ="comment">// contains unexported fields</span>
+    <span class="comment">// contains unexported fields</span>
 }</pre></p>
 				<h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go?s=8466:8505#L337">End</a></h3>
 				<p><code>func (res *Result) End() (err os.Error)</code></p>
@@ -1367,13 +1367,13 @@ conversion is impossible.
 			
 			<p><pre>type Statement struct {
     Fields []*Field
-    Map    map[string]int <span class ="comment">// Maps field name to column number</span>
+    Map    map[string]int <span class="comment">// Maps field name to column number</span>
 
     FieldCount   int
     ParamCount   int
     WarningCount int
     Status       uint16
-    <span class ="comment">// contains unexported fields</span>
+    <span class="comment">// contains unexported fields</span>
 }</pre></p>
 				<h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go?s=11332:11388#L445">BindParams</a></h3>
 				<p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>
@@ -1488,6 +1488,10 @@ Leading and trailing spaces are ignored. If format is invalid returns nil.
 				<h3 id="Timestamp.String">func (*Timestamp) <a href="/mymysql/binding.go?s=828:864#L32">String</a></h3>
 				<p><code>func (ts *Timestamp) String() string</code></p>
 				
+	<h2>Other packages</h2>
+	<p>
+	<a href="?p=main">main</a><br />
+	</p>
 	<h2 id="Subdirectories">Subdirectories</h2>
 	<p>
 	<table class="layout">

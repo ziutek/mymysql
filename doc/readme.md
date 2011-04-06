@@ -68,6 +68,14 @@ You can use `goinstall -u -a` for update all installed packages.
     $ cd mymysql
     $ make install
 
+### Version for Go weekly releases
+
+If master branch can't be compiled with Go weekly release, try clone MyMySQL weekly branch:
+
+    $ git clone -b weekly git://github.com/ziutek/mymysql
+    $ cd mymysql
+    $ make install
+
 ## Testing
 
 For testing you need test database and test user:

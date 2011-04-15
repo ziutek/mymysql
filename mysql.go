@@ -492,19 +492,19 @@ func (stmt *Statement) BindParams(params ...interface{}) {
     if len(params) == 1 {
         pval := reflect.NewValue(params[0])
         // Dereference pointer
-        if vv, ok := pval.(*reflect.PtrValue); ok {
-            pval = vv.Elem()
+        if pval.Kind() == reflect.Ptr {
+            pval = pval.Elem()
         }
-        val, ok := pval.(*reflect.StructValue)
-        if ok && val.Type() != reflectDatetimeType &&
-                val.Type() != reflectDateType &&
-                val.Type() != reflectTimestampType {
+        if pval.Kind() == reflect.Struct &&
+                pval.Type() != reflectDatetimeType &&
+                pval.Type() != reflectDateType &&
+                pval.Type() != reflectTimestampType {
             // We have struct to bind
-            if val.NumField() != stmt.ParamCount {
+            if pval.NumField() != stmt.ParamCount {
                 panic(BIND_COUNT_ERROR)
             }
             for ii := 0; ii < stmt.ParamCount; ii ++ {
-                stmt.params[ii] = bindValue(val.Field(ii))
+                stmt.params[ii] = bindValue(pval.Field(ii))
             }
             return
         }
@@ -517,8 +517,8 @@ func (stmt *Statement) BindParams(params ...interface{}) {
     for ii, par := range params {
         pval := reflect.NewValue(par)
         // Dereference pointer
-        if vv, ok := pval.(*reflect.PtrValue); ok {
-            pval = vv.Elem()
+        if pval.Kind() == reflect.Ptr {
+            pval = pval.Elem()
         }
         stmt.params[ii] = bindValue(pval)
     }

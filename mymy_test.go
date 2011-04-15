@@ -333,29 +333,29 @@ func TestPrepared(t *testing.T) {
         for ii, col := range row.Data {
             val := reflect.NewValue(col)
             // Dereference pointers
-            if vv, ok := val.(*reflect.PtrValue); ok {
-                val = vv.Elem()
+            if val.Kind() == reflect.Ptr {
+                val = val.Elem()
             }
-            switch vv := val.(type) {
-            case nil:
+            switch val.Kind() {
+            case reflect.Invalid:
                 row.Data[ii] = nil
 
-            case *reflect.StringValue:
-                row.Data[ii] = []byte(vv.Get())
+            case reflect.String:
+                row.Data[ii] = []byte(val.String())
 
-            case *reflect.IntValue:
-                row.Data[ii] = int32(vv.Get())
+            case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+                    reflect.Int64:
+                row.Data[ii] = int32(val.Int())
 
-            case *reflect.UintValue:
-                row.Data[ii] = int32(vv.Get())
+            case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+                    reflect.Uint64:
+                row.Data[ii] = int32(val.Uint())
 
-            case *reflect.SliceValue:
-                it, ok := vv.Type().(*reflect.SliceType).Elem().(
-                    *reflect.UintType)
-                if ok && it.Kind() == reflect.Uint8 {
-                    bytes := make([]byte, vv.Len())
+            case reflect.Slice:
+                if val.Type().Elem().Kind() == reflect.Uint8 {
+                    bytes := make([]byte, val.Len())
                     for ii := range bytes {
-                        bytes[ii] = vv.Elem(ii).Interface().(uint8)
+                        bytes[ii] = val.Index(ii).Interface().(uint8)
                     }
                     row.Data[ii] = bytes
                 }
@@ -756,11 +756,11 @@ func TestSendLongData(t *testing.T) {
 
     // Send long data from io.Reader twice
     filename := "_test/github.com/ziutek/mymysql.a"
-    file, err := os.Open(filename, os.O_RDONLY, 0)
+    file, err := os.Open(filename)
     checkErr(t, err, nil)
     checkErr(t, ins.SendLongData(1, file,  128*1024), nil)
     checkErr(t, file.Close(), nil)
-    file, err = os.Open(filename, os.O_RDONLY, 0)
+    file, err = os.Open(filename)
     checkErr(t, err, nil)
     checkErr(t, ins.SendLongData(1, file,  1024*1024), nil)
     checkErr(t, file.Close(), nil)

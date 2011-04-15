@@ -85,7 +85,7 @@ var (
 )
 
 func bindValue(val reflect.Value) (out *paramValue) {
-    if val == nil {
+    if !val.IsValid() {
         return &paramValue{typ: MYSQL_TYPE_NULL}
     }
 
@@ -93,67 +93,117 @@ func bindValue(val reflect.Value) (out *paramValue) {
     typ := val.Type()
 
     // Dereference type
-    if tp, ok := typ.(*reflect.PtrType); ok {
-        typ = tp.Elem()
+    if typ.Kind() == reflect.Ptr {
+        typ = typ.Elem()
         out.is_ptr = true
     }
 
     // Obtain value type
-    switch tt := typ.(type) {
-    case *reflect.StringType:
+    switch typ.Kind() {
+    case reflect.String:
         out.typ    = MYSQL_TYPE_STRING
         out.length = -1
         return
 
-    case *reflect.IntType:
-        if tt == reflectTimeType {
+    case reflect.Int:
+        out.typ = _INT_TYPE
+        out.length = _SIZE_OF_INT
+        return
+
+    case reflect.Int8:
+        out.typ = MYSQL_TYPE_TINY
+        out.length = 1
+        return
+
+    case reflect.Int16:
+        out.typ = MYSQL_TYPE_SHORT
+        out.length = 2
+        return
+
+    case reflect.Int32:
+        out.typ = MYSQL_TYPE_LONG
+        out.length = 4
+        return
+
+    case reflect.Int64:
+        if typ == reflectTimeType {
             out.typ = MYSQL_TYPE_TIME
             out.length = -1
-        } else {
-            out.typ, out.length = mysqlIntType(tt.Kind())
+            return
         }
+        out.typ = MYSQL_TYPE_LONGLONG
+        out.length = 8
         return
 
-    case *reflect.UintType:
-        out.typ, out.length = mysqlIntType(tt.Kind())
-        out.typ |= MYSQL_UNSIGNED_MASK
+    case reflect.Uint:
+        out.typ = _INT_TYPE | MYSQL_UNSIGNED_MASK
+        out.length = _SIZE_OF_INT
         return
 
-    case *reflect.FloatType:
-        out.typ, out.length = mysqlFloatType(tt.Kind())
+    case reflect.Uint8:
+        out.typ = MYSQL_TYPE_TINY | MYSQL_UNSIGNED_MASK
+        out.length = 1
         return
 
-    case *reflect.SliceType:
+    case reflect.Uint16:
+        out.typ = MYSQL_TYPE_SHORT | MYSQL_UNSIGNED_MASK
+        out.length = 2
+        return
+
+    case reflect.Uint32:
+        out.typ = MYSQL_TYPE_LONG | MYSQL_UNSIGNED_MASK
+        out.length = 4
+        return
+
+    case reflect.Uint64:
+        if typ == reflectTimeType {
+            out.typ = MYSQL_TYPE_TIME
+            out.length = -1
+            return
+        }
+        out.typ = MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK
+        out.length = 8
+        return
+
+    case reflect.Float32:
+        out.typ = MYSQL_TYPE_FLOAT
+        out.length = 4
+        return
+
+    case reflect.Float64:
+        out.typ = MYSQL_TYPE_DOUBLE
+        out.length = 8
+        return
+
+    case reflect.Slice:
         out.length = -1
-        if tt == reflectBlobType {
+        if typ == reflectBlobType {
             out.typ = MYSQL_TYPE_BLOB
             return
         }
-        if it, ok := tt.Elem().(*reflect.UintType); ok &&
-                it.Kind() == reflect.Uint8 {
+        if typ.Elem().Kind() == reflect.Uint8 {
             out.typ = MYSQL_TYPE_VAR_STRING
             return
         }
 
-    case *reflect.StructType:
+    case reflect.Struct:
         out.length = -1
-        if tt == reflectDatetimeType {
+        if typ == reflectDatetimeType {
             out.typ = MYSQL_TYPE_DATETIME
             return
         }
-        if tt == reflectDateType {
+        if typ == reflectDateType {
             out.typ = MYSQL_TYPE_DATE
             return
         }
-        if tt == reflectTimestampType {
+        if typ == reflectTimestampType {
             out.typ = MYSQL_TYPE_TIMESTAMP
             return
         }
-        if tt == reflectRawType {
-            rv := val.(*reflect.StructValue)
-            out.typ = uint16(rv.FieldByName("Typ").(*reflect.UintValue).Get())
+        if typ == reflectRawType {
+            out.typ = val.FieldByName("Typ").Interface().(uint16)
             out.addr = unsafePointer(
-                rv.FieldByName("Val").(*reflect.PtrValue).Get(),
+                val.FieldByName("Val").Pointer(),
             )
             out.is_ptr = true
             out.raw = true
@@ -161,35 +211,4 @@ func bindValue(val reflect.Value) (out *paramValue) {
         }
     }
     panic(BIND_UNK_TYPE)
-}
-
-func mysqlIntType(kind reflect.Kind) (uint16, int) {
-    switch kind {
-    case reflect.Int, reflect.Uint:
-        return _INT_TYPE, _SIZE_OF_INT
-
-    case reflect.Int8, reflect.Uint8:
-        return MYSQL_TYPE_TINY, 1
-
-    case reflect.Int16, reflect.Uint16:
-        return MYSQL_TYPE_SHORT, 2
-
-    case reflect.Int32, reflect.Uint32:
-        return MYSQL_TYPE_LONG, 4
-
-    case reflect.Int64, reflect.Uint64:
-        return MYSQL_TYPE_LONGLONG, 8
-    }
-    panic("unknown int kind")
-}
-
-func mysqlFloatType(kind reflect.Kind) (uint16, int) {
-    switch kind {
-    case reflect.Float32:
-        return MYSQL_TYPE_FLOAT, 4
-
-    case reflect.Float64:
-        return MYSQL_TYPE_DOUBLE, 8
-    }
-    panic("unknown float kind")
 }

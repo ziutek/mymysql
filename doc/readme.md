@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.3.6 (2011-02-16)
+## MyMySQL v0.3.7 (2011-05-17)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -18,7 +18,7 @@ production application).
 The package includes an extensive set of automated tests that ensure that any
 code changes during development will not break the package itself.
 
-## Differences betwen version 0.2 and 0.3.6
+## Differences betwen version 0.2 and 0.3.7
 
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
 with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
@@ -47,6 +47,7 @@ older Go release use mymysql v0.3.3
 11. In v0.3.5 package name was changed from *mymy* to *mymysql*. Now the
 package name corresponds to the name of Github repository.
 12. The *EscapeString* method was added in v0.3.6.
+13. Fixes for Go weekly.2011-04-27
 
 ## Installing
 
@@ -187,8 +188,8 @@ You can use *Run* or *Exec* method for prepared statements:
     checkError(err)
 
     type Data struct {
-        id  int
-        tax *float32 // nil means NULL
+        Id  int
+        Tax *float32 // nil means NULL
     }
 
     data = new(Data)
@@ -200,12 +201,12 @@ You can use *Run* or *Exec* method for prepared statements:
         }
         checkError(err)
 
-        _, err = stmt.Run(data.id, data.tax)
+        _, err = stmt.Run(data.Id, data.Tax)
         checkError(err)
     }
 
-*getData* is your function which retrieves data from somewhere and set *id* and
-*tax* fields of the Data struct. In the case of *tax* field *getData* may
+*getData* is your function which retrieves data from somewhere and set *Id* and
+*Tax* fields of the Data struct. In the case of *Tax* field *getData* may
 assign pointer to retieved variable or nil if NULL should be stored in
 database.
 
@@ -218,12 +219,12 @@ no longer need binded parameters.
 
 The simplest way to bind parameters is:
 
-    stmt.BindParams(data.id, data.tax)
+    stmt.BindParams(data.Id, data.Tax)
 
 but you can't use it in our example, becouse parameters binded this way can't
 be changed by *getData* function. You may modify bind like this:
 
-    stmt.BindParams(&data.id, &data.tax)
+    stmt.BindParams(&data.Id, &data.Tax)
 
 and now it should work properly. But in our example there is better solution:
 

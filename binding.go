@@ -76,26 +76,34 @@ type Raw struct {
 }
 
 var (
-    reflectBlobType = reflect.Typeof(Blob{})
-    reflectDatetimeType = reflect.Typeof(Datetime{})
-    reflectDateType = reflect.Typeof(Date{})
-    reflectTimestampType = reflect.Typeof(Timestamp{})
-    reflectTimeType = reflect.Typeof(Time(0))
-    reflectRawType = reflect.Typeof(Raw{})
+    reflectBlobType = reflect.TypeOf(Blob{})
+    reflectDatetimeType = reflect.TypeOf(Datetime{})
+    reflectDateType = reflect.TypeOf(Date{})
+    reflectTimestampType = reflect.TypeOf(Timestamp{})
+    reflectTimeType = reflect.TypeOf(Time(0))
+    reflectRawType = reflect.TypeOf(Raw{})
 )
 
+// val should be an addressable value
 func bindValue(val reflect.Value) (out *paramValue) {
     if !val.IsValid() {
         return &paramValue{typ: MYSQL_TYPE_NULL}
     }
-
-    out = &paramValue{addr: unsafePointer(val.UnsafeAddr())}
+    // We allways return an unsafe pointer to pointer to value, so create it
     typ := val.Type()
-
-    // Dereference type
     if typ.Kind() == reflect.Ptr {
+        // We have addressable pointer
+        out = &paramValue{addr: unsafePointer(val.UnsafeAddr())}
+        // Dereference pointer for next operation on its value
         typ = typ.Elem()
-        out.is_ptr = true
+        val = val.Elem()
+    } else {
+        // We have addressable value. Create a pointer to it
+        pv := val.Addr()
+        // This pointer is unaddressable so copy it and return an address
+        ppv := reflect.New(pv.Type())
+        ppv.Elem().Set(pv)
+        out = &paramValue{addr: unsafePointer(ppv.Pointer())}
     }
 
     // Obtain value type
@@ -205,7 +213,6 @@ func bindValue(val reflect.Value) (out *paramValue) {
             out.addr = unsafePointer(
                 val.FieldByName("Val").Pointer(),
             )
-            out.is_ptr = true
             out.raw = true
             return
         }

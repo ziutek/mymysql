@@ -8,7 +8,6 @@ import (
 type paramValue struct {
     typ    uint16
     addr   unsafe.Pointer
-    is_ptr bool
     raw    bool
     length int  // >=0 - length of value, <0 - unknown length
 }
@@ -18,135 +17,83 @@ func unsafePointer(addr uintptr) unsafe.Pointer {
 }
 
 func (val *paramValue) Len() int {
-    ptr := unsafe.Pointer(val.addr)
-    if val.is_ptr && *(*unsafe.Pointer)(ptr) == nil {
-            // NULL value
-            return 0
+    if val.addr == nil {
+        // Invalid Value was binded
+        return 0
     }
+    // val.addr always points to the pointer - lets dereference it
+    ptr := *(*unsafe.Pointer)(val.addr)
+    if ptr == nil {
+        // Binded Ptr Value is nil
+        return 0
+    }
+
     if val.length >= 0 {
         return val.length
     }
 
     switch val.typ {
     case MYSQL_TYPE_STRING:
-        if val.is_ptr {
-            return lenNstr(*(**string)(ptr))
-        }
         return lenNstr((*string)(ptr))
 
     case MYSQL_TYPE_DATE:
-        if val.is_ptr {
-            return lenNdate(*(**Date)(ptr))
-        }
         return lenNdate((*Date)(ptr))
 
     case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
-        if val.is_ptr {
-            return lenNdatetime(*(**Datetime)(ptr))
-        }
         return lenNdatetime((*Datetime)(ptr))
 
     case MYSQL_TYPE_TIME:
-        if val.is_ptr {
-            return lenNtime(*(**Time)(ptr))
-        }
         return lenNtime((*Time)(ptr))
     }
     // MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_BLOB and type of Raw value
-    if val.is_ptr {
-        return lenNbin(*(**[]byte)(ptr))
-    }
     return lenNbin((*[]byte)(ptr))
 }
 
 func writeValue(wr io.Writer, val *paramValue) {
-    if val.raw || val.typ == MYSQL_TYPE_VAR_STRING ||
-            val.typ == MYSQL_TYPE_BLOB {
-        if val.is_ptr {
-            if vp := *(**[]byte)(val.addr); vp != nil {
-                writeNbin(wr, vp)
-            }
-        } else {
-            writeNbin(wr, (*[]byte)(val.addr))
-        }
+    if val.addr == nil {
+        // Invalid Value was binded
         return
     }
-    // We don't need unsigned bit
+    // val.addr always points to the pointer - lets dereference it
+    ptr := *(*unsafe.Pointer)(val.addr)
+    if ptr == nil {
+        // Binded Ptr Value is nil
+        return
+    }
+
+    if val.raw || val.typ == MYSQL_TYPE_VAR_STRING ||
+            val.typ == MYSQL_TYPE_BLOB {
+        writeNbin(wr, (*[]byte)(ptr))
+        return
+    }
+    // We don't need unsigned bit to check type
     switch val.typ & ^MYSQL_UNSIGNED_MASK {
     case MYSQL_TYPE_NULL:
         // Don't write null values
 
     case MYSQL_TYPE_STRING:
-        if val.is_ptr {
-            if vp := *(**string)(val.addr); vp != nil {
-                writeNstr(wr, vp)
-            }
-        } else {
-            writeNstr(wr, (*string)(val.addr))
-        }
+        writeNstr(wr, (*string)(ptr))
 
     case MYSQL_TYPE_LONG, MYSQL_TYPE_FLOAT:
-        if val.is_ptr {
-            if vp := *(**uint32)(val.addr); vp != nil {
-                writeU32(wr, *vp)
-            }
-        } else {
-            writeU32(wr, *(*uint32)(val.addr))
-        }
+        writeU32(wr, *(*uint32)(ptr))
 
     case MYSQL_TYPE_SHORT:
-        if val.is_ptr {
-            if vp := *(**uint16)(val.addr); vp != nil {
-                writeU16(wr, *vp)
-            }
-        } else {
-            writeU16(wr, *(*uint16)(val.addr))
-        }
+        writeU16(wr, *(*uint16)(ptr))
 
     case MYSQL_TYPE_TINY:
-        if val.is_ptr {
-            if vp := *(**byte)(val.addr); vp != nil {
-                writeByte(wr, *vp)
-            }
-        } else {
-            writeByte(wr, *(*byte)(val.addr))
-        }
+        writeByte(wr, *(*byte)(ptr))
 
     case MYSQL_TYPE_LONGLONG, MYSQL_TYPE_DOUBLE:
-        if val.is_ptr {
-            if vp := *(**uint64)(val.addr); vp != nil {
-                writeU64(wr, *vp)
-            }
-        } else {
-            writeU64(wr, *(*uint64)(val.addr))
-        }
+        writeU64(wr, *(*uint64)(ptr))
 
     case MYSQL_TYPE_DATE:
-        if val.is_ptr {
-            if vp := *(**Date)(val.addr); vp != nil {
-                writeNdate(wr, vp)
-            }
-        } else {
-            writeNdate(wr, (*Date)(val.addr))
-        }
+        writeNdate(wr, (*Date)(ptr))
 
     case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
-        if val.is_ptr {
-            if vp := *(**Datetime)(val.addr); vp != nil {
-                writeNdatetime(wr, vp)
-            }
-        } else {
-            writeNdatetime(wr, (*Datetime)(val.addr))
-        }
+        writeNdatetime(wr, (*Datetime)(ptr))
 
     case MYSQL_TYPE_TIME:
-        if val.is_ptr {
-            if vp := *(**Time)(val.addr); vp != nil {
-                writeNtime(wr, vp)
-            }
-        } else {
-            writeNtime(wr, (*Time)(val.addr))
-        }
+        writeNtime(wr, (*Time)(ptr))
 
     default:
         panic(BIND_UNK_TYPE)

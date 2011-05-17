@@ -969,10 +969,6 @@ type Timestamp Datetime
 func (ts *Timestamp) String() string
 
 
-OTHER PACKAGES
-
-main
-
 SUBDIRECTORIES
 
 	.git

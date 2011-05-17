@@ -89,12 +89,12 @@ func (my *MySQL) connect() (err os.Error) {
     case "tcp", "tcp4", "tcp6":
         var la, ra *net.TCPAddr
         if my.laddr != "" {
-            if la, err = net.ResolveTCPAddr(my.laddr); err != nil {
+            if la, err = net.ResolveTCPAddr("", my.laddr); err != nil {
                 return
             }
         }
         if my.raddr != "" {
-            if ra, err = net.ResolveTCPAddr(my.raddr); err != nil {
+            if ra, err = net.ResolveTCPAddr("", my.raddr); err != nil {
                 return
             }
         }
@@ -488,22 +488,32 @@ func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error) {
 func (stmt *Statement) BindParams(params ...interface{}) {
     stmt.rebind = true
 
-    // Check for struct
+    // Check for struct binding
     if len(params) == 1 {
-        pval := reflect.NewValue(params[0])
-        // Dereference pointer
-        if pval.Kind() == reflect.Ptr {
+        pval := reflect.ValueOf(params[0])
+        kind := pval.Kind()
+        if kind == reflect.Ptr {
+            // Dereference pointer
             pval = pval.Elem()
+            kind = pval.Kind()
         }
-        if pval.Kind() == reflect.Struct &&
-                pval.Type() != reflectDatetimeType &&
-                pval.Type() != reflectDateType &&
-                pval.Type() != reflectTimestampType {
+        typ := pval.Type()
+        if kind == reflect.Struct &&
+                typ != reflectDatetimeType &&
+                typ != reflectDateType &&
+                typ != reflectTimestampType &&
+                typ != reflectRawType {
             // We have struct to bind
             if pval.NumField() != stmt.ParamCount {
                 panic(BIND_COUNT_ERROR)
             }
-            for ii := 0; ii < stmt.ParamCount; ii ++ {
+            if !pval.CanAddr() {
+                // Make an addressable structure
+                v := reflect.New(pval.Type()).Elem()
+                v.Set(pval)
+                pval = v
+            }
+            for ii := 0; ii < stmt.ParamCount; ii++ {
                 stmt.params[ii] = bindValue(pval.Field(ii))
             }
             return
@@ -511,14 +521,23 @@ func (stmt *Statement) BindParams(params ...interface{}) {
 
     }
 
+    // There isn't struct to bind
+
     if len(params) != stmt.ParamCount {
         panic(BIND_COUNT_ERROR)
     }
     for ii, par := range params {
-        pval := reflect.NewValue(par)
-        // Dereference pointer
-        if pval.Kind() == reflect.Ptr {
-            pval = pval.Elem()
+        pval := reflect.ValueOf(par)
+        if pval.IsValid() {
+            if pval.Kind() == reflect.Ptr {
+                // Dereference pointer - this value i addressable
+                pval = pval.Elem()
+            } else {
+                // Make an addressable value
+                v := reflect.New(pval.Type()).Elem()
+                v.Set(pval)
+                pval = v
+            }
         }
         stmt.params[ii] = bindValue(pval)
     }

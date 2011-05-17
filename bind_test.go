@@ -57,95 +57,105 @@ var (
 type BindTest struct {
     val    interface{}
     typ    uint16
-    is_ptr bool
     length int
 }
 
 var bindTests = []BindTest {
-    BindTest{nil,     MYSQL_TYPE_NULL,       false,  0},
+    BindTest{nil,     MYSQL_TYPE_NULL,        0},
 
-    BindTest{Bytes,   MYSQL_TYPE_VAR_STRING, false, -1},
-    BindTest{String,  MYSQL_TYPE_STRING,     false, -1},
-    BindTest{blob,    MYSQL_TYPE_BLOB,       false, -1},
-    BindTest{dateT,   MYSQL_TYPE_DATETIME,   false, -1},
-    BindTest{tstamp,  MYSQL_TYPE_TIMESTAMP,  false, -1},
-    BindTest{date,    MYSQL_TYPE_DATE,       false, -1},
-    BindTest{tim,     MYSQL_TYPE_TIME,       false, -1},
+    BindTest{Bytes,   MYSQL_TYPE_VAR_STRING, -1},
+    BindTest{String,  MYSQL_TYPE_STRING,     -1},
+    BindTest{blob,    MYSQL_TYPE_BLOB,       -1},
+    BindTest{dateT,   MYSQL_TYPE_DATETIME,   -1},
+    BindTest{tstamp,  MYSQL_TYPE_TIMESTAMP,  -1},
+    BindTest{date,    MYSQL_TYPE_DATE,       -1},
+    BindTest{tim,     MYSQL_TYPE_TIME,       -1},
 
-    BindTest{&Bytes,  MYSQL_TYPE_VAR_STRING, true,  -1},
-    BindTest{&String, MYSQL_TYPE_STRING,     true,  -1},
-    BindTest{&blob,   MYSQL_TYPE_BLOB,       true,  -1},
-    BindTest{&dateT,  MYSQL_TYPE_DATETIME,   true,  -1},
-    BindTest{&tstamp, MYSQL_TYPE_TIMESTAMP,  true,  -1},
-    BindTest{&date,   MYSQL_TYPE_DATE,       true,  -1},
-    BindTest{&tim,    MYSQL_TYPE_TIME,       true,  -1},
+    BindTest{&Bytes,  MYSQL_TYPE_VAR_STRING, -1},
+    BindTest{&String, MYSQL_TYPE_STRING,     -1},
+    BindTest{&blob,   MYSQL_TYPE_BLOB,       -1},
+    BindTest{&dateT,  MYSQL_TYPE_DATETIME,   -1},
+    BindTest{&tstamp, MYSQL_TYPE_TIMESTAMP,  -1},
+    BindTest{&date,   MYSQL_TYPE_DATE,       -1},
+    BindTest{&tim,    MYSQL_TYPE_TIME,       -1},
 
-    BindTest{pBytes,  MYSQL_TYPE_VAR_STRING, true,  -1},
-    BindTest{pString, MYSQL_TYPE_STRING,     true,  -1},
-    BindTest{pBlob,   MYSQL_TYPE_BLOB,       true,  -1},
-    BindTest{pDateT,  MYSQL_TYPE_DATETIME,   true,  -1},
-    BindTest{pTstamp, MYSQL_TYPE_TIMESTAMP,  true,  -1},
-    BindTest{pDate,   MYSQL_TYPE_DATE,       true,  -1},
-    BindTest{pTim,    MYSQL_TYPE_TIME,       true,  -1},
+    BindTest{pBytes,  MYSQL_TYPE_VAR_STRING, -1},
+    BindTest{pString, MYSQL_TYPE_STRING,     -1},
+    BindTest{pBlob,   MYSQL_TYPE_BLOB,       -1},
+    BindTest{pDateT,  MYSQL_TYPE_DATETIME,   -1},
+    BindTest{pTstamp, MYSQL_TYPE_TIMESTAMP,  -1},
+    BindTest{pDate,   MYSQL_TYPE_DATE,       -1},
+    BindTest{pTim,    MYSQL_TYPE_TIME,       -1},
 
-    BindTest{raw,     MYSQL_TYPE_INT24,    true,  -1},
+    BindTest{raw,     MYSQL_TYPE_INT24,      -1},
 
-    BindTest{Int8,    MYSQL_TYPE_TINY,     false,  1},
-    BindTest{Int16,   MYSQL_TYPE_SHORT,    false,  2},
-    BindTest{Int32,   MYSQL_TYPE_LONG,     false,  4},
-    BindTest{Int64,   MYSQL_TYPE_LONGLONG, false,  8},
-    BindTest{Int,     MYSQL_TYPE_LONG,     false,  4}, // Hack
+    BindTest{Int8,    MYSQL_TYPE_TINY,        1},
+    BindTest{Int16,   MYSQL_TYPE_SHORT,       2},
+    BindTest{Int32,   MYSQL_TYPE_LONG,        4},
+    BindTest{Int64,   MYSQL_TYPE_LONGLONG,    8},
+    BindTest{Int,     MYSQL_TYPE_LONG,        4}, // Hack
 
-    BindTest{&Int8,   MYSQL_TYPE_TINY,     true,   1},
-    BindTest{&Int16,  MYSQL_TYPE_SHORT,    true,   2},
-    BindTest{&Int32,  MYSQL_TYPE_LONG,     true,   4},
-    BindTest{&Int64,  MYSQL_TYPE_LONGLONG, true,   8},
-    BindTest{&Int,    MYSQL_TYPE_LONG,     true,   4}, // Hack
+    BindTest{&Int8,   MYSQL_TYPE_TINY,        1},
+    BindTest{&Int16,  MYSQL_TYPE_SHORT,       2},
+    BindTest{&Int32,  MYSQL_TYPE_LONG,        4},
+    BindTest{&Int64,  MYSQL_TYPE_LONGLONG,    8},
+    BindTest{&Int,    MYSQL_TYPE_LONG,        4}, // Hack
 
-    BindTest{pInt8,   MYSQL_TYPE_TINY,     true,   1},
-    BindTest{pInt16,  MYSQL_TYPE_SHORT,    true,   2},
-    BindTest{pInt32,  MYSQL_TYPE_LONG,     true,   4},
-    BindTest{pInt64,  MYSQL_TYPE_LONGLONG, true,   8},
-    BindTest{pInt,    MYSQL_TYPE_LONG,     true,   4}, // Hack
+    BindTest{pInt8,   MYSQL_TYPE_TINY,        1},
+    BindTest{pInt16,  MYSQL_TYPE_SHORT,       2},
+    BindTest{pInt32,  MYSQL_TYPE_LONG,        4},
+    BindTest{pInt64,  MYSQL_TYPE_LONGLONG,    8},
+    BindTest{pInt,    MYSQL_TYPE_LONG,        4}, // Hack
 
-    BindTest{Uint8,   MYSQL_TYPE_TINY     | MYSQL_UNSIGNED_MASK, false, 1},
-    BindTest{Uint16,  MYSQL_TYPE_SHORT    | MYSQL_UNSIGNED_MASK, false, 2},
-    BindTest{Uint32,  MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK, false, 4},
-    BindTest{Uint64,  MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK, false, 8},
-    BindTest{Uint,    MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK, false,4},//Hack
+    BindTest{Uint8,   MYSQL_TYPE_TINY     | MYSQL_UNSIGNED_MASK,  1},
+    BindTest{Uint16,  MYSQL_TYPE_SHORT    | MYSQL_UNSIGNED_MASK,  2},
+    BindTest{Uint32,  MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK,  4},
+    BindTest{Uint64,  MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK,  8},
+    BindTest{Uint,    MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK,  4},//Hack
 
-    BindTest{&Uint8,  MYSQL_TYPE_TINY     | MYSQL_UNSIGNED_MASK, true, 1},
-    BindTest{&Uint16, MYSQL_TYPE_SHORT    | MYSQL_UNSIGNED_MASK, true, 2},
-    BindTest{&Uint32, MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK, true, 4},
-    BindTest{&Uint64, MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK, true, 8},
-    BindTest{&Uint,   MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK, true, 4},//Hack
+    BindTest{&Uint8,  MYSQL_TYPE_TINY     | MYSQL_UNSIGNED_MASK,  1},
+    BindTest{&Uint16, MYSQL_TYPE_SHORT    | MYSQL_UNSIGNED_MASK,  2},
+    BindTest{&Uint32, MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK,  4},
+    BindTest{&Uint64, MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK,  8},
+    BindTest{&Uint,   MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK,  4},//Hack
 
-    BindTest{pUint8,  MYSQL_TYPE_TINY     | MYSQL_UNSIGNED_MASK, true, 1},
-    BindTest{pUint16, MYSQL_TYPE_SHORT    | MYSQL_UNSIGNED_MASK, true, 2},
-    BindTest{pUint32, MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK, true, 4},
-    BindTest{pUint64, MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK, true, 8},
-    BindTest{pUint,   MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK, true, 4},//Hack
+    BindTest{pUint8,  MYSQL_TYPE_TINY     | MYSQL_UNSIGNED_MASK,  1},
+    BindTest{pUint16, MYSQL_TYPE_SHORT    | MYSQL_UNSIGNED_MASK,  2},
+    BindTest{pUint32, MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK,  4},
+    BindTest{pUint64, MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK,  8},
+    BindTest{pUint,   MYSQL_TYPE_LONG     | MYSQL_UNSIGNED_MASK,  4},//Hack
 
-    BindTest{Float32, MYSQL_TYPE_FLOAT,   false, 4},
-    BindTest{Float64, MYSQL_TYPE_DOUBLE,  false, 8},
+    BindTest{Float32, MYSQL_TYPE_FLOAT,   4},
+    BindTest{Float64, MYSQL_TYPE_DOUBLE,  8},
 
-    BindTest{&Float32, MYSQL_TYPE_FLOAT,  true,  4},
-    BindTest{&Float64, MYSQL_TYPE_DOUBLE, true,  8},
+    BindTest{&Float32, MYSQL_TYPE_FLOAT,  4},
+    BindTest{&Float64, MYSQL_TYPE_DOUBLE, 8},
+}
+
+func makeAddressable(v reflect.Value) reflect.Value {
+    if v.IsValid() {
+        // Make an addresable value
+        av := reflect.New(v.Type()).Elem()
+        av.Set(v)
+        v = av
+    }
+    return v
 }
 
 func TestBind(t *testing.T) {
     for _, test := range bindTests {
-        val := bindValue(reflect.NewValue(test.val))
-        if val.typ != test.typ || val.is_ptr != test.is_ptr ||
-                val.length != test.length {
+        v := makeAddressable(reflect.ValueOf(test.val))
+        val := bindValue(v)
+        if val.typ != test.typ || val.length != test.length {
             t.Errorf(
-                "Type: %s exp=0x%x res=0x%x IsPtr: exp=%t res=%t " +
-                "Len: exp=%d res=%d", reflect.Typeof(test.val), test.typ,
-                val.typ, test.is_ptr, val.is_ptr, test.length, val.length,
+                "Type: %s exp=0x%x res=0x%x Len: exp=%d res=%d",
+                reflect.TypeOf(test.val), test.typ, val.typ, test.length,
+                val.length,
             )
         }
     }
 }
+
 
 type WriteTest struct {
     val interface{}
@@ -269,11 +279,12 @@ func TestWrite(t *testing.T) {
     buf := new(bytes.Buffer)
     for _, test := range writeTest {
         buf.Reset()
-        val := bindValue(reflect.NewValue(test.val))
+        v := makeAddressable(reflect.ValueOf(test.val))
+        val := bindValue(v)
         writeValue(buf, val)
         if !bytes.Equal(buf.Bytes(), test.exp) || val.Len() != len(test.exp) {
             t.Errorf("%s - exp_len=%d res_len=%d exp: %v res: %v",
-                reflect.Typeof(test.val), len(test.exp), val.Len(),
+                reflect.TypeOf(test.val), len(test.exp), val.Len(),
                 test.exp, buf.Bytes(),
             )
         }

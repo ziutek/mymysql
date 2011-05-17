@@ -69,7 +69,7 @@ func checkErrWarn(t *testing.T, res, exp *RowsResErr) {
 func types(row []interface{}) (tt []reflect.Type) {
     tt = make([]reflect.Type, len(row))
     for ii, val := range row {
-        tt[ii] = reflect.Typeof(val)
+        tt[ii] = reflect.TypeOf(val)
     }
     return
 }
@@ -251,6 +251,7 @@ func TestPrepared(t *testing.T) {
         cmdOK(0, false),
     )
 
+
     exp := Statement {
         Fields:     []*Field {
             &Field {
@@ -331,7 +332,7 @@ func TestPrepared(t *testing.T) {
     // Convert values to expected result types
     for _, row := range exp_rows {
         for ii, col := range row.Data {
-            val := reflect.NewValue(col)
+            val := reflect.ValueOf(col)
             // Dereference pointers
             if val.Kind() == reflect.Ptr {
                 val = val.Elem()
@@ -509,8 +510,8 @@ func TestBigBlob(t *testing.T) {
         id int
     )
     data := struct {
-        id int
-        bb Blob
+        Id int
+        Bb Blob
     }{}
 
     // Individual parameters binding
@@ -524,8 +525,8 @@ func TestBigBlob(t *testing.T) {
 
     // Struct binding
     ins.BindParams(&data)
-    data.id = 2
-    data.bb = big_blob[0 : 32*1024*1024-31]
+    data.Id = 2
+    data.Bb = big_blob[0 : 32*1024*1024-31]
 
     // Insert part of blob - Two packets are sended. All has maximum length.
     rre.res, rre.err = ins.Run()
@@ -565,7 +566,7 @@ func TestBigBlob(t *testing.T) {
         t.Fatal(tmr)
     }
 
-    if bytes.Compare(row.Bin(res.Map["bb"]), data.bb) != 0 {
+    if bytes.Compare(row.Bin(res.Map["bb"]), data.Bb) != 0 {
         t.Fatal("Partial blob data don't match")
     }
 
@@ -588,7 +589,7 @@ func TestReconnect(t *testing.T) {
     sel, err := db.Prepare("select str from R where id = ?")
     checkErr(t, err, nil)
 
-    params := struct{id int; str string}{}
+    params := struct{Id int; Str string}{}
     var sel_id int
 
     ins.BindParams(&params)
@@ -596,8 +597,8 @@ func TestReconnect(t *testing.T) {
 
     checkErr(t, db.Reconnect(), nil)
 
-    params.id = 1
-    params.str = "Bla bla bla"
+    params.Id = 1
+    params.Str = "Bla bla bla"
     _, err = ins.Run()
     checkErr(t, err, nil)
 
@@ -613,7 +614,7 @@ func TestReconnect(t *testing.T) {
     checkErr(t, res.End(), nil)
 
     if row == nil || row.Data == nil || row.Data[0] == nil ||
-            params.str != row.Str(0) {
+            params.Str != row.Str(0) {
         t.Fatal("Bad result")
     }
 

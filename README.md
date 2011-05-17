@@ -47,7 +47,7 @@ older Go release use mymysql v0.3.3
 11. In v0.3.5 package name was changed from *mymy* to *mymysql*. Now the
 package name corresponds to the name of Github repository.
 12. The *EscapeString* method was added in v0.3.6.
-13. Fixes for Go weekly.2011-04-27
+13. v0.3.7 works with Go release.r57.1
 
 ## Installing
 

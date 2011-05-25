@@ -272,7 +272,7 @@ This is improved part of previous example:
         }
 
         // Make connection
-        resp, _, err := http.Get(url)
+        resp, err := http.Get(url)
         checkError(err)
 
         // We can retrieve response directly into database because 

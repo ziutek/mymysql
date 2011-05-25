@@ -272,7 +272,7 @@ This is improved part of previous example:
         }
 
         // Make connection
-        resp, _, err := http.Get(url)
+        resp, err := http.Get(url)
         checkError(err)
 
         // We can retrieve response directly into database because 
@@ -1355,7 +1355,7 @@ Debug bool
 <span class="comment">// Maximum reconnect retries - for XxxAC methods. Default is 5 which</span>
 <span class="comment">// means 1+2+3+4+5 = 15 seconds before return an error.</span>
 MaxRetries int
-<span class="comment">// contains unexported fields</span>
+<span class="comment">// contains filtered or unexported fields</span>
 }</pre></p>
 <h3 id="MySQL.New">func <a href="/mymysql/mysql.go?s=1590:1666#L53">New</a></h3>
 <p><code>func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL)</code></p>
@@ -1490,7 +1490,7 @@ WarningCount int
 
 <span class="comment">// MySQL server status immediately after the query execution</span>
 Status uint16
-<span class="comment">// contains unexported fields</span>
+<span class="comment">// contains filtered or unexported fields</span>
 }</pre></p>
 <h3 id="Result.End">func (*Result) <a href="/mymysql/mysql.go?s=9374:9413#L370">End</a></h3>
 <p><code>func (res *Result) End() (err os.Error)</code></p>
@@ -1655,7 +1655,7 @@ FieldCount   int
 ParamCount   int
 WarningCount int
 Status       uint16
-<span class="comment">// contains unexported fields</span>
+<span class="comment">// contains filtered or unexported fields</span>
 }</pre></p>
 <h3 id="Statement.BindParams">func (*Statement) <a href="/mymysql/mysql.go?s=12240:12296#L478">BindParams</a></h3>
 <p><code>func (stmt *Statement) BindParams(params ...interface{})</code></p>

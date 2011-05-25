@@ -707,7 +707,7 @@ type MySQL struct {
     // Maximum reconnect retries - for XxxAC methods. Default is 5 which
     // means 1+2+3+4+5 = 15 seconds before return an error.
     MaxRetries int
-    // contains unexported fields
+    // contains filtered or unexported fields
 }
 MySQL connection handler
 
@@ -792,7 +792,7 @@ type Result struct {
 
     // MySQL server status immediately after the query execution
     Status uint16
-    // contains unexported fields
+    // contains filtered or unexported fields
 }
 
 func (res *Result) End() (err os.Error)
@@ -891,7 +891,7 @@ type Statement struct {
     ParamCount   int
     WarningCount int
     Status       uint16
-    // contains unexported fields
+    // contains filtered or unexported fields
 }
 
 func (stmt *Statement) BindParams(params ...interface{})

@@ -80,7 +80,7 @@ func main() {
         if !strings.Contains(url, "://") {
             url = "http://" + url
         }
-        http_res, _, err := http.Get(url)
+        http_res, err := http.Get(url)
         if err != nil {
             fmt.Println(err)
             continue

@@ -971,6 +971,5 @@ func (ts *Timestamp) String() string
 
 SUBDIRECTORIES
 
-	.git
 	doc
 	examples

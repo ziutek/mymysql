@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.3.7 (2011-05-17)
+## MyMySQL v0.3.8 (2011-10-12)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -18,8 +18,9 @@ production application).
 The package includes an extensive set of automated tests that ensure that any
 code changes during development will not break the package itself.
 
-## Differences betwen version 0.2 and 0.3.7
+## Differences betwen version 0.2 and 0.3.8
 
+#### v0.3.1
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
 with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
 method was added. It is similar in result to *Query* method.
@@ -33,21 +34,31 @@ whether the server performs an insert: immediately after receive query or after 
 immediately notice the network failure, becouse of network buffers in kernel.
 Therefore query repetitions may cause additional unnecessary inserts into
 database. This interface does not appear to be useful with local transactions.
-4. *Register* method was added in v0.3.2. It allows to register commands which
-will be executed immediately after connect. It is mainly useful with
+#### v0.3.2
+1. *Register* method was added. It allows to register commands which will be
+executed immediately after connect. It is mainly useful with
 *Reconnect* method and autoreconn interface.
-5. Multi statements / multi results were added.
-6. Types *ENUM* and *SET* were added for prepared statements results.
-7. *Time* and *Date* types added in v0.3.3.
-8. Since v0.3.3 *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
+2. Multi statements / multi results were added.
+3. Types *ENUM* and *SET* were added for prepared statements results.
+#### v0.3.3
+1. *Time* and *Date* types added.
+2. *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
 *QueryAC* no longer accept prepared statement as first argument.
-9. In v0.3.4 float type disappeared because Go release.2011-01-20. If you use
+#### v0.3.4
+float type disappeared because Go release.2011-01-20. If you use
 older Go release use mymysql v0.3.3 
-10. *IsConnected()* method was added in v0.3.5.
-11. In v0.3.5 package name was changed from *mymy* to *mymysql*. Now the
+#### v0.3.5
+1. *IsConnected()* method was added.
+2. Package name was changed from *mymy* to *mymysql*. Now the
 package name corresponds to the name of Github repository.
-12. The *EscapeString* method was added in v0.3.6.
-13. v0.3.7 works with Go release.r57.1
+#### v0.3.6
+The *EscapeString* method was added.
+#### v0.3.7
+Works with Go release.r57.1
+#### v0.3.8
+1. Package name changed to *mysql*.
+2. Connection handler name changed from *MySQL* to *Conn*.
+That you need to write *mysql.Conn* insted of *mymysql.MySQL*.
 
 ## Installing
 

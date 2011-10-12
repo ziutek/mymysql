@@ -1,8 +1,8 @@
-package mymysql
+package mysql
 
 import "log"
 
-func (my *MySQL) sendCmd(cmd byte, argv ...interface{}) {
+func (my *Conn) sendCmd(cmd byte, argv ...interface{}) {
     // Reset sequence number
     my.seq = 0
     // Write command

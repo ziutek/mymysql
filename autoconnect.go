@@ -1,4 +1,4 @@
-package mymysql
+package mysql
 
 import (
     "os"
@@ -18,7 +18,7 @@ func IsNetErr(err os.Error) bool {
     return false
 }
 
-func (my *MySQL) reconnectIfNetErr(nn *int, err *os.Error) {
+func (my *Conn) reconnectIfNetErr(nn *int, err *os.Error) {
     for *err != nil && IsNetErr(*err) && *nn <= my.MaxRetries {
         if my.Debug {
             log.Printf("Error: '%s' - reconnecting...", *err)
@@ -33,8 +33,8 @@ func (my *MySQL) reconnectIfNetErr(nn *int, err *os.Error) {
 }
 
 
-func (my *MySQL) connectIfNotConnected() (err os.Error) {
-    if my.conn != nil {
+func (my *Conn) connectIfNotConnected() (err os.Error) {
+    if my.net_conn != nil {
         return
     }
     err = my.Connect()
@@ -44,7 +44,7 @@ func (my *MySQL) connectIfNotConnected() (err os.Error) {
 }
 
 // Automatic connect/reconnect/repeat version of Use
-func (my *MySQL) UseAC(dbname string) (err os.Error) {
+func (my *Conn) UseAC(dbname string) (err os.Error) {
     if err = my.connectIfNotConnected(); err != nil {
         return
     }
@@ -61,7 +61,7 @@ func (my *MySQL) UseAC(dbname string) (err os.Error) {
 }
 
 // Automatic connect/reconnect/repeat version of Query
-func (my *MySQL) QueryAC(sql string, params ...interface{}) (
+func (my *Conn) QueryAC(sql string, params ...interface{}) (
         rows []*Row, res *Result, err os.Error) {
 
     if err = my.connectIfNotConnected(); err != nil {
@@ -80,7 +80,7 @@ func (my *MySQL) QueryAC(sql string, params ...interface{}) (
 }
 
 // Automatic connect/reconnect/repeat version of Prepare
-func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error) {
+func (my *Conn) PrepareAC(sql string) (stmt *Statement, err os.Error) {
     if err = my.connectIfNotConnected(); err != nil {
         return
     }
@@ -100,7 +100,7 @@ func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error) {
 func (stmt *Statement) ExecAC(params ...interface{}) (
         rows []*Row, res *Result, err os.Error) {
 
-    if err = stmt.db.connectIfNotConnected(); err != nil {
+    if err = stmt.my.connectIfNotConnected(); err != nil {
         return
     }
     nn := 0
@@ -108,7 +108,7 @@ func (stmt *Statement) ExecAC(params ...interface{}) (
         if rows, res, err = stmt.Exec(params...); err == nil {
             return
         }
-        if stmt.db.reconnectIfNetErr(&nn, &err); err != nil {
+        if stmt.my.reconnectIfNetErr(&nn, &err); err != nil {
             return
         }
     }

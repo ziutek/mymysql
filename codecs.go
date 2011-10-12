@@ -1,4 +1,4 @@
-package mymysql
+package mysql
 
 import (
     "io"
@@ -492,7 +492,7 @@ func lenNdate(dd *Date) int {
 
 // Borrowed from GoMySQL
 // SHA1(SHA1(SHA1(password)), scramble) XOR SHA1(password)
-func (my *MySQL) encryptedPasswd() (out []byte) {
+func (my *Conn) encryptedPasswd() (out []byte) {
     // Convert password to byte array
     passbytes := []byte(my.passwd)
     // stage1_hash = SHA1(password)

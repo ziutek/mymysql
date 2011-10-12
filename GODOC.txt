@@ -1,7 +1,9 @@
 PACKAGE
 
-package mymysql
+package mysql
 import "mymysql"
+
+MySQL Client API written entirely in Go without any external dependences.
 
 CONSTANTS
 
@@ -480,7 +482,6 @@ const (
     ER_NON_INSERTABLE_TABLE                    = 1471
 )
 MySQL error codes
-
 const (
     MYSQL_TYPE_DECIMAL     = 0x00
     MYSQL_TYPE_TINY        = 0x01 // int8, uint8
@@ -516,7 +517,6 @@ MySQL protocol types.
 
 mymysql uses only some of them for send data to the MySQL server. Used
 MySQL types are marked with a comment contains mymysql type that uses it.
-
 const (
     // Client send and receive, mymysql representation for send / receive
     TINYINT   = MYSQL_TYPE_TINY      // int8 / int8
@@ -639,6 +639,84 @@ TYPES
 
 type Blob []byte
 
+type Conn struct {
+
+    // Current status of MySQL server connection
+    Status uint16
+
+    // Maximum packet size that client can accept from server.
+    // Default 16*1024*1024-1. You may change it before connect.
+    MaxPktSize int
+
+    // Debug logging. You may change it at any time.
+    Debug bool
+
+    // Maximum reconnect retries - for XxxAC methods. Default is 5 which
+    // means 1+2+3+4+5 = 15 seconds before return an error.
+    MaxRetries int
+    // contains filtered or unexported fields
+}
+MySQL connection handler
+
+func New(proto, laddr, raddr, user, passwd string, db ...string) (my *Conn)
+Create new MySQL handler. The first three arguments are passed to net.Bind
+for create connection. user and passwd are for authentication. Optional db
+is database name (you may not specifi it and use Use() method later).
+
+func (my *Conn) Close() (err os.Error)
+Close connection to the server
+
+func (my *Conn) Connect() (err os.Error)
+Establishes a connection with MySQL server version 4.1 or later.
+
+func (my *Conn) EscapeString(txt string) string
+Escapes special characters in the txt, so it is safe to place returned string
+to Query or Start method.
+
+func (my *Conn) IsConnected() bool
+Check if connection is established
+
+func (my *Conn) Ping() (err os.Error)
+Send MySQL PING to the server.
+
+func (my *Conn) Prepare(sql string) (stmt *Statement, err os.Error)
+Prepare server side statement. Return statement handler.
+
+func (my *Conn) PrepareAC(sql string) (stmt *Statement, err os.Error)
+Automatic connect/reconnect/repeat version of Prepare
+
+func (my *Conn) Query(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+This call Start and next call GetRow as long as it reads all rows from the
+result. Next it returns all readed rows as the slice of rows.
+
+func (my *Conn) QueryAC(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+Automatic connect/reconnect/repeat version of Query
+
+func (my *Conn) Reconnect() (err os.Error)
+Close and reopen connection in one, thread-safe operation.
+Ignore unreaded rows, reprepare all prepared statements.
+
+func (my *Conn) Register(sql string)
+Register MySQL command/query to be executed immediately after connecting to
+the server. You may register multiple commands. They will be executed in
+the order of registration. Yhis method is mainly useful for reconnect.
+
+func (my *Conn) Start(sql string, params ...interface{}) (res *Result, err os.Error)
+Start new query.
+
+If you specify the parameters, the SQL string will be a result of
+fmt.Sprintf(sql, params...).
+You must get all result rows (if they exists) before next query.
+
+func (my *Conn) ThreadId() uint32
+Returns the thread ID of the current connection.
+
+func (my *Conn) Use(dbname string) (err os.Error)
+Change database
+
+func (my *Conn) UseAC(dbname string) (err os.Error)
+Automatic connect/reconnect/repeat version of Use
+
 type Date struct {
     Year       int16
     Month, Day uint8
@@ -691,84 +769,6 @@ type Field struct {
     Type  byte
     Scale byte
 }
-
-type MySQL struct {
-
-    // Current status of MySQL server connection
-    Status uint16
-
-    // Maximum packet size that client can accept from server.
-    // Default 16*1024*1024-1. You may change it before connect.
-    MaxPktSize int
-
-    // Debug logging. You may change it at any time.
-    Debug bool
-
-    // Maximum reconnect retries - for XxxAC methods. Default is 5 which
-    // means 1+2+3+4+5 = 15 seconds before return an error.
-    MaxRetries int
-    // contains filtered or unexported fields
-}
-MySQL connection handler
-
-func New(proto, laddr, raddr, user, passwd string, db ...string) (my *MySQL)
-Create new MySQL handler. The first three arguments are passed to net.Bind
-for create connection. user and passwd are for authentication. Optional db
-is database name (you may not specifi it and use Use() method later).
-
-func (my *MySQL) Close() (err os.Error)
-Close connection to the server
-
-func (my *MySQL) Connect() (err os.Error)
-Establishes a connection with MySQL server version 4.1 or later.
-
-func (my *MySQL) EscapeString(txt string) string
-Escapes special characters in the txt, so it is safe to place returned string
-to Query or Start method.
-
-func (my *MySQL) IsConnected() bool
-Check if connection is established
-
-func (my *MySQL) Ping() (err os.Error)
-Send MySQL PING to the server.
-
-func (my *MySQL) Prepare(sql string) (stmt *Statement, err os.Error)
-Prepare server side statement. Return statement handler.
-
-func (my *MySQL) PrepareAC(sql string) (stmt *Statement, err os.Error)
-Automatic connect/reconnect/repeat version of Prepare
-
-func (my *MySQL) Query(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
-This call Start and next call GetRow as long as it reads all rows from the
-result. Next it returns all readed rows as the slice of rows.
-
-func (my *MySQL) QueryAC(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
-Automatic connect/reconnect/repeat version of Query
-
-func (my *MySQL) Reconnect() (err os.Error)
-Close and reopen connection in one, thread-safe operation.
-Ignore unreaded rows, reprepare all prepared statements.
-
-func (my *MySQL) Register(sql string)
-Register MySQL command/query to be executed immediately after connecting to
-the server. You may register multiple commands. They will be executed in
-the order of registration. Yhis method is mainly useful for reconnect.
-
-func (my *MySQL) Start(sql string, params ...interface{}) (res *Result, err os.Error)
-Start new query.
-
-If you specify the parameters, the SQL string will be a result of
-fmt.Sprintf(sql, params...).
-You must get all result rows (if they exists) before next query.
-
-func (my *MySQL) ThreadId() uint32
-Returns the thread ID of the current connection.
-
-func (my *MySQL) Use(dbname string) (err os.Error)
-Change database
-
-func (my *MySQL) UseAC(dbname string) (err os.Error)
-Automatic connect/reconnect/repeat version of Use
 
 type Raw struct {
     Typ uint16
@@ -971,5 +971,7 @@ func (ts *Timestamp) String() string
 
 SUBDIRECTORIES
 
+
 	doc
 	examples
+

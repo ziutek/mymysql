@@ -1,20 +1,20 @@
-package mymysql
+package mysql
 
 import (
     "log"
 )
 
-func (my *MySQL) lock() {
+func (my *Conn) lock() {
     my.mutex.Lock()
     //log.Println("Locked")
 }
 
-func (my *MySQL) unlock() {
+func (my *Conn) unlock() {
     //log.Println("Unlocking...")
     my.mutex.Unlock()
 }
 
-func (my *MySQL) init() {
+func (my *Conn) init() {
     my.seq = 0 // Reset sequence number, mainly for reconnect
     if my.Debug {
         log.Printf("[%2d ->] Init packet:", my.seq)
@@ -42,7 +42,7 @@ func (my *MySQL) init() {
     }
 }
 
-func (my *MySQL) auth() {
+func (my *Conn) auth() {
     if my.Debug {
         log.Printf("[%2d <-] Authentication packet", my.seq)
     }

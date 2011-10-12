@@ -1,4 +1,4 @@
-package mymysql
+package mysql
 
 import (
     "os"

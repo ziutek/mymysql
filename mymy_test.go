@@ -1,4 +1,4 @@
-package mymysql
+package mysql
 
 import (
     "testing"
@@ -11,7 +11,7 @@ import (
 )
 
 var (
-    db *MySQL
+    my *Conn
     user   = "testuser"
     passwd = "TestPasswd9"
     dbname = "test"
@@ -27,7 +27,7 @@ type RowsResErr struct {
 }
 
 func query(sql string, params ...interface{}) *RowsResErr {
-    rows, res, err := db.Query(sql, params...)
+    rows, res, err := my.Query(sql, params...)
     return &RowsResErr{rows, res, err}
 }
 
@@ -49,7 +49,7 @@ func checkErr(t *testing.T, err os.Error, exp_err os.Error) {
 func checkWarnCount(t *testing.T, res_cnt, exp_cnt int) {
     if res_cnt != exp_cnt {
         t.Errorf("Warning count: res=%d exp=%d", res_cnt, exp_cnt)
-        rows, res, err := db.Query("show warnings")
+        rows, res, err := my.Query("show warnings")
         if err != nil {
             t.Fatal("Can't get warrnings from MySQL", err)
         }
@@ -114,7 +114,7 @@ func checkResult(t *testing.T, res, exp *RowsResErr) {
 }
 
 func cmdOK(affected uint64, binary bool) *RowsResErr {
-    return &RowsResErr{res: &Result{db: db, binary: binary, Status: 0x2,
+    return &RowsResErr{res: &Result{my: my, binary: binary, Status: 0x2,
                                     AffectedRows: affected}}
 }
 
@@ -124,48 +124,48 @@ func selectOK(rows []*Row, binary bool) (exp *RowsResErr) {
     return
 }
 
-func dbConnect(t *testing.T, with_db bool, max_pkt_size int) {
-    if with_db {
-        db  = New(conn[0], conn[1], conn[2], user, passwd, dbname)
+func myConnect(t *testing.T, with_dbname bool, max_pkt_size int) {
+    if with_dbname {
+        my = New(conn[0], conn[1], conn[2], user, passwd, dbname)
     } else {
-        db  = New(conn[0], conn[1], conn[2], user, passwd)
+        my = New(conn[0], conn[1], conn[2], user, passwd)
     }
 
     if max_pkt_size != 0 {
-        db.MaxPktSize = max_pkt_size
+        my.MaxPktSize = max_pkt_size
     }
-    db.Debug = debug
+    my.Debug = debug
 
-    checkErr(t, db.Connect(), nil)
+    checkErr(t, my.Connect(), nil)
     checkResult(t, query("set names utf8"), cmdOK(0, false))
 }
 
-func dbClose(t *testing.T) {
-    checkErr(t, db.Close(), nil)
+func myClose(t *testing.T) {
+    checkErr(t, my.Close(), nil)
 }
 
 // Text queries tests
 
 func TestUse(t *testing.T) {
-    dbConnect(t, false, 0)
-    checkErr(t, db.Use(dbname), nil)
-    dbClose(t)
+    myConnect(t, false, 0)
+    checkErr(t, my.Use(dbname), nil)
+    myClose(t)
 }
 
 func TestPing(t *testing.T) {
-    dbConnect(t, false, 0)
-    checkErr(t, db.Ping(), nil)
-    dbClose(t)
+    myConnect(t, false, 0)
+    checkErr(t, my.Ping(), nil)
+    myClose(t)
 }
 
 func TestQuery(t *testing.T) {
-    dbConnect(t, true, 0)
+    myConnect(t, true, 0)
     query("drop table T") // Drop test table if exists
     checkResult(t, query("create table T (s varchar(40))"), cmdOK(0, false))
 
     exp := &RowsResErr {
         res: &Result {
-            db:         db,
+            my:         my,
             FieldCount: 1,
             Fields:     []*Field {
                 &Field {
@@ -202,7 +202,7 @@ func TestQuery(t *testing.T) {
 
     checkResult(t, query("select s as Str from T as Test"), exp)
     checkResult(t, query("drop table T"), cmdOK(0, false))
-    dbClose(t)
+    myClose(t)
 }
 
 // Prepared statements tests
@@ -213,7 +213,7 @@ type StmtErr struct {
 }
 
 func prepare(sql string) *StmtErr {
-    stmt, err := db.Prepare(sql)
+    stmt, err := my.Prepare(sql)
     return &StmtErr{stmt, err}
 }
 
@@ -240,7 +240,7 @@ func checkStmt(t *testing.T, res, exp *StmtErr) {
 }
 
 func TestPrepared(t *testing.T) {
-    dbConnect(t, true, 0)
+    myConnect(t, true, 0)
     query("drop table P") // Drop test table if exists
     checkResult(t,
         query(
@@ -374,20 +374,20 @@ func TestPrepared(t *testing.T) {
     checkErr(t, all.stmt.Delete(), nil)
     checkErr(t, ins.stmt.Delete(), nil)
 
-    dbClose(t)
+    myClose(t)
 }
 
 // Bind testing
 
 func TestVarBinding(t *testing.T) {
-    dbConnect(t, true, 34*1024*1024)
+    myConnect(t, true, 34*1024*1024)
     query("drop table P") // Drop test table if exists
     checkResult(t,
         query("create table T (id int primary key, str varchar(20))"),
         cmdOK(0, false),
     )
 
-    ins, err := db.Prepare("insert T values (?, ?)")
+    ins, err := my.Prepare("insert T values (?, ?)")
     checkErr(t, err, nil)
 
     var (
@@ -421,7 +421,7 @@ func TestVarBinding(t *testing.T) {
     rre.res, rre.err = ins.Run()
     checkResult(t, &rre, cmdOK(1, true))
 
-    sel, err := db.Prepare("select str from T where id = ?")
+    sel, err := my.Prepare("select str from T where id = ?")
     checkErr(t, err, nil)
 
     rows, _, err := sel.Exec(1)
@@ -443,11 +443,11 @@ func TestVarBinding(t *testing.T) {
     }
 
     checkResult(t, query("drop table T"), cmdOK(0, false))
-    dbClose(t)
+    myClose(t)
 }
 
 func TestDate(t *testing.T) {
-    dbConnect(t, true, 0)
+    myConnect(t, true, 0)
     query("drop table D") // Drop test table if exists
     checkResult(t,
         query("create table D (id int, dd date, dt datetime, tt time)"),
@@ -458,10 +458,10 @@ func TestDate(t *testing.T) {
     dt := "2010-12-12 11:24:00"
     tt := -Time((124*3600 + 4 * 3600 + 3 * 60 + 2) * 1e9 + 1)
 
-    ins, err := db.Prepare("insert D values (?, ?, ?, ?)")
+    ins, err := my.Prepare("insert D values (?, ?, ?, ?)")
     checkErr(t, err, nil)
 
-    sel, err := db.Prepare("select id, tt from D where dd <= ? && dt <= ?")
+    sel, err := my.Prepare("select id, tt from D where dd <= ? && dt <= ?")
     checkErr(t, err, nil)
 
     _, err = ins.Run(1, dd, dt, tt)
@@ -480,23 +480,23 @@ func TestDate(t *testing.T) {
     }
 
     checkResult(t, query("drop table D"), cmdOK(0, false))
-    dbClose(t)
+    myClose(t)
 }
 
 // Big blob
 
 func TestBigBlob(t *testing.T) {
-    dbConnect(t, true, 34*1024*1024)
+    myConnect(t, true, 34*1024*1024)
     query("drop table P") // Drop test table if exists
     checkResult(t,
         query("create table P (id int primary key, bb longblob)"),
         cmdOK(0, false),
     )
 
-    ins, err := db.Prepare("insert P values (?, ?)")
+    ins, err := my.Prepare("insert P values (?, ?)")
     checkErr(t, err, nil)
 
-    sel, err := db.Prepare("select bb from P where id = ?")
+    sel, err := my.Prepare("select bb from P where id = ?")
     checkErr(t, err, nil)
 
     big_blob := make(Blob, 33 * 1024 * 1024)
@@ -571,22 +571,22 @@ func TestBigBlob(t *testing.T) {
     }
 
     checkResult(t, query("drop table P"), cmdOK(0, false))
-    dbClose(t)
+    myClose(t)
 }
 
 // Reconnect test
 
 func TestReconnect(t *testing.T) {
-    dbConnect(t, true, 0)
+    myConnect(t, true, 0)
     query("drop table R") // Drop test table if exists
     checkResult(t,
         query("create table R (id int primary key, str varchar(20))"),
         cmdOK(0, false),
     )
 
-    ins, err := db.Prepare("insert R values (?, ?)")
+    ins, err := my.Prepare("insert R values (?, ?)")
     checkErr(t, err, nil)
-    sel, err := db.Prepare("select str from R where id = ?")
+    sel, err := my.Prepare("select str from R where id = ?")
     checkErr(t, err, nil)
 
     params := struct{Id int; Str string}{}
@@ -595,14 +595,14 @@ func TestReconnect(t *testing.T) {
     ins.BindParams(&params)
     sel.BindParams(&sel_id)
 
-    checkErr(t, db.Reconnect(), nil)
+    checkErr(t, my.Reconnect(), nil)
 
     params.Id = 1
     params.Str = "Bla bla bla"
     _, err = ins.Run()
     checkErr(t, err, nil)
 
-    checkErr(t, db.Reconnect(), nil)
+    checkErr(t, my.Reconnect(), nil)
 
     sel_id = 1
     res, err := sel.Run()
@@ -618,48 +618,48 @@ func TestReconnect(t *testing.T) {
         t.Fatal("Bad result")
     }
 
-    checkErr(t, db.Reconnect(), nil)
+    checkErr(t, my.Reconnect(), nil)
 
     checkResult(t, query("drop table R"), cmdOK(0, false))
-    dbClose(t)
+    myClose(t)
 }
 
 // Auto connect / auto reconnect test
 
 func TestAutoConnectReconnect(t *testing.T) {
-    db = New(conn[0], conn[1], conn[2], user, passwd)
+    my = New(conn[0], conn[1], conn[2], user, passwd)
 
     // Register initialisation commands
-    db.Register("set names utf8")
+    my.Register("set names utf8")
 
-    // db is in unconnected state
-    checkErr(t, db.UseAC(dbname), nil)
+    // my is in unconnected state
+    checkErr(t, my.UseAC(dbname), nil)
 
     // Disconnect
-    db.Close()
+    my.Close()
 
     // Drop test table if exists
-    db.QueryAC("drop table R")
+    my.QueryAC("drop table R")
 
     // Disconnect
-    db.Close()
+    my.Close()
 
     // Create table
-    _, _, err := db.QueryAC(
+    _, _, err := my.QueryAC(
         "create table R (id int primary key, name varchar(20))",
     )
     checkErr(t, err, nil)
 
     // Kill the connection
-    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    _, _, err = my.QueryAC("kill %d", my.ThreadId())
     checkErr(t, err, nil)
 
     // Prepare insert statement
-    ins, err := db.PrepareAC("insert R values (?,  ?)")
+    ins, err := my.PrepareAC("insert R values (?,  ?)")
     checkErr(t, err, nil)
 
     // Kill the connection
-    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    _, _, err = my.QueryAC("kill %d", my.ThreadId())
     checkErr(t, err, nil)
 
     // Bind insert parameters
@@ -669,7 +669,7 @@ func TestAutoConnectReconnect(t *testing.T) {
     checkErr(t, err, nil)
 
     // Kill the connection
-    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    _, _, err = my.QueryAC("kill %d", my.ThreadId())
     checkErr(t, err, nil)
 
     // Bind insert parameters
@@ -679,11 +679,11 @@ func TestAutoConnectReconnect(t *testing.T) {
     checkErr(t, err, nil)
 
     // Kill the connection
-    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    _, _, err = my.QueryAC("kill %d", my.ThreadId())
     checkErr(t, err, nil)
 
     // Select from table
-    rows, res, err := db.QueryAC("select * from R")
+    rows, res, err := my.QueryAC("select * from R")
     checkErr(t, err, nil)
     id := res.Map["id"]
     name := res.Map["name"]
@@ -694,30 +694,30 @@ func TestAutoConnectReconnect(t *testing.T) {
     }
 
     // Kill the connection
-    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    _, _, err = my.QueryAC("kill %d", my.ThreadId())
     checkErr(t, err, nil)
 
     // Drop table
-    _, _, err = db.QueryAC("drop table R")
+    _, _, err = my.QueryAC("drop table R")
     checkErr(t, err, nil)
 
     // Disconnect
-    db.Close()
+    my.Close()
 }
 
 // StmtSendLongData test
 
 func TestSendLongData(t *testing.T) {
-    dbConnect(t, true, 64*1024*1024)
+    myConnect(t, true, 64*1024*1024)
     query("drop table L") // Drop test table if exists
     checkResult(t,
         query("create table L (id int primary key, bb longblob)"),
         cmdOK(0, false),
     )
-    ins, err := db.Prepare("insert L values (?, ?)")
+    ins, err := my.Prepare("insert L values (?, ?)")
     checkErr(t, err, nil)
 
-    sel, err := db.Prepare("select bb from L where id = ?")
+    sel, err := my.Prepare("select bb from L where id = ?")
     checkErr(t, err, nil)
 
 
@@ -788,11 +788,11 @@ func TestSendLongData(t *testing.T) {
     }
 
     checkResult(t, query("drop table L"), cmdOK(0, false))
-    dbClose(t)
+    myClose(t)
 }
 
 func TestMultipleResults(t *testing.T) {
-    dbConnect(t, true, 0)
+    myConnect(t, true, 0)
     query("drop table M") // Drop test table if exists
     checkResult(t,
         query("create table M (id int primary key, str varchar(20))"),
@@ -805,7 +805,7 @@ func TestMultipleResults(t *testing.T) {
     checkResult(t, query("insert M values (1, '%s')", str[1]), cmdOK(1, false))
     checkResult(t, query("insert M values (2, '%s')", str[2]), cmdOK(1, false))
 
-    res, err := db.Start("select id from M; select str from M")
+    res, err := my.Start("select id from M; select str from M")
     checkErr(t, err, nil)
 
     for ii := 0;; ii++ {
@@ -832,7 +832,7 @@ func TestMultipleResults(t *testing.T) {
     }
 
     checkResult(t, query("drop table M"), cmdOK(0, false))
-    dbClose(t)
+    myClose(t)
 }
 
 // Benchamrks
@@ -847,23 +847,23 @@ func check(err os.Error) {
 func BenchmarkInsertSelect(b *testing.B) {
     b.StopTimer()
 
-    db := New(conn[0], conn[1], conn[2], user, passwd, dbname)
-    check(db.Connect())
+    my := New(conn[0], conn[1], conn[2], user, passwd, dbname)
+    check(my.Connect())
 
-    db.Start("drop table B") // Drop test table if exists
+    my.Start("drop table B") // Drop test table if exists
 
-    _, err := db.Start("create table B (s varchar(40), i int)")
+    _, err := my.Start("create table B (s varchar(40), i int)")
     check(err)
 
     for ii := 0; ii < 10000; ii++ {
-        _, err := db.Start("insert B values ('%d-%d-%d', %d)", ii, ii, ii, ii)
+        _, err := my.Start("insert B values ('%d-%d-%d', %d)", ii, ii, ii, ii)
         check(err)
     }
 
     b.StartTimer()
 
     for ii := 0; ii < b.N; ii++ {
-        res, err := db.Start("select * from B")
+        res, err := my.Start("select * from B")
         check(err)
         for {
             row, err := res.GetRow()
@@ -876,26 +876,26 @@ func BenchmarkInsertSelect(b *testing.B) {
 
     b.StopTimer()
 
-    _, err = db.Start("drop table B")
+    _, err = my.Start("drop table B")
     check(err)
-    check(db.Close())
+    check(my.Close())
 }
 
 func BenchmarkPreparedInsertSelect(b *testing.B) {
     b.StopTimer()
 
-    db := New(conn[0], conn[1], conn[2], user, passwd, dbname)
-    check(db.Connect())
+    my := New(conn[0], conn[1], conn[2], user, passwd, dbname)
+    check(my.Connect())
 
-    db.Start("drop table B") // Drop test table if exists
+    my.Start("drop table B") // Drop test table if exists
 
-    _, err := db.Start("create table B (s varchar(40), i int)")
+    _, err := my.Start("create table B (s varchar(40), i int)")
     check(err)
 
-    ins, err := db.Prepare("insert B values (?, ?)")
+    ins, err := my.Prepare("insert B values (?, ?)")
     check(err)
 
-    sel, err := db.Prepare("select * from B")
+    sel, err := my.Prepare("select * from B")
     check(err)
 
     for ii := 0; ii < 10000; ii++ {
@@ -919,7 +919,7 @@ func BenchmarkPreparedInsertSelect(b *testing.B) {
 
     b.StopTimer()
 
-    _, err = db.Start("drop table B")
+    _, err = my.Start("drop table B")
     check(err)
-    check(db.Close())
+    check(my.Close())
 }

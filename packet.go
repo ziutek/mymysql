@@ -1,4 +1,4 @@
-package mymysql
+package mysql
 
 import (
     "os"
@@ -13,7 +13,7 @@ type pktReader struct {
     last   bool
 }
 
-func (my *MySQL) newPktReader() *pktReader {
+func (my *Conn) newPktReader() *pktReader {
     return &pktReader{rd: my.rd, seq: &my.seq}
 }
 
@@ -92,7 +92,7 @@ type pktWriter struct {
     last     bool
 }
 
-func (my *MySQL) newPktWriter(to_write int) *pktWriter {
+func (my *Conn) newPktWriter(to_write int) *pktWriter {
     return &pktWriter{wr: my.wr, seq: &my.seq, to_write: to_write}
 }
 

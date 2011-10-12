@@ -34,27 +34,34 @@ whether the server performs an insert: immediately after receive query or after 
 immediately notice the network failure, becouse of network buffers in kernel.
 Therefore query repetitions may cause additional unnecessary inserts into
 database. This interface does not appear to be useful with local transactions.
+
 #### v0.3.2
 1. *Register* method was added. It allows to register commands which will be
 executed immediately after connect. It is mainly useful with
 *Reconnect* method and autoreconn interface.
 2. Multi statements / multi results were added.
 3. Types *ENUM* and *SET* were added for prepared statements results.
+
 #### v0.3.3
 1. *Time* and *Date* types added.
 2. *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
 *QueryAC* no longer accept prepared statement as first argument.
+
 #### v0.3.4
 float type disappeared because Go release.2011-01-20. If you use
 older Go release use mymysql v0.3.3 
+
 #### v0.3.5
 1. *IsConnected()* method was added.
 2. Package name was changed from *mymy* to *mymysql*. Now the
 package name corresponds to the name of Github repository.
+
 #### v0.3.6
 The *EscapeString* method was added.
+
 #### v0.3.7
 Works with Go release.r57.1
+
 #### v0.3.8
 1. Package name changed to *mysql*.
 2. Connection handler name changed from *MySQL* to *Conn*.
@@ -100,7 +107,7 @@ Make sure that MySQL *max_allowed_packet* variable in *my.cnf is greater than
 33M (needed to test long packets) and logging is disabled. If logging is enabled
 test may fail with this message:
 
-	--- FAIL: mymy.TestSendLongData
+	--- FAIL: mysql.TestSendLongData
 	Error: Received #1210 error from MySQL server: "Incorrect arguments to mysqld_stmt_execute"
 
 The default MySQL test server address is *127.0.0.1:3306*. You may change it in
@@ -118,10 +125,10 @@ In *GODOC.html* or *GODOC.txt* you can find the full documentation of this packa
 ## Example 1
 
     import (
-        mymy "github.com/ziutek/mymysql"
+        "github.com/ziutek/mymysql"
     )
 
-    db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+    db := mysql.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
     db.Debug = true
 
     err := db.Connect()
@@ -334,7 +341,7 @@ This is improved part of previous example:
 
 ## Example 5 - autoreconn interface
 
-    db := mymy.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+    db := mysql.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
     // Register initilisation command. It will be executed after each connect.
     db.Register("set names utf8")
@@ -407,11 +414,11 @@ mapped for MySQL protocol types as below:
       int64, uint64  -->  MYSQL_TYPE_LONGLONG
             float32  -->  MYSQL_TYPE_FLOAT
             float64  -->  MYSQL_TYPE_DOUBLE
-    *mymy.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
-     *mymy.Datetime  -->  MYSQL_TYPE_DATETIME
-         *mymy.Date  -->  MYSQL_TYPE_DATE
-         *mymy.Time  -->  MYSQL_TYPE_TIME
-          mymy.Blob  -->  MYSQL_TYPE_BLOB
+   *mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
+    *mysql.Datetime  -->  MYSQL_TYPE_DATETIME
+        *mysql.Date  -->  MYSQL_TYPE_DATE
+        *mysql.Time  -->  MYSQL_TYPE_TIME
+         mysql.Blob  -->  MYSQL_TYPE_BLOB
                 nil  -->  MYSQL_TYPE_NULL
 
 The MySQL server maps/converts them to a particular MySQL storage type.
@@ -429,9 +436,9 @@ below:
                          UNSIGNED BIGINT  -->  uint64
                                    FLOAT  -->  float32
                                   DOUBLE  -->  float64
-                     TIMESTAMP, DATETIME  -->  *mymy.Datetime
-                                    DATE  -->  *mymy.Date
-                                    TIME  -->  *mymy.Time
+                     TIMESTAMP, DATETIME  -->  *mysql.Datetime
+                                    DATE  -->  *mysql.Date
+                                    TIME  -->  *mysql.Time
                                     YEAR  -->  int16
         CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte
      TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte

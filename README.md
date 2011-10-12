@@ -65,7 +65,9 @@ Works with Go release.r57.1
 #### v0.3.8
 1. Package name changed to *mysql*.
 2. Connection handler name changed from *MySQL* to *Conn*.
-That you need to write *mysql.Conn* insted of *mymysql.MySQL*.
+3. Tested with Go weekly.2011-10-06
+
+I think it is more pleasant to write *mysql.Conn* insted of *mymysql.MySQL*.
 
 ## Installing
 

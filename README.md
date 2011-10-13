@@ -515,4 +515,5 @@ Workaround: change password using result from MYSQL >= 4.1 *PASSWORD* function
 
 # Package documentation
 
-See *GODOC.html* or try [this link](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/)
+See *GODOC.html* or try [this
+link](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql)

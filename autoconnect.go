@@ -62,7 +62,7 @@ func (my *Conn) UseAC(dbname string) (err os.Error) {
 
 // Automatic connect/reconnect/repeat version of Query
 func (my *Conn) QueryAC(sql string, params ...interface{}) (
-        rows []*Row, res *Result, err os.Error) {
+        rows []Row, res *Result, err os.Error) {
 
     if err = my.connectIfNotConnected(); err != nil {
         return
@@ -98,7 +98,7 @@ func (my *Conn) PrepareAC(sql string) (stmt *Statement, err os.Error) {
 
 // Automatic connect/reconnect/repeat version of Exec
 func (stmt *Statement) ExecAC(params ...interface{}) (
-        rows []*Row, res *Result, err os.Error) {
+        rows []Row, res *Result, err os.Error) {
 
     if err = stmt.my.connectIfNotConnected(); err != nil {
         return

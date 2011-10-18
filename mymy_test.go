@@ -21,7 +21,7 @@ var (
 )
 
 type RowsResErr struct {
-    rows []*Row
+    rows []Row
     res  *Result
     err  os.Error
 }
@@ -66,7 +66,7 @@ func checkErrWarn(t *testing.T, res, exp *RowsResErr) {
     checkWarnCount(t, res.res.WarningCount, exp.res.WarningCount)
 }
 
-func types(row []interface{}) (tt []reflect.Type) {
+func types(row Row) (tt []reflect.Type) {
     tt = make([]reflect.Type, len(row))
     for ii, val := range row {
         tt[ii] = reflect.TypeOf(val)
@@ -86,20 +86,20 @@ func checkErrWarnRows(t *testing.T, res, exp *RowsResErr)  {
         }
         for ii := 0; ii < max; ii++ {
             if ii < len(res.rows) {
-                t.Errorf("%d: res type: %s", ii, types(res.rows[ii].Data))
+                t.Errorf("%d: res type: %s", ii, types(res.rows[ii]))
             } else {
                 t.Errorf("%d: res: ------", ii)
             }
             if ii < len(exp.rows) {
-                t.Errorf("%d: exp type: %s", ii, types(exp.rows[ii].Data))
+                t.Errorf("%d: exp type: %s", ii, types(exp.rows[ii]))
             } else {
                 t.Errorf("%d: exp: ------", ii)
             }
             if ii < len(res.rows) {
-                t.Error(" res: ", res.rows[ii].Data)
+                t.Error(" res: ", res.rows[ii])
             }
             if ii < len(exp.rows) {
-                t.Error(" exp: ", exp.rows[ii].Data)
+                t.Error(" exp: ", exp.rows[ii])
             }
         }
         t.FailNow()
@@ -118,7 +118,7 @@ func cmdOK(affected uint64, binary bool) *RowsResErr {
                                     AffectedRows: affected}}
 }
 
-func selectOK(rows []*Row, binary bool) (exp *RowsResErr) {
+func selectOK(rows []Row, binary bool) (exp *RowsResErr) {
     exp = cmdOK(0, binary)
     exp.rows = rows
     return
@@ -197,7 +197,7 @@ func TestQuery(t *testing.T) {
                 query("insert T values ('%s')", txt), cmdOK(1, false))
             val = txt
         }
-        exp.rows = append(exp.rows, &Row{Data: []interface{}{val}})
+        exp.rows = append(exp.rows, Row{val})
     }
 
     checkResult(t, query("select s as Str from T as Test"), exp)
@@ -298,40 +298,40 @@ func TestPrepared(t *testing.T) {
     ins := prepare("insert into P values (?, ?, ?)")
     checkErr(t, ins.err, nil)
 
-    exp_rows := []*Row {
-        &Row{[]interface{} {
-            2, "Taki tekst", TimeToDatetime(time.SecondsToLocalTime(123456789)),
-        }},
-        &Row{[]interface{} {
+    exp_rows := []Row {
+        Row{
+			2, "Taki tekst", TimeToDatetime(time.SecondsToLocalTime(123456789)),
+        },
+        Row{
             3, "Łódź się kołysze!", TimeToDatetime(time.SecondsToLocalTime(0)),
-        }},
-        &Row{[]interface{} {
+        },
+        Row{
             5, "Pąk róży", TimeToDatetime(time.SecondsToLocalTime(9999999999)),
-        }},
-        &Row{[]interface{} {
+        },
+        Row{
             11, "Zero UTC datetime", TimeToDatetime(time.SecondsToUTC(0)),
-        }},
-        &Row{[]interface{} {
+        },
+        Row{
             17, Blob([]byte("Zero datetime")), new(Datetime),
-        }},
-        &Row{[]interface{} {
+        },
+        Row{
             23, []byte("NULL datetime"), (*Datetime)(nil),
-        }},
-        &Row{[]interface{} {
+        },
+        Row{
             23, "NULL", nil,
-        }},
+        },
     }
 
     for _, row := range exp_rows {
         checkErrWarn(t,
-            exec(ins.stmt, row.Data[0], row.Data[1], row.Data[2]),
+            exec(ins.stmt, row[0], row[1], row[2]),
             cmdOK(1, true),
         )
     }
 
     // Convert values to expected result types
     for _, row := range exp_rows {
-        for ii, col := range row.Data {
+        for ii, col := range row {
             val := reflect.ValueOf(col)
             // Dereference pointers
             if val.Kind() == reflect.Ptr {
@@ -339,18 +339,18 @@ func TestPrepared(t *testing.T) {
             }
             switch val.Kind() {
             case reflect.Invalid:
-                row.Data[ii] = nil
+                row[ii] = nil
 
             case reflect.String:
-                row.Data[ii] = []byte(val.String())
+                row[ii] = []byte(val.String())
 
             case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
                     reflect.Int64:
-                row.Data[ii] = int32(val.Int())
+                row[ii] = int32(val.Int())
 
             case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
                     reflect.Uint64:
-                row.Data[ii] = int32(val.Uint())
+                row[ii] = int32(val.Uint())
 
             case reflect.Slice:
                 if val.Type().Elem().Kind() == reflect.Uint8 {
@@ -358,7 +358,7 @@ func TestPrepared(t *testing.T) {
                     for ii := range bytes {
                         bytes[ii] = val.Index(ii).Interface().(uint8)
                     }
-                    row.Data[ii] = bytes
+                    row[ii] = bytes
                 }
             }
         }
@@ -475,8 +475,8 @@ func TestDate(t *testing.T) {
     if rows[0].Int(0) != 1 {
         t.Fatal("Bad id", rows[0].Int(1))
     }
-    if rows[0].Data[1].(Time) != tt + 1 {
-        t.Fatal("Bad tt", rows[0].Data[1].(Time))
+    if rows[0][1].(Time) != tt + 1 {
+        t.Fatal("Bad tt", rows[0][1].(Time))
     }
 
     checkResult(t, query("drop table D"), cmdOK(0, false))
@@ -549,7 +549,7 @@ func TestBigBlob(t *testing.T) {
         t.Fatal(tmr)
     }
 
-    if bytes.Compare(row.Data[0].([]byte), big_blob) != 0 {
+    if bytes.Compare(row[0].([]byte), big_blob) != 0 {
         t.Fatal("Full blob data don't match")
     }
 
@@ -613,7 +613,7 @@ func TestReconnect(t *testing.T) {
 
     checkErr(t, res.End(), nil)
 
-    if row == nil || row.Data == nil || row.Data[0] == nil ||
+    if row == nil || row == nil || row[0] == nil ||
             params.Str != row.Str(0) {
         t.Fatal("Bad result")
     }
@@ -750,7 +750,7 @@ func TestSendLongData(t *testing.T) {
 
     checkErr(t, res.End(), nil)
 
-    if row == nil || row.Data == nil || row.Data[0] == nil ||
+    if row == nil || row == nil || row[0] == nil ||
             bytes.Compare(append(data, data...), row.Bin(0)) != 0 {
         t.Fatal("Bad result")
     }
@@ -782,7 +782,7 @@ func TestSendLongData(t *testing.T) {
     data, err = ioutil.ReadFile(filename)
     checkErr(t, err, nil)
 
-    if row == nil || row.Data == nil || row.Data[0] == nil ||
+    if row == nil || row == nil || row[0] == nil ||
             bytes.Compare(append(data, data...), row.Bin(0)) != 0 {
         t.Fatal("Bad result")
     }

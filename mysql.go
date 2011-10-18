@@ -143,7 +143,7 @@ func (my *Conn) connect() (err os.Error) {
 			continue
 		}
 		// Read and discard all result rows
-		var row *Row
+		var row Row
 		for {
 			row, err = res.getRow()
 			if err != nil {
@@ -325,11 +325,11 @@ func (my *Conn) Start(sql string, params ...interface{}) (res *Result, err os.Er
 	return
 }
 
-func (res *Result) getRow() (row *Row, err os.Error) {
+func (res *Result) getRow() (row Row, err os.Error) {
 	defer catchOsError(&err)
 
 	switch result := res.my.getResult(res).(type) {
-	case *Row:
+	case Row:
 		// Row of data
 		row = result
 
@@ -344,7 +344,7 @@ func (res *Result) getRow() (row *Row, err os.Error) {
 
 // Get the data row from a server. This method reads one row of result directly
 // from network connection (without rows buffering on client side).
-func (res *Result) GetRow() (row *Row, err os.Error) {
+func (res *Result) GetRow() (row Row, err os.Error) {
 	if res.FieldCount == 0 {
 		// There is no fields in result (OK result)
 		return
@@ -385,14 +385,14 @@ func (res *Result) End() (err os.Error) {
 
 // This call Start and next call GetRow as long as it reads all rows from the
 // result. Next it returns all readed rows as the slice of rows.
-func (my *Conn) Query(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error) {
+func (my *Conn) Query(sql string, params ...interface{}) (rows []Row, res *Result, err os.Error) {
 
 	res, err = my.Start(sql, params...)
 	if err != nil {
 		return
 	}
 	// Read rows
-	var row *Row
+	var row Row
 	for {
 		row, err = res.GetRow()
 		if err != nil || row == nil {
@@ -579,14 +579,14 @@ func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error) {
 
 // This call Run and next call GetRow once or more times. It read all rows
 // from connection and returns they as a slice.
-func (stmt *Statement) Exec(params ...interface{}) (rows []*Row, res *Result, err os.Error) {
+func (stmt *Statement) Exec(params ...interface{}) (rows []Row, res *Result, err os.Error) {
 
 	res, err = stmt.Run(params...)
 	if err != nil {
 		return
 	}
 	// Read rows
-	var row *Row
+	var row Row
 	for {
 		row, err = res.GetRow()
 		if err != nil || row == nil {

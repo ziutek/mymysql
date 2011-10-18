@@ -9,9 +9,9 @@ type sio struct {
 }
 
 func checkRow(t *testing.T, examples []sio, conv func(string) interface{}) {
-    row := Row{Data: make([]interface{}, 1)}
+    row := make(Row, 1)
     for _, ex := range examples {
-        row.Data[0] = conv(ex.in)
+        row[0] = conv(ex.in)
         str := row.Str(0)
         if str != ex.out{
             t.Fatalf("Wrong conversion: '%s' != '%s'", str, ex.out)

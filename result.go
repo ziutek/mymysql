@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"errors"
 	"log"
 	"strconv"
 	"bytes"
@@ -85,7 +86,7 @@ func (tr Row) Str(nn int) (str string) {
 
 // Get the nn-th value and return it as int (0 if NULL). Return error if
 // conversion is impossible.
-func (tr Row) IntErr(nn int) (val int, err os.Error) {
+func (tr Row) IntErr(nn int) (val int, err error) {
 	switch data := tr[nn].(type) {
 	case nil:
 		val = 0
@@ -140,7 +141,7 @@ func (tr Row) Int(nn int) (val int) {
 
 // Get the nn-th value and return it as uint (0 if NULL). Return error if
 // conversion is impossible.
-func (tr Row) UintErr(nn int) (val uint, err os.Error) {
+func (tr Row) UintErr(nn int) (val uint, err error) {
 	switch data := tr[nn].(type) {
 	case uint32:
 		val = uint(data)
@@ -183,7 +184,7 @@ func (tr Row) Uint(nn int) (val uint) {
 
 // Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
 // if conversion is impossible.
-func (tr Row) DateErr(nn int) (val *Date, err os.Error) {
+func (tr Row) DateErr(nn int) (val *Date, err error) {
 	switch data := tr[nn].(type) {
 	case nil:
 		val = new(Date)
@@ -193,7 +194,7 @@ func (tr Row) DateErr(nn int) (val *Date, err os.Error) {
 		val = StrToDate(string(data))
 	}
 	if val == nil {
-		err = os.NewError(
+		err = errors.New(
 			fmt.Sprintf("Can't convert `%v` to Date", tr[nn]),
 		)
 	}
@@ -220,7 +221,7 @@ func (tr Row) Date(nn int) (val *Date) {
 
 // Get the nn-th value and return it as Datetime (0000-00-00 00:00:00 if NULL).
 // Return error if conversion is impossible. It can convert Date to Datetime.
-func (tr Row) DatetimeErr(nn int) (val *Datetime, err os.Error) {
+func (tr Row) DatetimeErr(nn int) (val *Datetime, err error) {
 	switch data := tr[nn].(type) {
 	case nil:
 		val = new(Datetime)
@@ -232,7 +233,7 @@ func (tr Row) DatetimeErr(nn int) (val *Datetime, err os.Error) {
 		val = StrToDatetime(string(data))
 	}
 	if val == nil {
-		err = os.NewError(
+		err = errors.New(
 			fmt.Sprintf("Can't convert `%v` to Datetime", tr[nn]),
 		)
 	}
@@ -260,7 +261,7 @@ func (tr Row) Datetime(nn int) (val *Datetime) {
 
 // Get the nn-th value and return it as Time (0:00:00 if NULL). Return error
 // if conversion is impossible.
-func (tr Row) TimeErr(nn int) (val Time, err os.Error) {
+func (tr Row) TimeErr(nn int) (val Time, err error) {
 	var tp *Time
 	switch data := tr[nn].(type) {
 	case nil:
@@ -272,7 +273,7 @@ func (tr Row) TimeErr(nn int) (val Time, err os.Error) {
 		tp = StrToTime(string(data))
 	}
 	if tp == nil {
-		err = os.NewError(
+		err = errors.New(
 			fmt.Sprintf("Can't convert `%v` to Time", tr[nn]),
 		)
 		return

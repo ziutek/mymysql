@@ -572,28 +572,28 @@ better preformance use []byte.
 VARIABLES
 
 var (
-    SEQ_ERROR             = os.NewError("packet sequence error")
-    PKT_ERROR             = os.NewError("malformed packet")
-    PKT_LONG_ERROR        = os.NewError("packet too long")
-    UNEXP_NULL_LCS_ERROR  = os.NewError("unexpected null LCS")
-    UNEXP_NULL_LCB_ERROR  = os.NewError("unexpected null LCB")
-    UNEXP_NULL_DATE_ERROR = os.NewError("unexpected null datetime")
-    UNEXP_NULL_TIME_ERROR = os.NewError("unexpected null time")
-    UNK_RESULT_PKT_ERROR  = os.NewError("unexpected or unknown result packet")
-    NOT_CONN_ERROR        = os.NewError("not connected")
-    ALREDY_CONN_ERROR     = os.NewError("not connected")
-    BAD_RESULT_ERROR      = os.NewError("unexpected result")
-    UNREADED_ROWS_ERROR   = os.NewError("there are unreaded rows")
-    BIND_COUNT_ERROR      = os.NewError("wrong number of values for bind")
-    BIND_UNK_TYPE         = os.NewError("unknown value type for bind")
-    RESULT_COUNT_ERROR    = os.NewError("wrong number of result columns")
-    BAD_COMMAND_ERROR     = os.NewError("comand isn't text SQL nor *Statement")
-    WRONG_DATE_LEN_ERROR  = os.NewError("wrong datetime/timestamp length")
-    WRONG_TIME_LEN_ERROR  = os.NewError("wrong time length")
-    UNK_MYSQL_TYPE_ERROR  = os.NewError("unknown MySQL type")
-    WRONG_PARAM_NUM_ERROR = os.NewError("wrong parameter number")
-    UNK_DATA_TYPE_ERROR   = os.NewError("unknown data source type")
-    SMALL_PKT_SIZE_ERROR  = os.NewError("specified packet size is to small")
+    SEQ_ERROR             = errors.New("packet sequence error")
+    PKT_ERROR             = errors.New("malformed packet")
+    PKT_LONG_ERROR        = errors.New("packet too long")
+    UNEXP_NULL_LCS_ERROR  = errors.New("unexpected null LCS")
+    UNEXP_NULL_LCB_ERROR  = errors.New("unexpected null LCB")
+    UNEXP_NULL_DATE_ERROR = errors.New("unexpected null datetime")
+    UNEXP_NULL_TIME_ERROR = errors.New("unexpected null time")
+    UNK_RESULT_PKT_ERROR  = errors.New("unexpected or unknown result packet")
+    NOT_CONN_ERROR        = errors.New("not connected")
+    ALREDY_CONN_ERROR     = errors.New("not connected")
+    BAD_RESULT_ERROR      = errors.New("unexpected result")
+    UNREADED_ROWS_ERROR   = errors.New("there are unreaded rows")
+    BIND_COUNT_ERROR      = errors.New("wrong number of values for bind")
+    BIND_UNK_TYPE         = errors.New("unknown value type for bind")
+    RESULT_COUNT_ERROR    = errors.New("wrong number of result columns")
+    BAD_COMMAND_ERROR     = errors.New("comand isn't text SQL nor *Statement")
+    WRONG_DATE_LEN_ERROR  = errors.New("wrong datetime/timestamp length")
+    WRONG_TIME_LEN_ERROR  = errors.New("wrong time length")
+    UNK_MYSQL_TYPE_ERROR  = errors.New("unknown MySQL type")
+    WRONG_PARAM_NUM_ERROR = errors.New("wrong parameter number")
+    UNK_DATA_TYPE_ERROR   = errors.New("unknown data source type")
+    SMALL_PKT_SIZE_ERROR  = errors.New("specified packet size is to small")
 )
 
 
@@ -627,7 +627,7 @@ True if date is 0000-00-00
 func IsDatetimeZero(dt *Datetime) bool
 True if datetime is 0000-00-00 00:00:00
 
-func IsNetErr(err os.Error) bool
+func IsNetErr(err error) bool
 Return true if error is network error or UnexpectedEOF.
 
 func NbinToNstr(nbin *[]byte) *string
@@ -663,10 +663,10 @@ Create new MySQL handler. The first three arguments are passed to net.Bind
 for create connection. user and passwd are for authentication. Optional db
 is database name (you may not specifi it and use Use() method later).
 
-func (my *Conn) Close() (err os.Error)
+func (my *Conn) Close() (err error)
 Close connection to the server
 
-func (my *Conn) Connect() (err os.Error)
+func (my *Conn) Connect() (err error)
 Establishes a connection with MySQL server version 4.1 or later.
 
 func (my *Conn) EscapeString(txt string) string
@@ -676,23 +676,23 @@ to Query or Start method.
 func (my *Conn) IsConnected() bool
 Check if connection is established
 
-func (my *Conn) Ping() (err os.Error)
+func (my *Conn) Ping() (err error)
 Send MySQL PING to the server.
 
-func (my *Conn) Prepare(sql string) (stmt *Statement, err os.Error)
+func (my *Conn) Prepare(sql string) (stmt *Statement, err error)
 Prepare server side statement. Return statement handler.
 
-func (my *Conn) PrepareAC(sql string) (stmt *Statement, err os.Error)
+func (my *Conn) PrepareAC(sql string) (stmt *Statement, err error)
 Automatic connect/reconnect/repeat version of Prepare
 
-func (my *Conn) Query(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+func (my *Conn) Query(sql string, params ...interface{}) (rows []Row, res *Result, err error)
 This call Start and next call GetRow as long as it reads all rows from the
 result. Next it returns all readed rows as the slice of rows.
 
-func (my *Conn) QueryAC(sql string, params ...interface{}) (rows []*Row, res *Result, err os.Error)
+func (my *Conn) QueryAC(sql string, params ...interface{}) (rows []Row, res *Result, err error)
 Automatic connect/reconnect/repeat version of Query
 
-func (my *Conn) Reconnect() (err os.Error)
+func (my *Conn) Reconnect() (err error)
 Close and reopen connection in one, thread-safe operation.
 Ignore unreaded rows, reprepare all prepared statements.
 
@@ -701,7 +701,7 @@ Register MySQL command/query to be executed immediately after connecting to
 the server. You may register multiple commands. They will be executed in
 the order of registration. Yhis method is mainly useful for reconnect.
 
-func (my *Conn) Start(sql string, params ...interface{}) (res *Result, err os.Error)
+func (my *Conn) Start(sql string, params ...interface{}) (res *Result, err error)
 Start new query.
 
 If you specify the parameters, the SQL string will be a result of
@@ -711,10 +711,10 @@ You must get all result rows (if they exists) before next query.
 func (my *Conn) ThreadId() uint32
 Returns the thread ID of the current connection.
 
-func (my *Conn) Use(dbname string) (err os.Error)
+func (my *Conn) Use(dbname string) (err error)
 Change database
 
-func (my *Conn) UseAC(dbname string) (err os.Error)
+func (my *Conn) UseAC(dbname string) (err error)
 Automatic connect/reconnect/repeat version of Use
 
 type Date struct {
@@ -754,7 +754,7 @@ If function/method returns error you can check returned error type, and if
 it is *mymy.Error it is error received from MySQL server. Next you can check
 Code for error number.
 
-func (err Error) String() string
+func (err Error) Error() string
 
 type Field struct {
     Catalog  string
@@ -795,91 +795,89 @@ type Result struct {
     // contains filtered or unexported fields
 }
 
-func (res *Result) End() (err os.Error)
+func (res *Result) End() (err error)
 Read all unreaded rows and discard them. This function is useful if you
 don't want to use the remaining rows. It has an impact only on current
 result. If there is multi result query, you must use NextResult method and
 read/discard all rows in this result, before use other method that sends
 data to the server.
 
-func (res *Result) GetRow() (row *Row, err os.Error)
+func (res *Result) GetRow() (row Row, err error)
 Get the data row from a server. This method reads one row of result directly
 from network connection (without rows buffering on client side).
 
-func (res *Result) NextResult() (next *Result, err os.Error)
+func (res *Result) NextResult() (next *Result, err error)
 This function is used when last query was the multi result query.
 Return the next result or nil if no more resuts exists.
 
-type Row struct {
-    Data []interface{}
-}
+type Row []interface{}
 Result row. Data field is a slice that contains values for any column of
 received row.
 
-If row is a result of ordinary text query, an element of Data field can be
+If row is a result of ordinary text query, its element can be
 []byte slice, contained result text or nil if NULL is returned.
 
-If it is result of prepared statement execution, an element of Data field can
+If it is result of prepared statement execution, its element field can
 be: intXX, uintXX, floatXX, []byte, *Date, *Datetime, Time or nil
 
-func (tr *Row) Bin(nn int) (bin []byte)
+func (tr Row) Bin(nn int) (bin []byte)
 Get the nn-th value and return it as []byte ([]byte{} if NULL)
 
-func (tr *Row) Date(nn int) (val *Date)
+func (tr Row) Date(nn int) (val *Date)
 It is like DateErr but return 0000-00-00 if conversion is impossible.
 
-func (tr *Row) DateErr(nn int) (val *Date, err os.Error)
+func (tr Row) DateErr(nn int) (val *Date, err error)
 Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
 if conversion is impossible.
 
-func (tr *Row) Datetime(nn int) (val *Datetime)
+func (tr Row) Datetime(nn int) (val *Datetime)
 It is like DatetimeErr but return 0000-00-00 00:00:00 if conversion is
 impossible.
 
-func (tr *Row) DatetimeErr(nn int) (val *Datetime, err os.Error)
+func (tr Row) DatetimeErr(nn int) (val *Datetime, err error)
 Get the nn-th value and return it as Datetime (0000-00-00 00:00:00 if NULL).
 Return error if conversion is impossible. It can convert Date to Datetime.
 
-func (tr *Row) Int(nn int) (val int)
+func (tr Row) Int(nn int) (val int)
 Get the nn-th value and return it as int. Return 0 if value is NULL or
 conversion is impossible.
 
-func (tr *Row) IntErr(nn int) (val int, err os.Error)
+func (tr Row) IntErr(nn int) (val int, err error)
 Get the nn-th value and return it as int (0 if NULL). Return error if
 conversion is impossible.
 
-func (tr *Row) MustDate(nn int) (val *Date)
+func (tr Row) MustDate(nn int) (val *Date)
 It is like DateErr but panics if conversion is impossible.
 
-func (tr *Row) MustDatetime(nn int) (val *Datetime)
+func (tr Row) MustDatetime(nn int) (val *Datetime)
 As DatetimeErr but panics if conversion is impossible.
 
-func (tr *Row) MustInt(nn int) (val int)
+func (tr Row) MustInt(nn int) (val int)
 Get the nn-th value and return it as int (0 if NULL). Panic if conversion is
 impossible.
 
-func (tr *Row) MustTime(nn int) (val Time)
+func (tr Row) MustTime(nn int) (val Time)
 It is like TimeErr but panics if conversion is impossible.
 
-func (tr *Row) MustUint(nn int) (val uint)
+func (tr Row) MustUint(nn int) (val uint)
 Get the nn-th value and return it as uint (0 if NULL). Panic if conversion is
 impossible.
 
-func (tr *Row) Str(nn int) (str string)
+func (tr Row) Str(nn int) (str string)
 Get the nn-th value and return it as string ("" if NULL)
 
-func (tr *Row) Time(nn int) (val Time)
+func (tr Row) Time(nn int) (val Time)
 It is like TimeErr but return 0:00:00 if conversion is impossible.
 
-func (tr *Row) TimeErr(nn int) (val Time, err os.Error)
+func (tr Row) TimeErr(nn int) (val Time, err error)
 Get the nn-th value and return it as Time (0:00:00 if NULL). Return error
 if conversion is impossible.
 
-func (tr *Row) Uint(nn int) (val uint)
+func (tr Row) Uint(nn int) (val uint)
 Get the nn-th value and return it as uint. Return 0 if value is NULL or
 conversion is impossible.
 
-func (tr *Row) UintErr(nn int) (val uint, err os.Error)
+func (tr Row) UintErr(nn int) (val uint, err error)
 Get the nn-th value and return it as uint (0 if NULL). Return error if
 conversion is impossible.
 
@@ -910,30 +908,30 @@ exactly what you are doing. For each thread you may prepare its own statement
 or use Run, Exec or ExecAC method with parameters (but they rebind parameters
 on each call).
 
-func (stmt *Statement) Delete() (err os.Error)
+func (stmt *Statement) Delete() (err error)
 Destroy statement on server side. Client side handler is invalid after this
 command.
 
-func (stmt *Statement) Exec(params ...interface{}) (rows []*Row, res *Result, err os.Error)
+func (stmt *Statement) Exec(params ...interface{}) (rows []Row, res *Result, err error)
 This call Run and next call GetRow once or more times. It read all rows
 from connection and returns they as a slice.
 
-func (stmt *Statement) ExecAC(params ...interface{}) (rows []*Row, res *Result, err os.Error)
+func (stmt *Statement) ExecAC(params ...interface{}) (rows []Row, res *Result, err error)
 Automatic connect/reconnect/repeat version of Exec
 
-func (stmt *Statement) Reset() (err os.Error)
+func (stmt *Statement) Reset() (err error)
 Resets a prepared statement on server: data sent to the server, unbuffered
 result sets and current errors.
 
 func (stmt *Statement) ResetParams()
 Resets the previous parameter binding
 
-func (stmt *Statement) Run(params ...interface{}) (res *Result, err os.Error)
+func (stmt *Statement) Run(params ...interface{}) (res *Result, err error)
 Execute prepared statement. If statement requires parameters you may bind
 them first or specify directly. After this command you may use GetRow to
 retrieve data.
 
-func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err os.Error)
+func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err error)
 Send long data to MySQL server in chunks.
 You can call this method after Bind and before Run/Execute. It can be called
 multiple times for one parameter to send TEXT or BLOB data in chunks.

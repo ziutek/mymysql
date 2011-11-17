@@ -108,14 +108,14 @@ func checkErrWarnRows(t *testing.T, res, exp *RowsResErr) {
 
 func checkResult(t *testing.T, res, exp *RowsResErr) {
 	checkErrWarnRows(t, res, exp)
-	if !reflect.DeepEqual(res.res, exp.res) {
+	if (!reflect.DeepEqual(res.res, exp.res)) {
 		t.Fatalf("Bad result:\nres=%+v\nexp=%+v", res.res, exp.res)
 	}
 }
 
 func cmdOK(affected uint64, binary bool) *RowsResErr {
 	return &RowsResErr{res: &Result{my: my, binary: binary, Status: 0x2,
-		AffectedRows: affected}}
+	Message: []byte{}, AffectedRows: affected}}
 }
 
 func selectOK(rows []Row, binary bool) (exp *RowsResErr) {

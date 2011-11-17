@@ -614,7 +614,7 @@ func (stmt *Statement) Delete() (err error) {
 	// the command return an error.
 	defer func() {
 		// Delete statement from stmt_map
-		stmt.my.stmt_map[stmt.id] = nil, false
+		delete(stmt.my.stmt_map, stmt.id)
 		// Invalidate handler
 		*stmt = Statement{}
 	}()

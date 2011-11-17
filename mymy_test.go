@@ -614,7 +614,7 @@ func TestReconnect(t *testing.T) {
 
 	checkErr(t, res.End(), nil)
 
-	if row == nil || row == nil || row[0] == nil ||
+	if row == nil || row[0] == nil ||
 		params.Str != row.Str(0) {
 		t.Fatal("Bad result")
 	}
@@ -750,7 +750,7 @@ func TestSendLongData(t *testing.T) {
 
 	checkErr(t, res.End(), nil)
 
-	if row == nil || row == nil || row[0] == nil ||
+	if row == nil || row[0] == nil ||
 		bytes.Compare(append(data, data...), row.Bin(0)) != 0 {
 		t.Fatal("Bad result")
 	}
@@ -782,7 +782,7 @@ func TestSendLongData(t *testing.T) {
 	data, err = ioutil.ReadFile(filename)
 	checkErr(t, err, nil)
 
-	if row == nil || row == nil || row[0] == nil ||
+	if row == nil || row[0] == nil ||
 		bytes.Compare(append(data, data...), row.Bin(0)) != 0 {
 		t.Fatal("Bad result")
 	}

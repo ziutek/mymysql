@@ -1,30 +1,31 @@
-package mysql
+package native
 
 import (
     "testing"
     "bytes"
     "math"
     "reflect"
+	"github.com/ziutek/mymysql"
 )
 
 var (
     Bytes  = []byte("Ala ma Kota!")
     String = "ssss" //"A kot ma Alę!"
-    blob   = Blob{1, 2, 3}
-    dateT  = Datetime{Year: 2010, Month: 12, Day: 30, Hour: 17, Minute:21}
-    tstamp = Timestamp{Year: 2001, Month: 2, Day: 3, Hour: 7, Minute:2}
-    date   = Date{Year: 2011, Month: 2, Day: 3}
-    tim    = -Time((5 * 24*3600 + 4 * 3600 + 3 * 60 + 2) * 1e9 + 1)
+    blob   = mysql.Blob{1, 2, 3}
+    dateT  = mysql.Datetime{Year: 2010, Month: 12, Day: 30, Hour: 17, Minute:21}
+    tstamp = mysql.Timestamp{Year: 2001, Month: 2, Day: 3, Hour: 7, Minute:2}
+    date   = mysql.Date{Year: 2011, Month: 2, Day: 3}
+    tim    = -mysql.Time((5 * 24*3600 + 4 * 3600 + 3 * 60 + 2) * 1e9 + 1)
 
     pBytes  *[]byte
     pString *string
-    pBlob   *Blob
-    pDateT  *Datetime
-    pTstamp *Timestamp
-    pDate   *Date
-    pTim    *Time
+    pBlob   *mysql.Blob
+    pDateT  *mysql.Datetime
+    pTstamp *mysql.Timestamp
+    pDate   *mysql.Date
+    pTim    *mysql.Time
 
-    raw    = Raw{MYSQL_TYPE_INT24, &[]byte{3, 2, 1}}
+    raw    = mysql.Raw{MYSQL_TYPE_INT24, &[]byte{3, 2, 1}}
 
     Int8   = int8(1)
     Uint8  = uint8(2)
@@ -168,7 +169,7 @@ func init() {
     for ii := range b {
         b[ii] = byte(ii)
     }
-    blob = Blob(b)
+    blob = mysql.Blob(b)
 
     writeTest = []WriteTest{
         WriteTest{Bytes,  append([]byte{byte(len(Bytes))}, Bytes...)},
@@ -227,8 +228,8 @@ func init() {
         WriteTest{&dateT, EncodeDatetime(&dateT)},
         WriteTest{pDateT, nil},
 
-        WriteTest{tstamp,  EncodeDatetime((*Datetime)(&tstamp))},
-        WriteTest{&tstamp, EncodeDatetime((*Datetime)(&tstamp))},
+        WriteTest{tstamp,  EncodeDatetime((*mysql.Datetime)(&tstamp))},
+        WriteTest{&tstamp, EncodeDatetime((*mysql.Datetime)(&tstamp))},
         WriteTest{pTstamp, nil},
 
         WriteTest{date,  EncodeDate(&date)},

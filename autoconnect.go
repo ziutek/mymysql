@@ -1,4 +1,4 @@
-package mysql
+package acsql
 
 import (
 	"io"
@@ -6,6 +6,17 @@ import (
 	"log"
 	"time"
 )
+
+// Maximum reconnect retries. Default is 7 which means 1+2+3+4+5 = 15 seconds
+// before return error.
+var MaxRetries = 7
+
+type ConnI interface {
+	Connect() error
+	Reconect() error
+	Use() error
+	Query(sql string, params ...interface{}) ([]Row, ResultI, err error) {
+}
 
 // Return true if error is network error or UnexpectedEOF.
 func IsNetErr(err error) bool {
@@ -17,8 +28,8 @@ func IsNetErr(err error) bool {
 	return false
 }
 
-func (my *Conn) reconnectIfNetErr(nn *int, err *error) {
-	for *err != nil && IsNetErr(*err) && *nn <= my.MaxRetries {
+func (my *ConnI) reconnectIfNetErr(nn *int, err *error) {
+	for *err != nil && IsNetErr(*err) && *nn <= MaxRetries {
 		if my.Debug {
 			log.Printf("Error: '%s' - reconnecting...", *err)
 		}

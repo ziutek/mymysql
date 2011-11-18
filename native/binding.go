@@ -1,87 +1,17 @@
-package mysql
+package native
 
 import (
     "reflect"
-    "fmt"
+	"github.com/ziutek/mymysql"
 )
 
-type Datetime struct {
-    Year  int16
-    Month, Day, Hour, Minute, Second uint8
-    Nanosec uint32
-}
-func (dt *Datetime) String() string {
-    if dt == nil {
-        return "NULL"
-    }
-    if dt.Nanosec != 0 {
-        return fmt.Sprintf(
-            "%04d-%02d-%02d %02d:%02d:%02d.%09d",
-            dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second,
-            dt.Nanosec,
-        )
-    }
-    return fmt.Sprintf(
-        "%04d-%02d-%02d %02d:%02d:%02d",
-        dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second,
-    )
-}
-
-type Date struct {
-    Year  int16
-    Month, Day uint8
-}
-func (dd *Date) String() string {
-    if dd == nil {
-        return "NULL"
-    }
-    return fmt.Sprintf("%04d-%02d-%02d", dd.Year, dd.Month, dd.Day)
-}
-
-type Timestamp Datetime
-func (ts *Timestamp) String() string {
-    return (*Datetime)(ts).String()
-}
-
-// MySQL TIME in nanoseconds. Note that MySQL doesn't store fractional part
-// of second but it is permitted for temporal values.
-type Time int64
-func (tt *Time) String() string {
-    if tt == nil {
-        return "NULL"
-    }
-    ti := int64(*tt)
-    sign := 1
-    if ti < 0 {
-        sign = -1
-        ti = -ti
-    }
-    ns := int(ti % 1e9)
-    ti /= 1e9
-    sec := int(ti % 60)
-    ti /= 60
-    min := int(ti % 60)
-    hour := int(ti / 60) * sign
-    if ns == 0 {
-        return fmt.Sprintf("%d:%02d:%02d", hour, min, sec)
-    }
-    return fmt.Sprintf("%d:%02d:%02d.%09d", hour, min, sec, ns)
-}
-
-type Blob []byte
-
-type Raw struct {
-    Typ uint16
-    Val *[]byte
-}
-
 var (
-    reflectBlobType = reflect.TypeOf(Blob{})
-    reflectDatetimeType = reflect.TypeOf(Datetime{})
-    reflectDateType = reflect.TypeOf(Date{})
-    reflectTimestampType = reflect.TypeOf(Timestamp{})
-    reflectTimeType = reflect.TypeOf(Time(0))
-    reflectRawType = reflect.TypeOf(Raw{})
+    reflectBlobType = reflect.TypeOf(mysql.Blob{})
+    reflectDatetimeType = reflect.TypeOf(mysql.Datetime{})
+    reflectDateType = reflect.TypeOf(mysql.Date{})
+    reflectTimestampType = reflect.TypeOf(mysql.Timestamp{})
+    reflectTimeType = reflect.TypeOf(mysql.Time(0))
+    reflectRawType = reflect.TypeOf(mysql.Raw{})
 )
 
 // val should be an addressable value

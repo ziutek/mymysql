@@ -1,4 +1,4 @@
-package mysql
+package native
 
 import (
 	"errors"
@@ -21,7 +21,7 @@ var (
 	BIND_COUNT_ERROR      = errors.New("wrong number of values for bind")
 	BIND_UNK_TYPE         = errors.New("unknown value type for bind")
 	RESULT_COUNT_ERROR    = errors.New("wrong number of result columns")
-	BAD_COMMAND_ERROR     = errors.New("comand isn't text SQL nor *Statement")
+	BAD_COMMAND_ERROR     = errors.New("comand isn't text SQL nor *Stmt")
 	WRONG_DATE_LEN_ERROR  = errors.New("wrong datetime/timestamp length")
 	WRONG_TIME_LEN_ERROR  = errors.New("wrong time length")
 	UNK_MYSQL_TYPE_ERROR  = errors.New("unknown MySQL type")

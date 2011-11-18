@@ -1,18 +1,8 @@
-package mysql
+package native
 
 import (
     "log"
 )
-
-func (my *Conn) lock() {
-    my.mutex.Lock()
-    //log.Println("Locked")
-}
-
-func (my *Conn) unlock() {
-    //log.Println("Unlocking...")
-	my.mutex.Unlock()
-}
 
 func (my *Conn) init() {
     my.seq = 0 // Reset sequence number, mainly for reconnect
@@ -29,7 +19,7 @@ func (my *Conn) init() {
     read(pr, 1)
     my.info.caps = readU16(pr)
     my.info.lang = readByte(pr)
-    my.Status    = readU16(pr)
+    my.status    = readU16(pr)
     read(pr, 13)
     readFull(pr, my.info.scramble[8:])
     // Skip other information
@@ -37,7 +27,7 @@ func (my *Conn) init() {
 
     if my.Debug {
         log.Printf(tab8s + "ProtVer=%d, ServVer=\"%s\" Status=0x%x",
-            my.info.prot_ver, my.info.serv_ver, my.Status,
+            my.info.prot_ver, my.info.serv_ver, my.status,
         )
     }
 }
@@ -63,7 +53,7 @@ func (my *Conn) auth() {
 
     pw := my.newPktWriter(pay_len)
     writeU32(pw, flags)
-    writeU32(pw, uint32(my.MaxPktSize))
+    writeU32(pw, uint32(my.max_pkt_size))
     writeByte(pw, my.info.lang)   // Charset number
     write(pw, make([]byte, 23))   // Filler
     writeNTS(pw, my.user)         // Username

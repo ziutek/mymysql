@@ -1,4 +1,4 @@
-package mysqlr
+package native
 
 import (
 	"testing"
@@ -8,6 +8,7 @@ import (
 	"time"
 	"bytes"
 	"io/ioutil"
+	"github.com/ziutek/mymysql"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 )
 
 type RowsResErr struct {
-	rows []Row
+	rows []mysql.Row
 	res  *Result
 	err  error
 }
@@ -31,7 +32,7 @@ func query(sql string, params ...interface{}) *RowsResErr {
 	return &RowsResErr{rows, res, err}
 }
 
-func exec(stmt *Statement, params ...interface{}) *RowsResErr {
+func exec(stmt *Stmt, params ...interface{}) *RowsResErr {
 	rows, res, err := stmt.Exec(params...)
 	return &RowsResErr{rows, res, err}
 }
@@ -66,7 +67,7 @@ func checkErrWarn(t *testing.T, res, exp *RowsResErr) {
 	checkWarnCount(t, res.res.WarningCount, exp.res.WarningCount)
 }
 
-func types(row Row) (tt []reflect.Type) {
+func types(row mysql.Row) (tt []reflect.Type) {
 	tt = make([]reflect.Type, len(row))
 	for ii, val := range row {
 		tt[ii] = reflect.TypeOf(val)
@@ -118,7 +119,7 @@ func cmdOK(affected uint64, binary bool) *RowsResErr {
 	Message: []byte{}, AffectedRows: affected}}
 }
 
-func selectOK(rows []Row, binary bool) (exp *RowsResErr) {
+func selectOK(rows []mysql.Row, binary bool) (exp *RowsResErr) {
 	exp = cmdOK(0, binary)
 	exp.rows = rows
 	return
@@ -197,7 +198,7 @@ func TestQuery(t *testing.T) {
 				query("insert T values ('%s')", txt), cmdOK(1, false))
 			val = txt
 		}
-		exp.rows = append(exp.rows, Row{val})
+		exp.rows = append(exp.rows, mysql.Row{val})
 	}
 
 	checkResult(t, query("select s as Str from T as Test"), exp)
@@ -208,7 +209,7 @@ func TestQuery(t *testing.T) {
 // Prepared statements tests
 
 type StmtErr struct {
-	stmt *Statement
+	stmt *Stmt
 	err  error
 }
 
@@ -251,7 +252,7 @@ func TestPrepared(t *testing.T) {
 		cmdOK(0, false),
 	)
 
-	exp := Statement{
+	exp := Stmt{
 		Fields: []*Field{
 			&Field{
 				Catalog: "def", Db: "test", Table: "P", OrgTable: "P",
@@ -297,7 +298,7 @@ func TestPrepared(t *testing.T) {
 	ins := prepare("insert into P values (?, ?, ?)")
 	checkErr(t, ins.err, nil)
 
-	exp_rows := []Row{
+	exp_rows := []mysql.Row{
 		Row{
 			2, "Taki tekst", TimeToDatetime(time.SecondsToLocalTime(123456789)),
 		},
@@ -625,87 +626,6 @@ func TestReconnect(t *testing.T) {
 	myClose(t)
 }
 
-// Auto connect / auto reconnect test
-
-func TestAutoConnectReconnect(t *testing.T) {
-	my = New(conn[0], conn[1], conn[2], user, passwd)
-
-	// Register initialisation commands
-	my.Register("set names utf8")
-
-	// my is in unconnected state
-	checkErr(t, my.UseAC(dbname), nil)
-
-	// Disconnect
-	my.Close()
-
-	// Drop test table if exists
-	my.QueryAC("drop table R")
-
-	// Disconnect
-	my.Close()
-
-	// Create table
-	_, _, err := my.QueryAC(
-		"create table R (id int primary key, name varchar(20))",
-	)
-	checkErr(t, err, nil)
-
-	// Kill the connection
-	_, _, err = my.QueryAC("kill %d", my.ThreadId())
-	checkErr(t, err, nil)
-
-	// Prepare insert statement
-	ins, err := my.PrepareAC("insert R values (?,  ?)")
-	checkErr(t, err, nil)
-
-	// Kill the connection
-	_, _, err = my.QueryAC("kill %d", my.ThreadId())
-	checkErr(t, err, nil)
-
-	// Bind insert parameters
-	ins.BindParams(1, "jeden")
-	// Insert into table
-	_, _, err = ins.ExecAC()
-	checkErr(t, err, nil)
-
-	// Kill the connection
-	_, _, err = my.QueryAC("kill %d", my.ThreadId())
-	checkErr(t, err, nil)
-
-	// Bind insert parameters
-	ins.BindParams(2, "dwa")
-	// Insert into table
-	_, _, err = ins.ExecAC()
-	checkErr(t, err, nil)
-
-	// Kill the connection
-	_, _, err = my.QueryAC("kill %d", my.ThreadId())
-	checkErr(t, err, nil)
-
-	// Select from table
-	rows, res, err := my.QueryAC("select * from R")
-	checkErr(t, err, nil)
-	id := res.Map["id"]
-	name := res.Map["name"]
-	if len(rows) != 2 ||
-		rows[0].Int(id) != 1 || rows[0].Str(name) != "jeden" ||
-		rows[1].Int(id) != 2 || rows[1].Str(name) != "dwa" {
-		t.Fatal("Bad result")
-	}
-
-	// Kill the connection
-	_, _, err = my.QueryAC("kill %d", my.ThreadId())
-	checkErr(t, err, nil)
-
-	// Drop table
-	_, _, err = my.QueryAC("drop table R")
-	checkErr(t, err, nil)
-
-	// Disconnect
-	my.Close()
-}
-
 // StmtSendLongData test
 
 func TestSendLongData(t *testing.T) {
@@ -756,7 +676,7 @@ func TestSendLongData(t *testing.T) {
 	}
 
 	// Send long data from io.Reader twice
-	filename := "_test/github.com/ziutek/mymysql.a"
+	filename := "_test/github.com/ziutek/mymysql/native.a"
 	file, err := os.Open(filename)
 	checkErr(t, err, nil)
 	checkErr(t, ins.SendLongData(1, file, 128*1024), nil)

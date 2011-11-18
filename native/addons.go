@@ -1,4 +1,4 @@
-package mysql
+package native
 
 func NbinToNstr(nbin *[]byte) *string {
     if nbin == nil {

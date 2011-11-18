@@ -1,9 +1,10 @@
-package mysql
+package native
 
 import (
     "io"
     "crypto/sha1"
     "bytes"
+	"github.com/ziutek/mymysql"
 )
 
 func DecodeU16(buf []byte) uint16 {
@@ -275,7 +276,7 @@ func writeNT(wr io.Writer, v interface{}) {
     }
 }
 
-func readNtime(rd io.Reader) *Time {
+func readNtime(rd io.Reader) *mysql.Time {
     dlen := readByte(rd)
     switch dlen {
     case 251:
@@ -283,7 +284,7 @@ func readNtime(rd io.Reader) *Time {
         return nil
     case 0:
         // 00:00:00
-        return new(Time)
+        return new(mysql.Time)
     case 5, 8, 12:
         // Properly time length
     default:
@@ -309,10 +310,10 @@ func readNtime(rd io.Reader) *Time {
     if buf[0] != 0 {
         tt = -tt
     }
-    return (*Time)(&tt)
+    return (*mysql.Time)(&tt)
 }
 
-func readNotNullTime(rd io.Reader) Time {
+func readNotNullTime(rd io.Reader) mysql.Time {
     tt := readNtime(rd)
     if tt == nil {
         panic(UNEXP_NULL_DATE_ERROR)
@@ -320,7 +321,7 @@ func readNotNullTime(rd io.Reader) Time {
     return *tt
 }
 
-func EncodeTime(tt *Time) []byte {
+func EncodeTime(tt *mysql.Time) []byte {
     if tt == nil {
         return []byte{251}
     }
@@ -351,11 +352,11 @@ func EncodeTime(tt *Time) []byte {
     return buf
 }
 
-func writeNtime(wr io.Writer, tt *Time) {
+func writeNtime(wr io.Writer, tt *mysql.Time) {
     write(wr, EncodeTime(tt))
 }
 
-func lenNtime(tt *Time) int {
+func lenNtime(tt *mysql.Time) int {
     if tt == nil || *tt == 0 {
         return 1
     }
@@ -370,7 +371,7 @@ func lenNtime(tt *Time) int {
    return 6
 }
 
-func readNdatetime(rd io.Reader) *Datetime {
+func readNdatetime(rd io.Reader) *mysql.Datetime {
     dlen := readByte(rd)
     switch dlen {
     case 251:
@@ -378,7 +379,7 @@ func readNdatetime(rd io.Reader) *Datetime {
         return nil
     case 0:
         // 0000-00-00
-        return new(Datetime)
+        return new(mysql.Datetime)
     case 4, 7, 11:
         // Properly datetime length
     default:
@@ -387,7 +388,7 @@ func readNdatetime(rd io.Reader) *Datetime {
 
     buf := make([]byte, dlen)
     readFull(rd, buf)
-    var dt Datetime
+    var dt mysql.Datetime
     switch dlen {
     case 11:
         // 2006-01-02 15:04:05.001004005
@@ -408,7 +409,7 @@ func readNdatetime(rd io.Reader) *Datetime {
     return &dt
 }
 
-func readNotNullDatetime(rd io.Reader) (dt *Datetime) {
+func readNotNullDatetime(rd io.Reader) (dt *mysql.Datetime) {
     dt = readNdatetime(rd)
     if dt == nil {
         panic(UNEXP_NULL_DATE_ERROR)
@@ -416,7 +417,7 @@ func readNotNullDatetime(rd io.Reader) (dt *Datetime) {
     return
 }
 
-func EncodeDatetime(dt *Datetime) []byte {
+func EncodeDatetime(dt *mysql.Datetime) []byte {
     if dt == nil {
         return []byte{251}
     }
@@ -444,11 +445,11 @@ func EncodeDatetime(dt *Datetime) []byte {
     return buf
 }
 
-func writeNdatetime(wr io.Writer, dt *Datetime) {
+func writeNdatetime(wr io.Writer, dt *mysql.Datetime) {
     write(wr, EncodeDatetime(dt))
 }
 
-func lenNdatetime(dt *Datetime) int {
+func lenNdatetime(dt *mysql.Datetime) int {
     switch {
     case dt == nil:
         return 1
@@ -462,15 +463,15 @@ func lenNdatetime(dt *Datetime) int {
    return 1
 }
 
-func readNdate(rd io.Reader) *Date {
+func readNdate(rd io.Reader) *mysql.Date {
     dt := readNdatetime(rd)
     if dt == nil {
         return nil
     }
-    return &Date{Year: dt.Year, Month: dt.Month, Day: dt.Day}
+    return &mysql.Date{Year: dt.Year, Month: dt.Month, Day: dt.Day}
 }
 
-func readNotNullDate(rd io.Reader) (dt *Date) {
+func readNotNullDate(rd io.Reader) (dt *mysql.Date) {
     dt = readNdate(rd)
     if dt == nil {
         panic(UNEXP_NULL_DATE_ERROR)
@@ -478,16 +479,16 @@ func readNotNullDate(rd io.Reader) (dt *Date) {
     return
 }
 
-func EncodeDate(dd *Date) []byte {
-    return EncodeDatetime(DateToDatetime(dd))
+func EncodeDate(dd *mysql.Date) []byte {
+    return EncodeDatetime(mysql.DateToDatetime(dd))
 }
 
-func writeNdate(wr io.Writer, dd *Date) {
+func writeNdate(wr io.Writer, dd *mysql.Date) {
     write(wr, EncodeDate(dd))
 }
 
-func lenNdate(dd *Date) int {
-    return lenNdatetime(DateToDatetime(dd))
+func lenNdate(dd *mysql.Date) int {
+    return lenNdatetime(mysql.DateToDatetime(dd))
 }
 
 // Borrowed from GoMySQL

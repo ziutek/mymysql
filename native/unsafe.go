@@ -1,8 +1,9 @@
-package mysql
+package native
 
 import (
     "io"
     "unsafe"
+	"github.com/ziutek/mymysql"
 )
 
 type paramValue struct {
@@ -37,13 +38,13 @@ func (val *paramValue) Len() int {
         return lenNstr((*string)(ptr))
 
     case MYSQL_TYPE_DATE:
-        return lenNdate((*Date)(ptr))
+        return lenNdate((*mysql.Date)(ptr))
 
     case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
-        return lenNdatetime((*Datetime)(ptr))
+        return lenNdatetime((*mysql.Datetime)(ptr))
 
     case MYSQL_TYPE_TIME:
-        return lenNtime((*Time)(ptr))
+        return lenNtime((*mysql.Time)(ptr))
     }
     // MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_BLOB and type of Raw value
     return lenNbin((*[]byte)(ptr))
@@ -87,13 +88,13 @@ func writeValue(wr io.Writer, val *paramValue) {
         writeU64(wr, *(*uint64)(ptr))
 
     case MYSQL_TYPE_DATE:
-        writeNdate(wr, (*Date)(ptr))
+        writeNdate(wr, (*mysql.Date)(ptr))
 
     case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
-        writeNdatetime(wr, (*Datetime)(ptr))
+        writeNdatetime(wr, (*mysql.Datetime)(ptr))
 
     case MYSQL_TYPE_TIME:
-        writeNtime(wr, (*Time)(ptr))
+        writeNtime(wr, (*mysql.Time)(ptr))
 
     default:
         panic(BIND_UNK_TYPE)

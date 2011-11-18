@@ -1,10 +1,11 @@
-package mysql
+package native
 
 import (
+	"github.com/ziutek/mymysql"
 	"log"
 )
 
-type Statement struct {
+type Stmt struct {
 	my  *Conn
 	id  uint32
 	sql string // For reprepare during reconnect
@@ -12,18 +13,34 @@ type Statement struct {
 	params []*paramValue // Parameters binding
 	rebind bool
 
-	Fields []*Field
-	Map    map[string]int // Maps field name to column number
+	fields []*mysql.Field
+	fc_map map[string]int // Maps field name to column number
 
-	FieldCount   int
-	ParamCount   int
-	WarningCount int
-	Status       uint16
+	field_count   int
+	param_count   int
+	warning_count int
+	status        uint16
 }
 
-func (stmt *Statement) sendCmdExec() {
+func (stmt *Stmt) FieldCount() int {
+	return stmt.field_count
+}
+
+func (stmt *Stmt) ParamCount() int {
+	return stmt.param_count
+}
+
+func (stmt *Stmt) WarningCount() int {
+	return stmt.warning_count
+}
+
+func (stmt *Stmt) Status() uint16 {
+	return stmt.status
+}
+
+func (stmt *Stmt) sendCmdExec() {
 	// Calculate packet length and NULL bitmap
-	null_bitmap := make([]byte, (stmt.ParamCount+7)>>3)
+	null_bitmap := make([]byte, (stmt.param_count+7)>>3)
 	pkt_len := 1 + 4 + 1 + 4 + 1 + len(null_bitmap)
 	for ii, param := range stmt.params {
 		par_len := param.Len()
@@ -35,7 +52,7 @@ func (stmt *Statement) sendCmdExec() {
 		}
 	}
 	if stmt.rebind {
-		pkt_len += stmt.ParamCount * 2
+		pkt_len += stmt.param_count * 2
 	}
 	// Reset sequence number
 	stmt.my.seq = 0
@@ -68,7 +85,7 @@ func (stmt *Statement) sendCmdExec() {
 	}
 }
 
-func (my *Conn) getPrepareResult(stmt *Statement) interface{} {
+func (my *Conn) getPrepareResult(stmt *Stmt) interface{} {
 loop:
 	pr := my.newPktReader() // New reader for next packet
 	pkt0 := readByte(pr)
@@ -86,15 +103,15 @@ loop:
 			return my.getPrepareOkPacket(pr)
 		}
 	} else {
-		unreaded_params := (stmt.ParamCount < len(stmt.params))
+		unreaded_params := (stmt.param_count < len(stmt.params))
 		switch {
 		case pkt0 == 254:
 			// EOF packet
-			stmt.WarningCount, stmt.Status = my.getEofPacket(pr)
-			stmt.my.Status = stmt.Status
+			stmt.warning_count, stmt.status = my.getEofPacket(pr)
+			stmt.my.status = stmt.status
 			return stmt
 
-		case pkt0 > 0 && pkt0 < 251 && (stmt.FieldCount < len(stmt.Fields) ||
+		case pkt0 > 0 && pkt0 < 251 && (stmt.field_count < len(stmt.fields) ||
 			unreaded_params):
 			// Field packet
 			if unreaded_params {
@@ -102,13 +119,13 @@ loop:
 				/* skip parameters data: we don't support it yet */
 				my.getFieldPacket(pr)
 				// Increment field count
-				stmt.ParamCount++
+				stmt.param_count++
 			} else {
 				field := my.getFieldPacket(pr)
-				stmt.Fields[stmt.FieldCount] = field
-				stmt.Map[field.Name] = stmt.FieldCount
+				stmt.fields[stmt.field_count] = field
+				stmt.fc_map[field.Name] = stmt.field_count
 				// Increment field count
-				stmt.FieldCount++
+				stmt.field_count++
 			}
 			// Read next packet
 			goto loop
@@ -117,28 +134,28 @@ loop:
 	panic(UNK_RESULT_PKT_ERROR)
 }
 
-func (my *Conn) getPrepareOkPacket(pr *pktReader) (stmt *Statement) {
+func (my *Conn) getPrepareOkPacket(pr *pktReader) (stmt *Stmt) {
 	if my.Debug {
 		log.Printf("[%2d ->] Perpared OK packet:", my.seq-1)
 	}
 
-	stmt = new(Statement)
+	stmt = new(Stmt)
 	// First byte was readed by getPrepRes
 	stmt.my = my
 	stmt.id = readU32(pr)
-	stmt.Fields = make([]*Field, int(readU16(pr)))      // FieldCount
+	stmt.fields = make([]*mysql.Field, int(readU16(pr)))      // FieldCount
 	stmt.params = make([]*paramValue, int(readU16(pr))) // ParamCount
 	read(pr, 1)
-	stmt.WarningCount = int(readU16(pr))
+	stmt.warning_count = int(readU16(pr))
 	pr.checkEof()
 
 	// Make field map if fields exists.
-	if len(stmt.Fields) > 0 {
-		stmt.Map = make(map[string]int)
+	if len(stmt.fields) > 0 {
+		stmt.fc_map = make(map[string]int)
 	}
 	if my.Debug {
 		log.Printf(tab8s+"ID=0x%x ParamCount=%d FieldsCount=%d WarnCount=%d",
-			stmt.id, len(stmt.params), len(stmt.Fields), stmt.WarningCount,
+			stmt.id, len(stmt.params), len(stmt.fields), stmt.warning_count,
 		)
 	}
 	return

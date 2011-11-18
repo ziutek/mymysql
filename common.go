@@ -74,7 +74,7 @@ func lenBS(bs interface{}) int {
 	panic("Can't get length: argument isn't a string nor []byte")
 }
 
-func catchOsError(err *error) {
+func catchError(err *error) {
 	if pv := recover(); pv != nil {
 		if er, ok := pv.(error); ok {
 			*err = er

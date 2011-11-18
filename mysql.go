@@ -82,7 +82,7 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) (my *Conn) {
 
 // Thread unsafe connect
 func (my *Conn) connect() (err error) {
-	defer catchOsError(&err)
+	defer catchError(&err)
 
 	// Make connection
 	switch my.proto {
@@ -166,8 +166,8 @@ func (my *Conn) connect() (err error) {
 
 // Establishes a connection with MySQL server version 4.1 or later.
 func (my *Conn) Connect() (err error) {
-	defer my.unlock()
 	my.lock()
+	defer my.unlock()
 
 	if my.net_conn != nil {
 		return ALREDY_CONN_ERROR
@@ -183,7 +183,7 @@ func (my *Conn) IsConnected() bool {
 
 // Thread unsafe close
 func (my *Conn) closeConn() (err error) {
-	defer catchOsError(&err)
+	defer catchError(&err)
 
 	// Always close and invalidate connection, even if
 	// COM_QUIT returns an error
@@ -199,8 +199,8 @@ func (my *Conn) closeConn() (err error) {
 
 // Close connection to the server
 func (my *Conn) Close() (err error) {
-	defer my.unlock()
 	my.lock()
+	defer my.unlock()
 
 	if my.net_conn == nil {
 		return NOT_CONN_ERROR
@@ -215,8 +215,8 @@ func (my *Conn) Close() (err error) {
 // Close and reopen connection in one, thread-safe operation.
 // Ignore unreaded rows, reprepare all prepared statements.
 func (my *Conn) Reconnect() (err error) {
-	defer my.unlock()
 	my.lock()
+	defer my.unlock()
 
 	if my.net_conn != nil {
 		// Close connection, ignore all errors
@@ -251,9 +251,9 @@ func (my *Conn) Reconnect() (err error) {
 
 // Change database
 func (my *Conn) Use(dbname string) (err error) {
-	defer my.unlock()
-	defer catchOsError(&err)
 	my.lock()
+	defer my.unlock()
+	defer catchError(&err)
 
 	if my.net_conn == nil {
 		return NOT_CONN_ERROR
@@ -272,6 +272,7 @@ func (my *Conn) Use(dbname string) (err error) {
 	return
 }
 
+// *** TODO: (un)lock ***
 func (my *Conn) getResponse(unlock_if_ok bool) (res *Result) {
 	res, ok := my.getResult(nil).(*Result)
 	if !ok {
@@ -289,6 +290,7 @@ func (my *Conn) getResponse(unlock_if_ok bool) (res *Result) {
 	return
 }
 
+// *** TODO: (un)lock ***
 func (my *Conn) unlockIfError(err *error) {
 	if *err != nil {
 		my.unlock()
@@ -301,10 +303,9 @@ func (my *Conn) unlockIfError(err *error) {
 // fmt.Sprintf(sql, params...).
 // You must get all result rows (if they exists) before next query.
 func (my *Conn) Start(sql string, params ...interface{}) (res *Result, err error) {
-
-	defer my.unlockIfError(&err)
-	defer catchOsError(&err)
 	my.lock()
+	defer my.unlockIfError(&err)
+	defer catchError(&err)
 
 	if my.net_conn == nil {
 		return nil, NOT_CONN_ERROR
@@ -325,7 +326,7 @@ func (my *Conn) Start(sql string, params ...interface{}) (res *Result, err error
 }
 
 func (res *Result) getRow() (row Row, err error) {
-	defer catchOsError(&err)
+	defer catchError(&err)
 
 	switch result := res.my.getResult(res).(type) {
 	case Row:
@@ -343,6 +344,7 @@ func (res *Result) getRow() (row Row, err error) {
 
 // Get the data row from a server. This method reads one row of result directly
 // from network connection (without rows buffering on client side).
+// *** TODO: (un)lock ***
 func (res *Result) GetRow() (row Row, err error) {
 	if res.FieldCount == 0 {
 		// There is no fields in result (OK result)
@@ -404,9 +406,9 @@ func (my *Conn) Query(sql string, params ...interface{}) (rows []Row, res *Resul
 
 // Send MySQL PING to the server.
 func (my *Conn) Ping() (err error) {
-	defer my.unlock()
-	defer catchOsError(&err)
 	my.lock()
+	defer my.unlock()
+	defer catchError(&err)
 
 	if my.net_conn == nil {
 		return NOT_CONN_ERROR
@@ -424,7 +426,7 @@ func (my *Conn) Ping() (err error) {
 }
 
 func (my *Conn) prepare(sql string) (stmt *Statement, err error) {
-	defer catchOsError(&err)
+	defer catchError(&err)
 
 	// Send command
 	my.sendCmd(_COM_STMT_PREPARE, sql)
@@ -446,8 +448,8 @@ func (my *Conn) prepare(sql string) (stmt *Statement, err error) {
 
 // Prepare server side statement. Return statement handler.
 func (my *Conn) Prepare(sql string) (stmt *Statement, err error) {
-	defer my.unlock()
 	my.lock()
+	defer my.unlock()
 
 	if my.net_conn == nil {
 		return nil, NOT_CONN_ERROR
@@ -552,9 +554,9 @@ func (stmt *Statement) ResetParams() {
 // them first or specify directly. After this command you may use GetRow to
 // retrieve data.
 func (stmt *Statement) Run(params ...interface{}) (res *Result, err error) {
-	defer stmt.my.unlockIfError(&err)
-	defer catchOsError(&err)
 	stmt.my.lock()
+	defer stmt.my.unlockIfError(&err)
+	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {
 		return nil, NOT_CONN_ERROR
@@ -599,10 +601,10 @@ func (stmt *Statement) Exec(params ...interface{}) (rows []Row, res *Result, err
 // Destroy statement on server side. Client side handler is invalid after this
 // command.
 func (stmt *Statement) Delete() (err error) {
-	defer stmt.my.unlock()
-	defer catchOsError(&err)
-
 	stmt.my.lock()
+	defer stmt.my.unlock()
+	defer catchError(&err)
+
 	if stmt.my.net_conn == nil {
 		return NOT_CONN_ERROR
 	}
@@ -627,9 +629,9 @@ func (stmt *Statement) Delete() (err error) {
 // Resets a prepared statement on server: data sent to the server, unbuffered
 // result sets and current errors.
 func (stmt *Statement) Reset() (err error) {
-	defer stmt.my.unlock()
-	defer catchOsError(&err)
 	stmt.my.lock()
+	defer stmt.my.unlock()
+	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {
 		return NOT_CONN_ERROR
@@ -668,10 +670,9 @@ func (stmt *Statement) Reset() (err error) {
 // io.Reader you should properly set pkt_size. Data will be readed from
 // io.Reader and send in pieces to the server until EOF.
 func (stmt *Statement) SendLongData(pnum int, data interface{}, pkt_size int) (err error) {
-
-	defer stmt.my.unlock()
-	defer catchOsError(&err)
 	stmt.my.lock()
+	defer stmt.my.unlock()
+	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {
 		return NOT_CONN_ERROR

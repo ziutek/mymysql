@@ -20,7 +20,7 @@ func (pr *pktReader) Read(buf []byte) (num int, err error) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
-	defer catchOsError(&err)
+	defer catchError(&err)
 
 	if pr.remain == 0 {
 		// No data to read from current packet
@@ -104,7 +104,7 @@ func (pw *pktWriter) Write(buf []byte) (num int, err error) {
 	if len(buf) == 0 {
 		return
 	}
-	defer catchOsError(&err)
+	defer catchError(&err)
 
 	var nn int
 	for len(buf) != 0 {

@@ -11,7 +11,7 @@ func (my *Conn) lock() {
 
 func (my *Conn) unlock() {
     //log.Println("Unlocking...")
-    my.mutex.Unlock()
+	my.mutex.Unlock()
 }
 
 func (my *Conn) init() {

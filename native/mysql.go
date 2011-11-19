@@ -23,6 +23,8 @@ type serverInfo struct {
 
 // MySQL connection handler
 type Conn struct {
+	mysql.ConnUtils
+
 	proto string // Network protocol
 	laddr string // Local address
 	raddr string // Remote (server) address
@@ -67,6 +69,7 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 		stmt_map:     make(map[uint32]*Stmt),
 		max_pkt_size: 16*1024*1024 - 1,
 	}
+	my.ConnUtils.Con = my
 	if len(db) == 1 {
 		my.dbname = db[0]
 	} else if len(db) > 1 {
@@ -282,7 +285,7 @@ func (my *Conn) getResponse() (res *Result) {
 // If you specify the parameters, the SQL string will be a result of
 // fmt.Sprintf(sql, params...).
 // You must get all result rows (if they exists) before next query.
-func (my *Conn) Query(sql string, params ...interface{}) (res mysql.Result, err error) {
+func (my *Conn) Start(sql string, params ...interface{}) (res mysql.Result, err error) {
 	defer catchError(&err)
 
 	if my.net_conn == nil {
@@ -503,7 +506,7 @@ func (stmt *Stmt) ResetParams() {
 // Execute prepared statement. If statement requires parameters you may bind
 // them first or specify directly. After this command you may use GetRow to
 // retrieve data.
-func (stmt *Stmt) Exec(params ...interface{}) (res mysql.Result, err error) {
+func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
 	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {

@@ -6,22 +6,28 @@ type Conn interface {
 	Reconnect() error
 	Ping() error
 	Use(dbname string) error
-	Query(sql string, params ...interface{}) (Result, error)
+	Start(sql string, params ...interface{}) (Result, error)
 	Prepare(sql string) (Stmt, error)
 
 	SetMaxPktSize(new_size int) int
+
+	Query(sql string, params ...interface{}) ([]Row, Result, error)
 }
 
 type Stmt interface {
-	Exec(params ...interface{}) (Result, error)
+	BindParams(params ...interface{})
+	ResetParams()
+	Run(params ...interface{}) (Result, error)
 	Delete() error
 	Reset() error
 	SendLongData(pnum int, data interface{}, pkt_size int) error
 
-	Map() map[string]int
+	Map(string) int
 	FieldCount() int
 	ParamCount() int
 	WarningCount() int
+
+	Exec(params ...interface{}) ([]Row, Result, error)
 }
 
 type Result interface {
@@ -30,7 +36,7 @@ type Result interface {
 	NextResult() (Result, error)
 
 	Fields() []*Field
-	Map() map[string]int
+	Map(string) int
 	Message() string
 	AffectedRows() uint64
 	InsertId() uint64

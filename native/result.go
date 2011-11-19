@@ -7,7 +7,7 @@ import (
 )
 
 type Result struct {
-	mysql.ResUtils
+	mysql.ResultUtils
 
 	my     *Conn
 	binary bool // Binary result expected
@@ -34,8 +34,12 @@ func (res *Result) Fields() []*mysql.Field {
 	return res.fields
 }
 
-func (res *Result) Map() map[string]int {
-	return res.fc_map
+// Returns index for given name or -1 if field of that name doesn't exist
+func (res *Result) Map(field_name string) int {
+	if fi, ok := res.fc_map[field_name]; ok {
+		return fi
+	}
+	return -1
 }
 
 func (res *Result) Message() string {
@@ -111,7 +115,7 @@ func (my *Conn) getOkPacket(pr *pktReader) (res *Result) {
 		log.Printf("[%2d ->] OK packet:", my.seq-1)
 	}
 	res = new(Result)
-	res.ResUtils.Res = res
+	res.ResultUtils.Res = res
 	res.my = my
 	// First byte was readed by getResult
 	res.affected_rows = readNotNullU64(pr)

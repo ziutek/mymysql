@@ -1,11 +1,13 @@
 package native
 
 import (
-	"github.com/ziutek/mymysql"
 	"log"
+	"github.com/ziutek/mymysql"
 )
 
 type Stmt struct {
+	mysql.StmtUtils
+
 	my  *Conn
 	id  uint32
 	sql string // For reprepare during reconnect
@@ -22,8 +24,12 @@ type Stmt struct {
 	status        uint16
 }
 
-func (stmt *Stmt) Map() map[string]int {
-	return stmt.fc_map
+// Returns index for given name or -1 if field of that name doesn't exist
+func (res *Stmt) Map(field_name string) int {
+	if fi, ok := res.fc_map[field_name]; ok {
+		return fi
+	}
+	return -1
 }
 
 func (stmt *Stmt) FieldCount() int {
@@ -141,6 +147,7 @@ func (my *Conn) getPrepareOkPacket(pr *pktReader) (stmt *Stmt) {
 
 	stmt = new(Stmt)
 	// First byte was readed by getPrepRes
+	stmt.StmtUtils.Stm = stmt
 	stmt.my = my
 	stmt.id = readU32(pr)
 	stmt.fields = make([]*mysql.Field, int(readU16(pr)))      // FieldCount

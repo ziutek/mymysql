@@ -6,6 +6,6 @@ GOFILES=\
 	field.go\
 	row.go\
 	interface.go\
-	resutils.go\
+	utils.go\
 
 include $(GOROOT)/src/Make.pkg

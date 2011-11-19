@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	my     *Conn
+	my     mysql.Conn
 	user   = "testuser"
 	passwd = "TestPasswd9"
 	dbname = "test"
@@ -23,13 +23,13 @@ var (
 
 type RowsResErr struct {
 	rows []mysql.Row
-	res  *Result
+	res  mysql.Result
 	err  error
 }
 
 func query(sql string, params ...interface{}) *RowsResErr {
-	res, err := my.Query(sql, params...)
-	return &RowsResErr{res.GetRows(), res.(*Result), err}
+	rows, res, err := my.Query(sql, params...)
+	return &RowsResErr{rows, res, err}
 }
 
 func exec(stmt *Stmt, params ...interface{}) *RowsResErr {
@@ -55,8 +55,8 @@ func checkWarnCount(t *testing.T, res_cnt, exp_cnt int) {
 			t.Fatal("Can't get warrnings from MySQL", err)
 		}
 		for _, row := range rows {
-			t.Errorf("%s: \"%s\"", row.Str(res.Map["Level"]),
-				row.Str(res.Map["Message"]))
+			t.Errorf("%s: \"%s\"", row.Str(res.Map("Level")),
+				row.Str(res.Map("Message")))
 		}
 		t.FailNow()
 	}
@@ -64,7 +64,7 @@ func checkWarnCount(t *testing.T, res_cnt, exp_cnt int) {
 
 func checkErrWarn(t *testing.T, res, exp *RowsResErr) {
 	checkErr(t, res.err, exp.err)
-	checkWarnCount(t, res.res.WarningCount, exp.res.WarningCount)
+	checkWarnCount(t, res.res.WarningCount(), exp.res.WarningCount())
 }
 
 func types(row mysql.Row) (tt []reflect.Type) {
@@ -109,14 +109,15 @@ func checkErrWarnRows(t *testing.T, res, exp *RowsResErr) {
 
 func checkResult(t *testing.T, res, exp *RowsResErr) {
 	checkErrWarnRows(t, res, exp)
+	exp.res.(*Result).ResultUtils.Res = res.res.(*Result).ResultUtils.Res
 	if (!reflect.DeepEqual(res.res, exp.res)) {
 		t.Fatalf("Bad result:\nres=%+v\nexp=%+v", res.res, exp.res)
 	}
 }
 
 func cmdOK(affected uint64, binary bool) *RowsResErr {
-	return &RowsResErr{res: &Result{my: my, binary: binary, Status: 0x2,
-	Message: []byte{}, AffectedRows: affected}}
+	return &RowsResErr{res: &Result{my: my.(*Conn), binary: binary, status: 0x2,
+	message: []byte{}, affected_rows: affected}}
 }
 
 func selectOK(rows []mysql.Row, binary bool) (exp *RowsResErr) {
@@ -133,9 +134,9 @@ func myConnect(t *testing.T, with_dbname bool, max_pkt_size int) {
 	}
 
 	if max_pkt_size != 0 {
-		my.MaxPktSize = max_pkt_size
+		my.SetMaxPktSize(max_pkt_size)
 	}
-	my.Debug = debug
+	my.(*Conn).Debug = debug
 
 	checkErr(t, my.Connect(), nil)
 	checkResult(t, query("set names utf8"), cmdOK(0, false))
@@ -166,10 +167,10 @@ func TestQuery(t *testing.T) {
 
 	exp := &RowsResErr{
 		res: &Result{
-			my:         my,
-			FieldCount: 1,
-			Fields: []*Field{
-				&Field{
+			my:         my.(*Conn),
+			field_count: 1,
+			fields: []*mysql.Field{
+				&mysql.Field{
 					Catalog:  "def",
 					Db:       "test",
 					Table:    "Test",
@@ -182,8 +183,8 @@ func TestQuery(t *testing.T) {
 					Scale:    0,
 				},
 			},
-			Map:    map[string]int{"Str": 0},
-			Status: _SERVER_STATUS_AUTOCOMMIT,
+			fc_map:    map[string]int{"Str": 0},
+			status: _SERVER_STATUS_AUTOCOMMIT,
 		},
 	}
 
@@ -215,24 +216,24 @@ type StmtErr struct {
 
 func prepare(sql string) *StmtErr {
 	stmt, err := my.Prepare(sql)
-	return &StmtErr{stmt, err}
+	return &StmtErr{stmt.(*Stmt), err}
 }
 
 func checkStmt(t *testing.T, res, exp *StmtErr) {
 	ok := res.err == exp.err &&
 		// Skipping id
-		reflect.DeepEqual(res.stmt.Fields, exp.stmt.Fields) &&
-		reflect.DeepEqual(res.stmt.Map, exp.stmt.Map) &&
-		res.stmt.FieldCount == exp.stmt.FieldCount &&
-		res.stmt.ParamCount == exp.stmt.ParamCount &&
-		res.stmt.WarningCount == exp.stmt.WarningCount &&
-		res.stmt.Status == exp.stmt.Status
+		reflect.DeepEqual(res.stmt.fields, exp.stmt.fields) &&
+		reflect.DeepEqual(res.stmt.fc_map, exp.stmt.fc_map) &&
+		res.stmt.field_count == exp.stmt.field_count &&
+		res.stmt.param_count == exp.stmt.param_count &&
+		res.stmt.warning_count == exp.stmt.warning_count &&
+		res.stmt.status == exp.stmt.status
 
 	if !ok {
 		if exp.err == nil {
 			checkErr(t, res.err, nil)
-			checkWarnCount(t, res.stmt.WarningCount, exp.stmt.WarningCount)
-			for _, v := range res.stmt.Fields {
+			checkWarnCount(t, res.stmt.warning_count, exp.stmt.warning_count)
+			for _, v := range res.stmt.fields {
 				fmt.Printf("%+v\n", v)
 			}
 			t.Fatalf("Bad result statement: res=%v exp=%v", res.stmt, exp.stmt)
@@ -253,8 +254,8 @@ func TestPrepared(t *testing.T) {
 	)
 
 	exp := Stmt{
-		Fields: []*Field{
-			&Field{
+		fields: []*mysql.Field{
+			&mysql.Field{
 				Catalog: "def", Db: "test", Table: "P", OrgTable: "P",
 				Name:    "i",
 				OrgName: "ii",
@@ -263,7 +264,7 @@ func TestPrepared(t *testing.T) {
 				Type:    MYSQL_TYPE_LONG,
 				Scale:   0,
 			},
-			&Field{
+			&mysql.Field{
 				Catalog: "def", Db: "test", Table: "P", OrgTable: "P",
 				Name:    "s",
 				OrgName: "ss",
@@ -272,7 +273,7 @@ func TestPrepared(t *testing.T) {
 				Type:    MYSQL_TYPE_VAR_STRING,
 				Scale:   0,
 			},
-			&Field{
+			&mysql.Field{
 				Catalog: "def", Db: "test", Table: "P", OrgTable: "P",
 				Name:    "d",
 				OrgName: "dd",
@@ -282,11 +283,11 @@ func TestPrepared(t *testing.T) {
 				Scale:   0,
 			},
 		},
-		Map:          map[string]int{"i": 0, "s": 1, "d": 2},
-		FieldCount:   3,
-		ParamCount:   2,
-		WarningCount: 0,
-		Status:       0x2,
+		fc_map:          map[string]int{"i": 0, "s": 1, "d": 2},
+		field_count:   3,
+		param_count:   2,
+		warning_count: 0,
+		status:       0x2,
 	}
 
 	sel := prepare("select ii i, ss s, dd d from P where ii = ? and ss = ?")
@@ -299,25 +300,25 @@ func TestPrepared(t *testing.T) {
 	checkErr(t, ins.err, nil)
 
 	exp_rows := []mysql.Row{
-		Row{
-			2, "Taki tekst", TimeToDatetime(time.SecondsToLocalTime(123456789)),
+		mysql.Row{
+			2, "Taki tekst", mysql.TimeToDatetime(time.SecondsToLocalTime(123456789)),
 		},
-		Row{
-			3, "Łódź się kołysze!", TimeToDatetime(time.SecondsToLocalTime(0)),
+		mysql.Row{
+			3, "Łódź się kołysze!", mysql.TimeToDatetime(time.SecondsToLocalTime(0)),
 		},
-		Row{
-			5, "Pąk róży", TimeToDatetime(time.SecondsToLocalTime(9999999999)),
+		mysql.Row{
+			5, "Pąk róży", mysql.TimeToDatetime(time.SecondsToLocalTime(9999999999)),
 		},
-		Row{
-			11, "Zero UTC datetime", TimeToDatetime(time.SecondsToUTC(0)),
+		mysql.Row{
+			11, "Zero UTC datetime", mysql.TimeToDatetime(time.SecondsToUTC(0)),
 		},
-		Row{
-			17, Blob([]byte("Zero datetime")), new(Datetime),
+		mysql.Row{
+			17, mysql.Blob([]byte("Zero datetime")), new(mysql.Datetime),
 		},
-		Row{
-			23, []byte("NULL datetime"), (*Datetime)(nil),
+		mysql.Row{
+			23, []byte("NULL datetime"), (*mysql.Datetime)(nil),
 		},
-		Row{
+		mysql.Row{
 			23, "NULL", nil,
 		},
 	}
@@ -455,7 +456,7 @@ func TestDate(t *testing.T) {
 
 	dd := "2011-12-13"
 	dt := "2010-12-12 11:24:00"
-	tt := -Time((124*3600+4*3600+3*60+2)*1e9 + 1)
+	tt := -mysql.Time((124*3600+4*3600+3*60+2)*1e9 + 1)
 
 	ins, err := my.Prepare("insert D values (?, ?, ?, ?)")
 	checkErr(t, err, nil)
@@ -466,7 +467,7 @@ func TestDate(t *testing.T) {
 	_, err = ins.Run(1, dd, dt, tt)
 	checkErr(t, err, nil)
 
-	rows, _, err := sel.Exec(StrToDatetime(dd), StrToDate(dd))
+	rows, _, err := sel.Exec(mysql.StrToDatetime(dd), mysql.StrToDate(dd))
 	checkErr(t, err, nil)
 	if rows == nil {
 		t.Fatal("nil result")
@@ -474,8 +475,8 @@ func TestDate(t *testing.T) {
 	if rows[0].Int(0) != 1 {
 		t.Fatal("Bad id", rows[0].Int(1))
 	}
-	if rows[0][1].(Time) != tt+1 {
-		t.Fatal("Bad tt", rows[0][1].(Time))
+	if rows[0][1].(mysql.Time) != tt+1 {
+		t.Fatal("Bad tt", rows[0][1].(mysql.Time))
 	}
 
 	checkResult(t, query("drop table D"), cmdOK(0, false))
@@ -498,19 +499,19 @@ func TestBigBlob(t *testing.T) {
 	sel, err := my.Prepare("select bb from P where id = ?")
 	checkErr(t, err, nil)
 
-	big_blob := make(Blob, 33*1024*1024)
+	big_blob := make(mysql.Blob, 33*1024*1024)
 	for ii := range big_blob {
 		big_blob[ii] = byte(ii)
 	}
 
 	var (
 		rre RowsResErr
-		bb  Blob
+		bb  mysql.Blob
 		id  int
 	)
 	data := struct {
 		Id int
-		Bb Blob
+		Bb mysql.Blob
 	}{}
 
 	// Individual parameters binding
@@ -565,7 +566,7 @@ func TestBigBlob(t *testing.T) {
 		t.Fatal(tmr)
 	}
 
-	if bytes.Compare(row.Bin(res.Map["bb"]), data.Bb) != 0 {
+	if bytes.Compare(row.Bin(res.Map("bb")), data.Bb) != 0 {
 		t.Fatal("Partial blob data don't match")
 	}
 

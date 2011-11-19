@@ -1,12 +1,14 @@
 package native
 
 import (
-	"github.com/ziutek/mymysql"
 	"log"
 	"math"
+	"github.com/ziutek/mymysql"
 )
 
 type Result struct {
+	mysql.ResUtils
+
 	my     *Conn
 	binary bool // Binary result expected
 
@@ -50,10 +52,6 @@ func (res *Result) InsertId() uint64 {
 
 func (res *Result) WarningCount() int {
 	return res.warning_count
-}
-
-func (res *Result) Status() uint16 {
-	return res.status
 }
 
 func (my *Conn) getResult(res *Result) interface{} {
@@ -113,8 +111,9 @@ func (my *Conn) getOkPacket(pr *pktReader) (res *Result) {
 		log.Printf("[%2d ->] OK packet:", my.seq-1)
 	}
 	res = new(Result)
-	// First byte was readed by getResult
+	res.ResUtils.Res = res
 	res.my = my
+	// First byte was readed by getResult
 	res.affected_rows = readNotNullU64(pr)
 	res.insert_id = readNotNullU64(pr)
 	res.status = readU16(pr)
@@ -142,11 +141,11 @@ func (my *Conn) getErrorPacket(pr *pktReader) {
 		panic(PKT_ERROR)
 	}
 	read(pr, 5)
-	err.Msg = pr.readAll()
+	err.msg = pr.readAll()
 	pr.checkEof()
 
 	if my.Debug {
-		log.Printf(tab8s+"code=0x%x msg=\"%s\"", err.Code, err.Msg)
+		log.Printf(tab8s+"code=0x%x msg=\"%s\"", err.Code, err.msg)
 	}
 	panic(&err)
 }

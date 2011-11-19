@@ -35,12 +35,12 @@ var (
 // Code for error number.
 type Error struct {
 	Code uint16
-	Msg  []byte
+	msg  []byte
 }
 
 func (err Error) Error() string {
 	return fmt.Sprintf("Received #%d error from MySQL server: \"%s\"",
-		err.Code, err.Msg)
+		err.Code, err.msg)
 }
 
 // MySQL error codes

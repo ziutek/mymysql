@@ -22,6 +22,10 @@ type Stmt struct {
 	status        uint16
 }
 
+func (stmt *Stmt) Map() map[string]int {
+	return stmt.fc_map
+}
+
 func (stmt *Stmt) FieldCount() int {
 	return stmt.field_count
 }
@@ -32,10 +36,6 @@ func (stmt *Stmt) ParamCount() int {
 
 func (stmt *Stmt) WarningCount() int {
 	return stmt.warning_count
-}
-
-func (stmt *Stmt) Status() uint16 {
-	return stmt.status
 }
 
 func (stmt *Stmt) sendCmdExec() {

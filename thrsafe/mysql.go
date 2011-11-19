@@ -32,7 +32,7 @@ type Stmt struct {
 	conn *Conn
 }
 
-func New(proto, laddr, raddr, user, passwd string, db ...string) *Conn {
+func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &Conn{
 		native.New(proto, laddr, raddr, user, passwd, db...).(*native.Conn),
 		new(sync.Mutex),
@@ -63,14 +63,14 @@ func (c *Conn) Use(dbname string) error {
 	return c.Conn.Use(dbname)
 }
 
-func (c *Conn) Start(sql string, params ...interface{}) (*Result, error) {
+func (c *Conn) Query(sql string, params ...interface{}) (mysql.Result, error) {
 	c.lock()
-	res, err := c.Conn.Start(sql, params...)
-	if err != nil || res.Fields() == 0 {
-		// Unlock if error or OK result (result without data)
+	res, err := c.Conn.Query(sql, params...)
+	if err != nil || len(res.Fields()) == 0 {
+		// Unlock if error or OK result (which doesn't provide any fields)
 		c.unlock()
 	}
-	return &Result{res, c}, err
+	return &Result{res.(*native.Result), c}, err
 }
 
 func (res *Result) GetRow() (mysql.Row, error) {
@@ -81,9 +81,9 @@ func (res *Result) GetRow() (mysql.Row, error) {
 	return row, err
 }
 
-func (res *Result) NextResult() (*Result, error) {
+func (res *Result) NextResult() (mysql.Result, error) {
 	next, err := res.Result.NextResult()
-	return &Result{next, res.conn}, err
+	return &Result{next.(*native.Result), res.conn}, err
 }
 
 func (c *Conn) Ping() error {
@@ -92,21 +92,21 @@ func (c *Conn) Ping() error {
 	return c.Conn.Ping()
 }
 
-func (c *Conn) Prepare(sql string) (*Stmt, error) {
+func (c *Conn) Prepare(sql string) (mysql.Stmt, error) {
 	c.lock()
 	defer c.unlock()
 
 	stmt, err := c.Conn.Prepare(sql)
-	return &Stmt{stmt, c}, err
+	return &Stmt{stmt.(*native.Stmt), c}, err
 }
 
-func (stmt *Stmt) Run(params ...interface{}) (*Result, error) {
+func (stmt *Stmt) Exec(params ...interface{}) (mysql.Result, error) {
 	stmt.conn.lock()
-	res, err := stmt.Stmt.Run()
+	res, err := stmt.Stmt.Exec()
 	if err != nil {
 		stmt.conn.unlock()
 	}
-	return &Result{res, stmt.conn}, err
+	return &Result{res.(*native.Result), stmt.conn}, err
 }
 
 func (stmt *Stmt) Delete() error {
@@ -126,4 +126,8 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) error {
 	stmt.conn.lock()
 	defer stmt.conn.unlock()
 	return stmt.Stmt.SendLongData(pnum, data, pkt_size)
+}
+
+func init() {
+	mysql.New = New
 }

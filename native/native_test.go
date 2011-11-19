@@ -28,8 +28,8 @@ type RowsResErr struct {
 }
 
 func query(sql string, params ...interface{}) *RowsResErr {
-	rows, res, err := my.Query(sql, params...)
-	return &RowsResErr{rows, res, err}
+	res, err := my.Query(sql, params...)
+	return &RowsResErr{res.GetRows(), res.(*Result), err}
 }
 
 func exec(stmt *Stmt, params ...interface{}) *RowsResErr {

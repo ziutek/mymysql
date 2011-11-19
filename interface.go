@@ -6,15 +6,14 @@ type Conn interface {
 	Reconnect() error
 	Ping() error
 	Use(dbname string) error
-	Start(sql string, params ...interface{}) (Result, error)
+	Query(sql string, params ...interface{}) (Result, error)
 	Prepare(sql string) (Stmt, error)
 
-	Status() uint16
 	SetMaxPktSize(new_size int) int
 }
 
 type Stmt interface {
-	Run(params ...interface{}) (Result, error)
+	Exec(params ...interface{}) (Result, error)
 	Delete() error
 	Reset() error
 	SendLongData(pnum int, data interface{}, pkt_size int) error
@@ -23,7 +22,6 @@ type Stmt interface {
 	FieldCount() int
 	ParamCount() int
 	WarningCount() int
-	Status() uint16
 }
 
 type Result interface {
@@ -37,7 +35,9 @@ type Result interface {
 	AffectedRows() uint64
 	InsertId() uint64
 	WarningCount() int
-	Status() uint16
+
+	GetRows() ([]Row, error)
+	End() error
 }
 
 var New func(proto, laddr, raddr, user, passwd string, db ...string) Conn

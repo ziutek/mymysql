@@ -75,10 +75,6 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return my
 }
 
-func (my *Conn) Status() uint16 {
-	return my.status
-}
-
 // If new_size > 0 sets maximum packet size. Returns old size.
 func (my *Conn) SetMaxPktSize(new_size int) int {
 	old_size := my.max_pkt_size
@@ -286,7 +282,7 @@ func (my *Conn) getResponse() (res *Result) {
 // If you specify the parameters, the SQL string will be a result of
 // fmt.Sprintf(sql, params...).
 // You must get all result rows (if they exists) before next query.
-func (my *Conn) Start(sql string, params ...interface{}) (res mysql.Result, err error) {
+func (my *Conn) Query(sql string, params ...interface{}) (res mysql.Result, err error) {
 	defer catchError(&err)
 
 	if my.net_conn == nil {
@@ -507,7 +503,7 @@ func (stmt *Stmt) ResetParams() {
 // Execute prepared statement. If statement requires parameters you may bind
 // them first or specify directly. After this command you may use GetRow to
 // retrieve data.
-func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
+func (stmt *Stmt) Exec(params ...interface{}) (res mysql.Result, err error) {
 	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {
@@ -580,7 +576,7 @@ func (stmt *Stmt) Reset() (err error) {
 }
 
 // Send long data to MySQL server in chunks.
-// You can call this method after Bind and before Run/Execute. It can be called
+// You can call this method after Bind and before Exec. It can be called
 // multiple times for one parameter to send TEXT or BLOB data in chunks.
 //
 // pnum     - Parameter number to associate the data with.
@@ -673,10 +669,14 @@ func (my *Conn) Register(sql string) {
 }
 
 // Escapes special characters in the txt, so it is safe to place returned string
-// to Query or Start method.
+// to Query method.
 func (my *Conn) EscapeString(txt string) string {
 	if my.status&_SERVER_STATUS_NO_BACKSLASH_ESCAPES != 0 {
 		return escapeQuotes(txt)
 	}
 	return escapeString(txt)
+}
+
+func init() {
+	mysql.New = New
 }

@@ -18,7 +18,7 @@ var (
 	dbname = "test"
 	//conn   = []string{"unix", "", "/var/run/mysqld/mysqld.sock"}
 	conn  = []string{"tcp", "", "127.0.0.1:3306"}
-	debug = false
+	debug = true
 )
 
 type RowsResErr struct {
@@ -644,10 +644,11 @@ func TestSendLongData(t *testing.T) {
 
 	var (
 		rre RowsResErr
-		id  int
+		id  int64
+		bb  *[]byte = &[]byte{}
 	)
 
-	ins.BindParams(&id, nil)
+	ins.BindParams(&id, bb)
 	sel.BindParams(&id)
 
 	// Prepare data
@@ -663,6 +664,7 @@ func TestSendLongData(t *testing.T) {
 	rre.res, rre.err = ins.Run()
 	checkResult(t, &rre, cmdOK(1, true))
 
+	return
 	res, err := sel.Run()
 	checkErr(t, err, nil)
 

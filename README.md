@@ -105,7 +105,7 @@ For testing you need test database and test user:
     mysql> grant all privileges on test.* to testuser@localhost;
     mysql> set password for testuser@localhost = password("TestPasswd9")
 
-Make sure that MySQL *max_allowed_packet* variable in *my.cnf is greater than
+Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is greater than
 33M (needed to test long packets) and logging is disabled. If logging is enabled
 test may fail with this message:
 

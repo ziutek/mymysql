@@ -1,8 +1,8 @@
 package native
 
 import (
-	"log"
 	"github.com/ziutek/mymysql"
+	"log"
 )
 
 type Stmt struct {
@@ -82,13 +82,14 @@ func (stmt *Stmt) sendCmdExec() {
 	for _, param := range stmt.params {
 		writeValue(pw, param)
 	}
-	// Mark that we sended information about binded types
-	stmt.rebind = false
 
 	if stmt.my.Debug {
-		log.Printf("[%2d <-] Exec command packet: len=%d",
-			stmt.my.seq-1, pkt_len)
+		log.Printf("[%2d <-] Exec command packet: len=%d, null_bitmap=%v, rebind=%t",
+			stmt.my.seq-1, pkt_len, null_bitmap, stmt.rebind)
 	}
+
+	// Mark that we sended information about binded types
+	stmt.rebind = false
 }
 
 func (my *Conn) getPrepareResult(stmt *Stmt) interface{} {
@@ -150,8 +151,8 @@ func (my *Conn) getPrepareOkPacket(pr *pktReader) (stmt *Stmt) {
 	stmt.StmtUtils.Stm = stmt
 	stmt.my = my
 	stmt.id = readU32(pr)
-	stmt.fields = make([]*mysql.Field, int(readU16(pr)))      // FieldCount
-	stmt.params = make([]*paramValue, int(readU16(pr))) // ParamCount
+	stmt.fields = make([]*mysql.Field, int(readU16(pr))) // FieldCount
+	stmt.params = make([]*paramValue, int(readU16(pr)))  // ParamCount
 	read(pr, 1)
 	stmt.warning_count = int(readU16(pr))
 	pr.checkEof()

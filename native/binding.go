@@ -19,11 +19,11 @@ func bindValue(val reflect.Value) (out *paramValue) {
     if !val.IsValid() {
         return &paramValue{typ: MYSQL_TYPE_NULL}
     }
-    // We allways return an unsafe pointer to pointer to value, so create it
     typ := val.Type()
+	out = new(paramValue)
     if typ.Kind() == reflect.Ptr {
         // We have addressable pointer
-        out = &paramValue{addr: unsafePointer(val.UnsafeAddr())}
+        out.SetAddr(val.UnsafeAddr())
         // Dereference pointer for next operation on its value
         typ = typ.Elem()
         val = val.Elem()
@@ -33,7 +33,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
         // This pointer is unaddressable so copy it and return an address
         ppv := reflect.New(pv.Type())
         ppv.Elem().Set(pv)
-        out = &paramValue{addr: unsafePointer(ppv.Pointer())}
+        out.SetAddr(ppv.Pointer())
     }
 
     // Obtain value type
@@ -140,9 +140,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
         }
         if typ == reflectRawType {
             out.typ = val.FieldByName("Typ").Interface().(uint16)
-            out.addr = unsafePointer(
-                val.FieldByName("Val").Pointer(),
-            )
+            out.SetAddr(val.FieldByName("Val").Pointer())
             out.raw = true
             return
         }

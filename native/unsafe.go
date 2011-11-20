@@ -13,8 +13,8 @@ type paramValue struct {
     length int  // >=0 - length of value, <0 - unknown length
 }
 
-func unsafePointer(addr uintptr) unsafe.Pointer {
-    return unsafe.Pointer(addr)
+func (pv *paramValue) SetAddr(addr uintptr) {
+    pv.addr = unsafe.Pointer(addr)
 }
 
 func (val *paramValue) Len() int {

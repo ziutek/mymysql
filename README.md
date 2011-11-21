@@ -27,6 +27,8 @@ Modular design
 *mysql.New* and other functions returns mostly interface types. So all
 previously exported members were converted to methods (with except *mysql.Row*
 and *mysql.Field* - they deffinition didn't changed).
+5. Transactions added. If you use *mymysql/thrsafe" engine transactions are
+full thread safe.
 
 #### v0.3.8
 
@@ -215,7 +217,7 @@ If you do not want to load the entire result into memory you may use
         fmt.Println()
     }
 
-## Example 2 - prepared statements
+### Example 2 - prepared statements
 
 You can use *Run* or *Exec* method for prepared statements:
 
@@ -285,7 +287,7 @@ This is improved part of previous example:
         checkError(err)
     }
 
-## Example 3 - using SendLongData in conjunction with http.Get
+### Example 3 - using SendLongData in conjunction with http.Get
 
     _, err = db.Start("CREATE TABLE web (url VARCHAR(80), content LONGBLOB)")
     checkError(err)
@@ -320,7 +322,7 @@ This is improved part of previous example:
         checkError(err)
     }
 
-## Example 4 - multi statement / multi result
+## #Example 4 - multi statement / multi result
 
     res, err := db.Start("select id from M; select name from M")
     checkError(err)
@@ -356,7 +358,51 @@ This is improved part of previous example:
         functionThatUseName(row.Str(0))
     }
 
-## Example 5 - autoreconn interface
+### Example 5 - transactions
+
+    import (
+        "github.com/ziutek/mymysql/mysql"
+        _ "github.com/ziutek/mymysql/thrsafe" // for thread safe transactions
+
+    // [...]
+
+    // Statements prepared before transaction begin
+    ins, err := db.Prepare("insert A values (?, ?)")
+    checkError(err)
+
+    // Begin a new transaction
+    tr, err := db.Begin()
+    checkError(err)
+
+    // Now db is locked, so any method that uses db and sends commands to
+    // MySQL server will be blocked until Commit or Rollback will be called.
+    
+    // Commands in transaction are thread safe to
+    go func() {
+        _, err = tr.Start("insert A values (1, 'jeden')")
+        checkError(err)
+    } ()
+    _, err = tr.Start("insert A values (2, 'dwa')")
+    checkError(err)
+
+    // You can't use statements prepared before transaction in usual way,
+    //  because connection is locked by Begin method. You must bind statement
+    // to transaction before use it.
+    _, err = tr.Do(ins).Run(3, "trzy")
+    checkError(err)
+    
+    // For a greater number of calls
+    ti := tr.Do(ins)
+    _, err = ti.Run(4, "cztery")
+    checkError(err)
+    _, err = ti.Run(5, "pięć")
+    checkError(err)
+    
+    // At end you can Commit or Rollback. tr is invalidated and any use of it
+    // after Commit/Rollback causes panic.
+    tr.Commit()
+
+### Example 6 - autoreconn interface
 
     import (
         "github.com/ziutek/mymysql/autorc"

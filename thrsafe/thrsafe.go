@@ -7,37 +7,42 @@ import (
 	"sync"
 	//"log"
 	"github.com/ziutek/mymysql/mysql"
-	"github.com/ziutek/mymysql/native"
+	_ "github.com/ziutek/mymysql/native"
 )
 
 type Conn struct {
-	*native.Conn
+	mysql.Conn
 	mutex *sync.Mutex
 }
 
 func (c *Conn) lock() {
-	//log.Println("lock")
+	//log.Println(c, ":: lock @", c.mutex)
 	c.mutex.Lock()
 }
 
 func (c *Conn) unlock() {
+	//log.Println(c, ":: unlock @", c.mutex)
 	c.mutex.Unlock()
-	//log.Println("unlock")
 }
 
 type Result struct {
-	*native.Result
+	mysql.Result
 	conn *Conn
 }
 
 type Stmt struct {
-	*native.Stmt
+	mysql.Stmt
+	conn *Conn
+}
+
+type Transaction struct {
+	*Conn
 	conn *Conn
 }
 
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &Conn{
-		native.New(proto, laddr, raddr, user, passwd, db...).(*native.Conn),
+		orgNew(proto, laddr, raddr, user, passwd, db...),
 		new(sync.Mutex),
 	}
 }
@@ -77,7 +82,7 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 	if len(res.Fields()) == 0 {
 		c.unlock()
 	}
-	return &Result{res.(*native.Result), c}, err
+	return &Result{res, c}, err
 }
 
 func (res *Result) GetRow() (mysql.Row, error) {
@@ -93,7 +98,7 @@ func (res *Result) NextResult() (mysql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Result{next.(*native.Result), res.conn}, nil
+	return &Result{next, res.conn}, nil
 }
 
 func (c *Conn) Ping() error {
@@ -109,12 +114,12 @@ func (c *Conn) Prepare(sql string) (mysql.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Stmt{stmt.(*native.Stmt), c}, nil
+	return &Stmt{stmt, c}, nil
 }
 
 func (stmt *Stmt) Run(params ...interface{}) (mysql.Result, error) {
 	stmt.conn.lock()
-	res, err := stmt.Stmt.Run()
+	res, err := stmt.Stmt.Run(params...)
 	// Unlock if error or OK result (which doesn't provide any fields)
 	if err != nil {
 		stmt.conn.unlock()
@@ -123,7 +128,7 @@ func (stmt *Stmt) Run(params ...interface{}) (mysql.Result, error) {
 	if len(res.Fields()) == 0 {
 		stmt.conn.unlock()
 	}
-	return &Result{res.(*native.Result), stmt.conn}, nil
+	return &Result{res, stmt.conn}, nil
 }
 
 func (stmt *Stmt) Delete() error {
@@ -145,40 +150,53 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) error {
 	return stmt.Stmt.SendLongData(pnum, data, pkt_size)
 }
 
-
-type Transaction struct {
-	native.Transaction
-	conn *Conn
-}
-
 // Begins a new transaction. No any other thread can send command on this
 // connection until Commit or Rollback will be called.
 func (c *Conn) Begin() (mysql.Transaction, error) {
 	c.lock()
-	tr, err := c.Conn.Begin()
+	tr := Transaction{
+		&Conn{c.Conn, new(sync.Mutex)},
+		c,
+	}
+	_, err := c.Conn.Start("START TRANSACTION")
 	if err != nil {
 		c.unlock()
 		return nil, err
 	}
-	// We returns transaction from mymysql/native package, so mutex will not
-	// be touched by its commands.
-	return &Transaction{*tr.(*native.Transaction), c}, nil
+	return &tr, nil
+}
+
+func (tr *Transaction) end(cr string) error {
+	tr.lock()
+	_, err := tr.conn.Conn.Start(cr)
+	tr.conn.unlock()
+	// Invalidate this transaction
+	m := tr.Conn.mutex
+	tr.Conn = nil
+	tr.conn = nil
+	m.Unlock() // One goorutine which still uses this transaction will panic
+	return err
 }
 
 func (tr *Transaction) Commit() error {
-	err := tr.Transaction.Commit()
-	tr.conn.unlock()
-	tr.conn = nil
-	return err
+	return tr.end("COMMIT")
 }
 
 func (tr *Transaction) Rollback() error {
-	err := tr.Transaction.Rollback()
-	tr.conn.unlock()
-	tr.conn = nil
-	return err
+	return tr.end("ROLLBACK")
 }
 
+func (tr *Transaction) Do(st mysql.Stmt) mysql.Stmt {
+	if s, ok := st.(*Stmt); ok && s.conn == tr.conn {
+		// Returns new statement which uses statement mutexes
+		return &Stmt{s.Stmt, tr.Conn}
+	}
+	panic("Transaction and statement doesn't belong to the same connection")
+}
+
+var orgNew func(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn
+
 func init() {
+	orgNew = mysql.New
 	mysql.New = New
 }

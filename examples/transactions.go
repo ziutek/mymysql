@@ -5,6 +5,7 @@ import (
 	"os"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/thrsafe"
+	//_ "github.com/ziutek/mymysql/native"
 )
 
 func printOK() {
@@ -50,7 +51,8 @@ func main() {
 	}
 
 	fmt.Print("Create A table... ")
-	checkedResult(db.Query("create table A (name varchar(40), number int)"))
+	_, err = db.Start("create table A (name varchar(9), number int) engine=InnoDB")
+	checkError(err)
 	printOK()
 
 	fmt.Print("Prepare insert statement... ")
@@ -59,47 +61,48 @@ func main() {
 	printOK()
 
 	fmt.Print("Prepare select statement... ")
-	sel, err := db.Prepare("select * from A where number > ? or number is null")
+	sel, err := db.Prepare("select * from A")
 	checkError(err)
 	printOK()
 
-	params := struct {
-		txt    *string
-		number *int
-	}{}
-
-	fmt.Print("Bind insert parameters... ")
-	ins.BindParams(&params)
+	fmt.Print("Begining a new transaction... ")
+	tr, err := db.Begin()
+	checkError(err)
 	printOK()
 
-	fmt.Print("Insert into A... ")
-	for ii := 0; ii < 1000; ii += 100 {
-		if ii%500 == 0 {
-			// Assign NULL values to the parameters
-			params.txt = nil
-			params.number = nil
-		} else {
-			// Modify parameters
-			str := fmt.Sprintf("%d*10= %d", ii/100, ii/10)
-			params.txt = &str
-			params.number = &ii
-		}
-		// Execute statement with modified data
-		_, err = ins.Run()
-		checkError(err)
-	}
+	tr_ins := tr.Do(ins)
+
+	fmt.Print("Performing two inserts... ")
+	_, err = tr_ins.Run("jeden", 1)
+	checkError(err)
+	_, err = tr_ins.Run("dwa", 2)
+	checkError(err)
+	printOK()
+
+	fmt.Print("Commit the transaction... ")
+	checkError(tr.Commit())
+	printOK()
+
+	fmt.Print("Begining a new transaction... ")
+	tr, err = db.Begin()
+	checkError(err)
+	printOK()
+
+	fmt.Print("Performing one insert... ")
+	_, err = tr.Do(ins).Run("trzy", 3)
+	checkError(err)
+	printOK()
+
+	fmt.Print("Rollback the transaction... ")
+	checkError(tr.Rollback())
 	printOK()
 
 	fmt.Println("Select from A... ")
-	rows, res := checkedResult(sel.Exec(0))
+	rows, res := checkedResult(sel.Exec())
 	name := res.Map("name")
 	number := res.Map("number")
 	for ii, row := range rows {
-		fmt.Printf(
-			"Row: %d\n name:  %-10s {%#v}\n number: %-8d  {%#v}\n", ii,
-			"'"+row.Str(name)+"'", row[name],
-			row.Int(number), row[number],
-		)
+		fmt.Printf("%d: %-10s %-8d\n", ii, row[name], row[number])
 	}
 
 	fmt.Print("Remove A... ")

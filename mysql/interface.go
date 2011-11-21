@@ -27,6 +27,7 @@ type Transaction interface {
 	conn
 	Commit() error
 	Rollback() error
+	Do(st Stmt) Stmt
 }
 
 type Stmt interface {

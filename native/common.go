@@ -2,6 +2,7 @@ package native
 
 import (
 	"io"
+	"runtime"
 )
 
 var tab8s = "        "
@@ -73,9 +74,12 @@ func lenBS(bs interface{}) int {
 
 func catchError(err *error) {
 	if pv := recover(); pv != nil {
-		if er, ok := pv.(error); ok {
-			*err = er
-		} else {
+		switch e := pv.(type) {
+		case runtime.Error:
+			panic(pv)
+		case error:
+			*err = e
+		default:
 			panic(pv)
 		}
 	}

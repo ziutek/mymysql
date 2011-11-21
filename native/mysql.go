@@ -517,6 +517,8 @@ func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
 	// Bind parameters if any
 	if len(params) != 0 {
 		stmt.BindParams(params...)
+	} else if len(stmt.params) != stmt.param_count {
+		panic(BIND_COUNT_ERROR)
 	}
 
 	// Send EXEC command with binded parameters
@@ -689,16 +691,26 @@ func (my *Conn) Begin() (mysql.Transaction, error) {
 }
 
 // Commit a transaction
-func (tr *Transaction) Commit() error {
+func (tr Transaction) Commit() error {
 	_, err := tr.Start("COMMIT")
 	tr.Conn = nil // Invalidate this transaction
 	return err
 }
 
-func (tr *Transaction) Rollback() error {
+// Rollback a transaction
+func (tr Transaction) Rollback() error {
 	_, err := tr.Start("ROLLBACK")
 	tr.Conn = nil // Invalidate this transaction
 	return err
+}
+
+// Binds statement to the context of transaction. For native engine this is
+// identity function.
+func (tr Transaction) Do(st mysql.Stmt) mysql.Stmt {
+	if s, ok := st.(*Stmt); !ok || s.my != tr.Conn {
+		panic("Transaction and statement doesn't belong to the same connection")
+	}
+	return st
 }
 
 func init() {

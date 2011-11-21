@@ -1,9 +1,10 @@
 package main
 
 import (
-	"os"
 	"fmt"
-	"github.com/ziutek/mymysql"
+	"os"
+	"github.com/ziutek/mymysql/mysql"
+	_ "github.com/ziutek/mymysql/thrsafe"
 )
 
 func printOK() {
@@ -17,7 +18,7 @@ func checkError(err error) {
 	}
 }
 
-func checkedResult(rows []mysql.Row, res *mysql.Result, err error) ([]mysql.Row, *mysql.Result) {
+func checkedResult(rows []mysql.Row, res mysql.Result, err error) ([]mysql.Row, mysql.Result) {
 	checkError(err)
 	return rows, res
 }
@@ -50,7 +51,7 @@ func main() {
 	}
 
 	fmt.Print("Create A table... ")
-	checkedResult(db.Query("create table A (txt varchar(40), number int)"))
+	checkedResult(db.Query("create table A (name varchar(40), number int)"))
 	printOK()
 
 	fmt.Print("Prepare insert statement... ")
@@ -92,8 +93,8 @@ func main() {
 
 	fmt.Println("Select from A... ")
 	rows, res := checkedResult(sel.Exec(0))
-	name := res.Map["name"]
-	number := res.Map["number"]
+	name := res.Map("name")
+	number := res.Map("number")
 	for ii, row := range rows {
 		fmt.Printf(
 			"Row: %d\n name:  %-10s {%#v}\n number: %-8d  {%#v}\n", ii,

@@ -5,9 +5,10 @@ package main
 import (
 	"os"
 	"fmt"
-	"http"
 	"strings"
-	"github.com/ziutek/mymysql"
+	"net/http"
+	"github.com/ziutek/mymysql/mysql"
+	_ "github.com/ziutek/mymysql/thrsafe"
 )
 
 func printOK() {
@@ -99,7 +100,7 @@ func main() {
 
 	// Print fields names
 	fmt.Println()
-	for _, field := range res.Fields {
+	for _, field := range res.Fields() {
 		fmt.Printf("%-38s ", field.Name)
 	}
 	fmt.Println()

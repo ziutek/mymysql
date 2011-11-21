@@ -17,14 +17,19 @@ code changes during development will not break the package itself.
 ## Changelog
 
 #### v0.4
+
 Modular design
 1. MySQL wire protocol handling moved to *mymysql/native*
 2. Thread safe wrapper of *native* engine in separate "mymysql/thrsafe"
 3. Main package contains definitions of interfaces to engines and common
 (engine-independent) functions.
 4. Automatic reconnect interface moved to *mymysql/autorc*.
+*mysql.New* and other functions returns mostly interface types. So all
+previously exported members were converted to methods (with except *mysql.Row*
+and *mysql.Field* - they deffinition didn't changed).
 
 #### v0.3.8
+
 1. Package name changed to *mysql*.
 2. Connection handler name changed from *MySQL* to *Conn*.
 3. Tested with Go weekly.2011-10-06
@@ -32,26 +37,32 @@ Modular design
 I think it is more pleasant to write *mysql.Conn* insted of *mymysql.MySQL*.
 
 #### v0.3.7
+
 Works with Go release.r57.1
 
 #### v0.3.6
+
 The *EscapeString* method was added.
 
 #### v0.3.5
+
 1. *IsConnected()* method was added.
 2. Package name was changed from *mymy* to *mymysql*. Now the
 package name corresponds to the name of Github repository.
 
 #### v0.3.4
+
 float type disappeared because Go release.2011-01-20. If you use
 older Go release use mymysql v0.3.3 
 
 #### v0.3.3
+
 1. *Time* and *Date* types added.
 2. *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
 *QueryAC* no longer accept prepared statement as first argument.
 
 #### v0.3.2
+
 1. *Register* method was added. It allows to register commands which will be
 executed immediately after connect. It is mainly useful with
 *Reconnect* method and autoreconn interface.
@@ -59,6 +70,7 @@ executed immediately after connect. It is mainly useful with
 3. Types *ENUM* and *SET* were added for prepared statements results.
 
 #### v0.3.1
+
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
 with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
 method was added. It is similar in result to *Query* method.
@@ -355,7 +367,7 @@ This is improved part of previous example:
 
     db := autorc.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
-    // Register initilisation command. It will be executed after each connect.
+    // Initilisation commands. They will be executed after each connect.
     db.Raw.Register("set names utf8")
 
     // There is no need to explicity connect to the MySQL server

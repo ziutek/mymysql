@@ -69,8 +69,12 @@ func (c *Conn) Use(dbname string) error {
 func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 	c.lock()
 	res, err := c.Conn.Start(sql, params...)
-	if err != nil || len(res.Fields()) == 0 {
-		// Unlock if error or OK result (which doesn't provide any fields)
+	// Unlock if error or OK result (which doesn't provide any fields)
+	if err != nil {
+		c.unlock()
+		return nil, err
+	}
+	if len(res.Fields()) == 0 {
 		c.unlock()
 	}
 	return &Result{res.(*native.Result), c}, err
@@ -111,9 +115,13 @@ func (c *Conn) Prepare(sql string) (mysql.Stmt, error) {
 func (stmt *Stmt) Run(params ...interface{}) (mysql.Result, error) {
 	stmt.conn.lock()
 	res, err := stmt.Stmt.Run()
+	// Unlock if error or OK result (which doesn't provide any fields)
 	if err != nil {
 		stmt.conn.unlock()
 		return nil, err
+	}
+	if len(res.Fields()) == 0 {
+		stmt.conn.unlock()
 	}
 	return &Result{res.(*native.Result), stmt.conn}, nil
 }

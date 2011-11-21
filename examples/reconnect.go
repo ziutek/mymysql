@@ -1,93 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"fmt"
 	"time"
-	"io"
-	"net"
-	"log"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/autorc"
+	_ "github.com/ziutek/mymysql/thrsafe"
 )
-
-type ReconDB struct {
-	// MySQL handler
-	my *mysql.Conn
-
-	// Maximum reconnect retries
-	MaxRetries int
-}
-
-func NewRDB(proto, laddr, raddr, user, passwd string, db ...string) *ReconDB {
-	return &ReconDB{
-		my:         mysql.New(proto, laddr, raddr, user, passwd, db...),
-		MaxRetries: 6,
-	}
-}
-
-func isNetErr(err error) bool {
-	if err == io.ErrUnexpectedEOF {
-		// Probably network error
-		return true
-	} else if _, ok := err.(*net.OpError); ok {
-		// Network error
-		return true
-	}
-	return false
-}
-
-func (rdb *ReconDB) reconnect(err *error) {
-	for nn := 0; *err != nil && isNetErr(*err); nn++ {
-		log.Println("Reconnecting...")
-		time.Sleep(int64(1e9) * int64(nn))
-		*err = rdb.my.Reconnect()
-		if nn > rdb.MaxRetries {
-			return
-		}
-		if *err != nil {
-			log.Println("Can't reconnect:", *err)
-		}
-	}
-}
-
-func (rdb *ReconDB) Connect() (err error) {
-	err = rdb.my.Connect()
-	if err != nil {
-		log.Println("Can't connect:", err)
-		rdb.reconnect(&err)
-	}
-	return
-}
-
-func (rdb *ReconDB) Close() (err error) {
-	return rdb.my.Close()
-}
-
-func (rdb *ReconDB) Query(sql string, params ...interface{}) (rows []mysql.Row,
-res *mysql.Result, err error) {
-	for nn := 0; nn < rdb.MaxRetries; nn++ {
-		rows, res, err = rdb.my.Query(sql, params...)
-		if err == nil {
-			break
-		}
-		log.Println("Query error:", err)
-		rdb.reconnect(&err)
-		if err != nil {
-			// Can't reconnect
-			break
-		}
-	}
-	return
-}
-
-func check(err error) {
-	if err != nil {
-		fmt.Println("", err)
-		os.Exit(1)
-	} else {
-		fmt.Println(" OK")
-	}
-}
 
 func main() {
 	user := "testuser"
@@ -96,31 +15,94 @@ func main() {
 	//conn := []string{"unix", "", "/var/run/mysqld/mysqld.sock"}
 	conn := []string{"tcp", "", "127.0.0.1:3306"}
 
-	db := NewRDB(conn[0], conn[1], conn[2], user, passwd, dbname)
+	c := autorc.New(conn[0], conn[1], conn[2], user, passwd)
 
-	fmt.Print("Connect to MySQL...")
-	check(db.Connect())
+	// Register initialisation commands
+	c.Raw.Register("set names utf8")
 
+	// my is in unconnected state
+	checkErr(c.Use(dbname))
+
+	// Now we ar connected - disconnect
+	c.Raw.Close()
+
+	// Drop test table if exists
+	_, _, err := c.Query("drop table R")
+
+	fmt.Println("You may restart MySQL sererr or down the network interface.")
 	sec := 9
-	fmt.Println(
-		"You may temporarily stop MySQL daemon or make network failure.",
-	)
 	fmt.Printf("Waiting %ds...", sec)
 	for sec--; sec >= 0; sec-- {
 		time.Sleep(1e9)
 		fmt.Printf("\b\b\b\b\b%ds...", sec)
 	}
-	fmt.Println("\b\b\b.  ")
+	fmt.Println()
 
-	data := "qwertyuiopasdfghjklzxcvbnm1234567890"
+	// Create table
+	_, _, err = c.Query(
+		"create table R (id int primary key, name varchar(20))",
+	)
+	checkErr(err)
 
-	fmt.Printf("Select (len=%d)...", len(data)+9)
+	// Kill the connection
+	_, _, err = c.Query("kill %d", c.Raw.ThreadId())
+	checkErr(err)
 
-	rows, _, err := db.Query("select '%s'", data)
-	check(err)
+	// Prepare insert statement
+	ins, err := c.Prepare("insert R values (?,  ?)")
+	checkErr(err)
 
-	fmt.Println("Result:", rows[0].Str(0))
+	// Kill the connection
+	_, _, err = c.Query("kill %d", c.Raw.ThreadId())
+	checkErr(err)
 
-	fmt.Print("Disconnect...")
-	check(db.Close())
+	// Bind insert parameters
+	ins.Raw.BindParams(1, "jeden")
+	// Insert into table
+	_, _, err = ins.Exec()
+	checkErr(err)
+
+	// Kill the connection
+	_, _, err = c.Query("kill %d", c.Raw.ThreadId())
+	checkErr(err)
+
+	// Bind insert parameters
+	ins.Raw.BindParams(2, "dwa")
+	// Insert into table
+	_, _, err = ins.Exec()
+	checkErr(err)
+
+	// Kill the connection
+	_, _, err = c.Query("kill %d", c.Raw.ThreadId())
+	checkErr(err)
+
+	// Select from table
+	rows, res, err := c.Query("select * from R")
+	checkErr(err)
+	id := res.Map("id")
+	name := res.Map("name")
+	if len(rows) != 2 ||
+		rows[0].Int(id) != 1 || rows[0].Str(name) != "jeden" ||
+		rows[1].Int(id) != 2 || rows[1].Str(name) != "dwa" {
+		fmt.Println("Bad result")
+	}
+
+	// Kill the connection
+	_, _, err = c.Query("kill %d", c.Raw.ThreadId())
+	checkErr(err)
+
+	// Drop table
+	_, _, err = c.Query("drop table R")
+	checkErr(err)
+
+	// Disconnect
+	c.Raw.Close()
+
+}
+
+func checkErr(err error) {
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
 }

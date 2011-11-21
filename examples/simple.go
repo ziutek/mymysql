@@ -18,8 +18,8 @@ func checkError(err error) {
 	}
 }
 
-func checkedResult(rows []mysql.Row, res *mysql.Result, err error) ([]mysql.Row,
-	*mysql.Result) {
+func checkedResult(rows []mysql.Row, res mysql.Result, err error) ([]mysql.Row,
+	mysql.Result) {
 	checkError(err)
 	return rows, res
 }
@@ -34,7 +34,6 @@ func main() {
 	addr := "127.0.0.1:3306"
 
 	db := mysql.New(proto, "", addr, user, pass, dbname)
-	//db.Debug = true
 
 	fmt.Printf("Connect to %s:%s... ", proto, addr)
 	checkError(db.Connect())
@@ -52,7 +51,7 @@ func main() {
 	}
 
 	fmt.Print("Create A table... ")
-	checkedResult(db.Query("create table A (txt varchar(40), number int)"))
+	checkedResult(db.Query("create table A (name varchar(40), number int)"))
 	printOK()
 
 	fmt.Print("Insert into A... ")
@@ -69,8 +68,8 @@ func main() {
 
 	fmt.Println("Select from A... ")
 	rows, res := checkedResult(db.Query("select * from A"))
-	name := res.Map["name"]
-	number := res.Map["number"]
+	name := res.Map("name")
+	number := res.Map("number")
 	for ii, row := range rows {
 		fmt.Printf(
 			"Row: %d\n name:  %-10s {%#v}\n number: %-8d  {%#v}\n", ii,

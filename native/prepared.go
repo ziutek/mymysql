@@ -33,15 +33,15 @@ func (res *Stmt) Map(field_name string) int {
 	return -1
 }
 
-func (stmt *Stmt) FieldCount() int {
+func (stmt *Stmt) NumField() int {
 	return stmt.field_count
 }
 
-func (stmt *Stmt) ParamCount() int {
+func (stmt *Stmt) NumParam() int {
 	return stmt.param_count
 }
 
-func (stmt *Stmt) WarningCount() int {
+func (stmt *Stmt) WarnCount() int {
 	return stmt.warning_count
 }
 

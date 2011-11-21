@@ -39,9 +39,9 @@ type Stmt interface {
 	SendLongData(pnum int, data interface{}, pkt_size int) error
 
 	Map(string) int
-	FieldCount() int
-	ParamCount() int
-	WarningCount() int
+	NumField() int
+	NumParam() int
+	WarnCount() int
 
 	Exec(params ...interface{}) ([]Row, Result, error)
 }
@@ -56,7 +56,7 @@ type Result interface {
 	Message() string
 	AffectedRows() uint64
 	InsertId() uint64
-	WarningCount() int
+	WarnCount() int
 
 	GetRows() ([]Row, error)
 	End() error

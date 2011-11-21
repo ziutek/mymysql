@@ -5,11 +5,12 @@ import (
 	"strings"
 	"exp/sql"
 	"exp/sql/driver"
-	"github.com/ziutek/mymysql/native"
+	"github.com/ziutek/mymysql/mysql"
+	_ "github.com/ziutek/mymysql/native"
 )
 
 type conn struct {
-	my *mysql.Conn
+	my mysql.Conn
 }
 
 func (c conn) Close() error {
@@ -17,8 +18,25 @@ func (c conn) Close() error {
 }
 
 func (c conn) Prepare(query string) (driver.Stmt, error) {
-
+	st, err := c.my.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	return stmt{st}, nil
 }
+
+type stmt struct {
+	my mysql.Stmt
+}
+
+func (s stmt) Close() error {
+	return s.my.Delete()
+}
+
+func (s stmt) Close() error {
+	return s.my.Delete()
+}
+
 
 type drv struct {
 	// Defaults
@@ -53,7 +71,7 @@ func (d *drv) Open(uri string) (driver.Conn, error) {
 	d.passwd = dup[2]
 
 	// Establish the connection
-	c := conn{my: mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)}
+	c := conn{mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)}
 	if err := c.my.Connect(); err != nil {
 		return nil, err
 	}

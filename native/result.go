@@ -54,7 +54,7 @@ func (res *Result) InsertId() uint64 {
 	return res.insert_id
 }
 
-func (res *Result) WarningCount() int {
+func (res *Result) WarnCount() int {
 	return res.warning_count
 }
 

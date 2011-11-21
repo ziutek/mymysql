@@ -20,11 +20,14 @@ code changes during development will not break the package itself.
 
 1. Modular design:
 
-    * MySQL wire protocol handling moved to *mymysql/native*
-    * Thread safe wrapper of *native* engine in separate "mymysql/thrsafe"
-    * Main package contains definitions of interfaces to engines and common
+    MySQL wire protocol handling moved to *mymysql/native*
+
+    Thread safe wrapper of *native* engine in separate "mymysql/thrsafe"
+
+    Main package contains definitions of interfaces to engines and common
     (engine-independent) functions.
-    * Automatic reconnect interface moved to *mymysql/autorc*.
+
+    Automatic reconnect interface moved to *mymysql/autorc*.
 
 2. *mysql.New* and other functions returns mostly interface types. So all
 previously exported members were converted to methods (with except *mysql.Row*

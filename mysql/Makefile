@@ -7,5 +7,6 @@ GOFILES=\
 	row.go\
 	interface.go\
 	utils.go\
+	errors.go\
 
 include $(GOROOT)/src/Make.pkg

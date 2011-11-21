@@ -1,15 +1,11 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.3.8 (2011-10-12)
+## MyMySQL v0.4 (2011-10-12)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
 production application (December 2010).
-
-The code of this package is carefuly written and has internal error handling
-using *panic()* exceptions, thus the probability of bugs in Go code or an
-unhandled internal errors should be very small.
 
 This package works with the MySQL protocol version 4.1 or greater. It definitely
 works well with MySQL 5.0 and 5.1 (I use these versions of MySQL for my
@@ -241,8 +237,8 @@ If you pass parameters to *Run* or *Exec* method, data are rebinded on every
 method call. It isn't efficient if statement is executed more than once. You
 can bind parameters and use *Run* or *Exec* method without parameters, to avoid
 these unnecessary rebinds. Warning! If you use *Bind* in multithreaded
-application, you should be sure that no other thread will use *Bind*, until you
-no longer need binded parameters.
+application, you should be sure that no other thread will use *Bind* for the
+same statement, until you no longer need binded parameters.
 
 The simplest way to bind parameters is:
 
@@ -350,7 +346,10 @@ This is improved part of previous example:
 
 ## Example 5 - autoreconn interface
 
-    import "github.com/ziutek/mymysql/autorc"
+    import (
+        "github.com/ziutek/mymysql/autorc"
+        _ "github.com/ziutek/mymysql/thrsafe" // You may use native engine to
+    )
 
     // [...]
 

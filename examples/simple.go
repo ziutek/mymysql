@@ -3,7 +3,8 @@ package main
 import (
 	"os"
 	"fmt"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/mysql"
+	_ "github.com/ziutek/mymysql/thrsafe"
 )
 
 func printOK() {

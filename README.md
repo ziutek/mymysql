@@ -24,8 +24,8 @@ code changes during development will not break the package itself.
 
     Thread safe wrapper of *native* engine in separate "mymysql/thrsafe"
 
-    Main package contains definitions of interfaces to engines and common
-    (engine-independent) functions.
+    *mymysql/mysql" package contains definitions of interfaces to engines and
+    common (engine-independent) functions.
 
     Automatic reconnect interface moved to *mymysql/autorc*.
 
@@ -328,7 +328,7 @@ This is improved part of previous example:
         checkError(err)
     }
 
-## #Example 4 - multi statement / multi result
+### Example 4 - multi statement / multi result
 
     res, err := db.Start("select id from M; select name from M")
     checkError(err)

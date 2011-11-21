@@ -6,10 +6,10 @@ package native
 import (
 	"bufio"
 	"fmt"
-	"github.com/ziutek/mymysql"
 	"io"
 	"net"
 	"reflect"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 type serverInfo struct {

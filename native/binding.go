@@ -2,7 +2,7 @@ package native
 
 import (
     "reflect"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 var (

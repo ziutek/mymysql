@@ -8,7 +8,7 @@ import (
 	"time"
 	"bytes"
 	"io/ioutil"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 var (

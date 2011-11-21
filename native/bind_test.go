@@ -5,7 +5,7 @@ import (
     "bytes"
     "math"
     "reflect"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 var (

@@ -1,11 +1,11 @@
-package auto
+package autorc
 
 import (
 	"io"
 	"net"
 	"log"
 	"time"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 // Return true if error is network error or UnexpectedEOF.
@@ -70,7 +70,7 @@ func (c *Conn) Use(dbname string) (err error) {
 			return
 		}
 	}
-	return
+	panic(nil)
 }
 
 // Automatic connect/reconnect/repeat version of Query
@@ -88,7 +88,7 @@ func (c *Conn) Query(sql string, params ...interface{}) (rows []mysql.Row, res m
 			return
 		}
 	}
-	return
+	panic(nil)
 }
 
 type Stmt struct {
@@ -103,8 +103,11 @@ func (c *Conn) Prepare(sql string) (*Stmt, error) {
 	}
 	nn := 0
 	for {
-		var err error
-		if s, err := c.Raw.Prepare(sql); err == nil {
+		var (
+			err error
+			s mysql.Stmt
+		)
+		if s, err = c.Raw.Prepare(sql); err == nil {
 			return &Stmt{s, c}, nil
 		}
 		if c.reconnectIfNetErr(&nn, &err); err != nil {
@@ -129,5 +132,5 @@ func (s *Stmt) Exec(params ...interface{}) (rows []mysql.Row, res mysql.Result, 
 			return
 		}
 	}
-	return
+	panic(nil)
 }

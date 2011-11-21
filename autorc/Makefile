@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-TARG=github.com/ziutek/mymysql/auto
+TARG=github.com/ziutek/mymysql/autorc
 GOFILES=\
 	autorecon.go
 

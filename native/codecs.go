@@ -4,7 +4,7 @@ import (
     "io"
     "crypto/sha1"
     "bytes"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 func DecodeU16(buf []byte) uint16 {

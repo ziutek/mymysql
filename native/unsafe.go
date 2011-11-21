@@ -3,7 +3,7 @@ package native
 import (
     "io"
     "unsafe"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 type paramValue struct {

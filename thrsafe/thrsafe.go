@@ -5,7 +5,8 @@ package thrsafe
 
 import (
 	"sync"
-	"github.com/ziutek/mymysql"
+	//"log"
+	"github.com/ziutek/mymysql/mysql"
 	"github.com/ziutek/mymysql/native"
 )
 
@@ -15,11 +16,13 @@ type Conn struct {
 }
 
 func (c *Conn) lock() {
+	//log.Println("lock")
 	c.mutex.Lock()
 }
 
 func (c *Conn) unlock() {
 	c.mutex.Unlock()
+	//log.Println("unlock")
 }
 
 type Result struct {
@@ -83,7 +86,10 @@ func (res *Result) GetRow() (mysql.Row, error) {
 
 func (res *Result) NextResult() (mysql.Result, error) {
 	next, err := res.Result.NextResult()
-	return &Result{next.(*native.Result), res.conn}, err
+	if err != nil {
+		return nil, err
+	}
+	return &Result{next.(*native.Result), res.conn}, nil
 }
 
 func (c *Conn) Ping() error {
@@ -95,9 +101,11 @@ func (c *Conn) Ping() error {
 func (c *Conn) Prepare(sql string) (mysql.Stmt, error) {
 	c.lock()
 	defer c.unlock()
-
 	stmt, err := c.Conn.Prepare(sql)
-	return &Stmt{stmt.(*native.Stmt), c}, err
+	if err != nil {
+		return nil, err
+	}
+	return &Stmt{stmt.(*native.Stmt), c}, nil
 }
 
 func (stmt *Stmt) Run(params ...interface{}) (mysql.Result, error) {
@@ -105,8 +113,9 @@ func (stmt *Stmt) Run(params ...interface{}) (mysql.Result, error) {
 	res, err := stmt.Stmt.Run()
 	if err != nil {
 		stmt.conn.unlock()
+		return nil, err
 	}
-	return &Result{res.(*native.Result), stmt.conn}, err
+	return &Result{res.(*native.Result), stmt.conn}, nil
 }
 
 func (stmt *Stmt) Delete() error {

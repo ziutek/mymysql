@@ -18,7 +18,49 @@ production application).
 The package includes an extensive set of automated tests that ensure that any
 code changes during development will not break the package itself.
 
-## Differences betwen version 0.2 and 0.3.8
+## Changelog
+
+#### v0.4
+Modular design
+1. MySQL wire protocol handling moved to *mymysql/native*
+2. Thread safe wrapper of *native* engine in separate "mymysql/thrsafe"
+3. Main package contains definitions of interfaces to engines and common
+(engine-independent) functions.
+4. Automatic reconnect interface moved to *mymysql/autorc*.
+
+#### v0.3.8
+1. Package name changed to *mysql*.
+2. Connection handler name changed from *MySQL* to *Conn*.
+3. Tested with Go weekly.2011-10-06
+
+I think it is more pleasant to write *mysql.Conn* insted of *mymysql.MySQL*.
+
+#### v0.3.7
+Works with Go release.r57.1
+
+#### v0.3.6
+The *EscapeString* method was added.
+
+#### v0.3.5
+1. *IsConnected()* method was added.
+2. Package name was changed from *mymy* to *mymysql*. Now the
+package name corresponds to the name of Github repository.
+
+#### v0.3.4
+float type disappeared because Go release.2011-01-20. If you use
+older Go release use mymysql v0.3.3 
+
+#### v0.3.3
+1. *Time* and *Date* types added.
+2. *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
+*QueryAC* no longer accept prepared statement as first argument.
+
+#### v0.3.2
+1. *Register* method was added. It allows to register commands which will be
+executed immediately after connect. It is mainly useful with
+*Reconnect* method and autoreconn interface.
+2. Multi statements / multi results were added.
+3. Types *ENUM* and *SET* were added for prepared statements results.
 
 #### v0.3.1
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
@@ -35,39 +77,6 @@ immediately notice the network failure, becouse of network buffers in kernel.
 Therefore query repetitions may cause additional unnecessary inserts into
 database. This interface does not appear to be useful with local transactions.
 
-#### v0.3.2
-1. *Register* method was added. It allows to register commands which will be
-executed immediately after connect. It is mainly useful with
-*Reconnect* method and autoreconn interface.
-2. Multi statements / multi results were added.
-3. Types *ENUM* and *SET* were added for prepared statements results.
-
-#### v0.3.3
-1. *Time* and *Date* types added.
-2. *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
-*QueryAC* no longer accept prepared statement as first argument.
-
-#### v0.3.4
-float type disappeared because Go release.2011-01-20. If you use
-older Go release use mymysql v0.3.3 
-
-#### v0.3.5
-1. *IsConnected()* method was added.
-2. Package name was changed from *mymy* to *mymysql*. Now the
-package name corresponds to the name of Github repository.
-
-#### v0.3.6
-The *EscapeString* method was added.
-
-#### v0.3.7
-Works with Go release.r57.1
-
-#### v0.3.8
-1. Package name changed to *mysql*.
-2. Connection handler name changed from *MySQL* to *Conn*.
-3. Tested with Go weekly.2011-10-06
-
-I think it is more pleasant to write *mysql.Conn* insted of *mymysql.MySQL*.
 
 ## Installing
 
@@ -105,61 +114,63 @@ For testing you need test database and test user:
     mysql> grant all privileges on test.* to testuser@localhost;
     mysql> set password for testuser@localhost = password("TestPasswd9")
 
-Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is greater than
-33M (needed to test long packets).
+Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is equal or greater than 34M (needed to test long packets).
 
-The default MySQL test server address is *127.0.0.1:3306*. You may change it in
-*mymy_test.go* file.
+The default MySQL test server address is *127.0.0.1:3306*.
 
 Next run tests:
 
     $ cd $GOROOT/src/pkg/github.com/ziutek/mymysql
-    $ gotest -v
+    $ make test
 
-## Interface
+## Examples
 
-In *GODOC.html* or *GODOC.txt* you can find the full documentation of this package in godoc format.
+### Example 1
 
-## Example 1
+    package main
 
     import (
-        "github.com/ziutek/mymysql"
+        "os"
+        "github.com/ziutek/mymysql/mysql"
+        _ "github.com/ziutek/mymysql/native" // Native engine
+        // _ "github.com/ziutek/mymysql/thrsafe" // Thread safe engine
     )
 
-    db := mysql.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
-    db.Debug = true
+    func main() {
+        db := mysql.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
-    err := db.Connect()
-    if err != nil {
-        panic(err)
-    }
-
-    rows, res, err := db.Query("select * from X where id > %d", 20)
-    if err != nil {
-        panic(err)
-    }
-
-    for _, row := range rows {
-        for _, col := range row.Data {
-            if col == nil {
-                // col has NULL value
-            } else {
-                // Do something with text in col (type []byte)
-            }
+        err := db.Connect()
+        if err != nil {
+            panic(err)
         }
-        // You can get specific value from a row
-        val1 := row.Data[1].([]byte)
 
-        // You can use it directly if conversion isn't needed
-        os.Stdout.Write(val1)
+        rows, res, err := db.Query("select * from X where id > %d", 20)
+        if err != nil {
+            panic(err)
+        }
 
-        // You can get converted value
-        number := row.Int(0)      // Zero value
-        str    := row.Str(1)      // First value
-        bignum := row.MustUint(2) // Second value
+        for _, row := range rows {
+            for _, col := range row {
+                if col == nil {
+                    // col has NULL value
+                } else {
+                    // Do something with text in col (type []byte)
+                }
+            }
+            // You can get specific value from a row
+            val1 := row[1].([]byte)
 
-        // You may get value by column name
-        val2 := row.Data[res.Map["FirstColumn"]].([]byte)
+            // You can use it directly if conversion isn't needed
+            os.Stdout.Write(val1)
+
+            // You can get converted value
+            number := row.Int(0)      // Zero value
+            str    := row.Str(1)      // First value
+            bignum := row.MustUint(2) // Second value
+
+            // You may get value by column name
+            val2 := row[res.Map("FirstColumn")].([]byte)
+        }
     }
 
 If you do not want to load the entire result into memory you may use
@@ -169,7 +180,7 @@ If you do not want to load the entire result into memory you may use
     checkError(err)
 
     // Print fields names
-    for _, field := range res.Fields {
+    for _, field := range res.Fields() {
         fmt.Print(field.Name, " ")
     }
     fmt.Println()
@@ -185,7 +196,7 @@ If you do not want to load the entire result into memory you may use
         }
 
         // Print all cols
-        for _, col := range row.Data {
+        for _, col := range row {
             if col == nil {
                 fmt.Print("<NULL>")
             } else {
@@ -339,13 +350,17 @@ This is improved part of previous example:
 
 ## Example 5 - autoreconn interface
 
-    db := mysql.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+    import "github.com/ziutek/mymysql/autorc"
+
+    // [...]
+
+    db := autorc.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
     // Register initilisation command. It will be executed after each connect.
-    db.Register("set names utf8")
+    db.Raw.Register("set names utf8")
 
     // There is no need to explicity connect to the MySQL server
-    rows, res, err := db.QueryAC("SELECT * FROM R")
+    rows, res, err := db.Query("SELECT * FROM R")
     checkError(err)
 
     // Now we are connected.
@@ -356,16 +371,16 @@ This is improved part of previous example:
 
     // If we can reconnect in no more than db.MaxRetries attempts this
     // statement will be prepared.
-    sel, err := db.PrepareAC("SELECT name FROM R where id > ?")
+    sel, err := db.Prepare("SELECT name FROM R where id > ?")
     checkError(err)
 
     // We can destroy our connection on server side
-    _, _, err = db.QueryAC("kill %d", db.ThreadId())
+    _, _, err = db.Query("kill %d", db.Raw.ThreadId())
     checkError(err)
 
     // But it doesn't matter
-    sel.BindParams(2)
-    rows, res, err = sel.ExecAC()
+    sel.Raw.BindParams(2)
+    rows, res, err = sel.Exec()
     checkError(err)
 
 More examples are in *examples* directory.
@@ -383,7 +398,7 @@ corresponds to *[]byte* type in mymysql. It isn't *string* type due to
 avoidance of unnecessary type conversions. You can allways convert *[]byte* to
 *string* yourself:
 
-    fmt.Print(string(rows[0].Data[1].([]byte)))
+    fmt.Print(string(rows[0][1].([]byte)))
 
 or usnig *Str* helper method:
 
@@ -454,10 +469,9 @@ SendLongData method. If you want to use this feature you must set *MaxPktSize*
 field in database handler to appropriate value before connect, and change
 *max_allowed_packet* value in MySQL server configuration.
 
-## Thread safety
+## Thread safe engine
 
-You can use this package in multithreading enviroment. All methods are thread
-safe, unless the description of the method says something else.
+If you import "mymysql/thrsafe" instead of in multithreading enviroment all methods are thread safe, unless the description of the method says something else.
 
 If one thread is calling *Query* or *Exec* method, other threads will be
 blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
@@ -498,7 +512,7 @@ Thanks to *siege* stress tests I fixed some multi-threading bugs in v0.3.2.
 
 ## TODO
 
-1. Complete GODOC documentation
+1. Complete documentation
 2. stmt.BindResult
 3. io.Writer as bind result variable
 

@@ -1,8 +1,8 @@
 package native
 
 import (
-	"github.com/ziutek/mymysql"
 	"log"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 type Stmt struct {

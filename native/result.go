@@ -3,7 +3,7 @@ package native
 import (
 	"log"
 	"math"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/mysql"
 )
 
 type Result struct {

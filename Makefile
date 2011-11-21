@@ -1,11 +1,11 @@
-include $(GOROOT)/src/Make.inc
+all:
+	./make.bash clean install
 
-TARG=github.com/ziutek/mymysql
-GOFILES=\
-	types.go\
-	field.go\
-	row.go\
-	interface.go\
-	utils.go\
+clean:
+	./make.bash clean
 
-include $(GOROOT)/src/Make.pkg
+install:
+	./make.bash install
+
+test:
+	./make.bash test

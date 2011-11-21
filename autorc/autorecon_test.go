@@ -1,4 +1,4 @@
-package auto
+package autorc
 
 import (
 	"testing"
@@ -24,6 +24,7 @@ func checkErr(t *testing.T, err error, exp_err error) {
 
 func TestAutoConnectReconnect(t *testing.T) {
 	c := New(conn[0], conn[1], conn[2], user, passwd)
+	c.Debug = false
 
 	// Register initialisation commands
 	c.Raw.Register("set names utf8")

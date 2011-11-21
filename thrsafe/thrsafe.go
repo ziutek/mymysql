@@ -145,6 +145,40 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) error {
 	return stmt.Stmt.SendLongData(pnum, data, pkt_size)
 }
 
+
+type Transaction struct {
+	native.Transaction
+	conn *Conn
+}
+
+// Begins a new transaction. No any other thread can send command on this
+// connection until Commit or Rollback will be called.
+func (c *Conn) Begin() (mysql.Transaction, error) {
+	c.lock()
+	tr, err := c.Conn.Begin()
+	if err != nil {
+		c.unlock()
+		return nil, err
+	}
+	// We returns transaction from mymysql/native package, so mutex will not
+	// be touched by its commands.
+	return &Transaction{*tr.(*native.Transaction), c}, nil
+}
+
+func (tr *Transaction) Commit() error {
+	err := tr.Transaction.Commit()
+	tr.conn.unlock()
+	tr.conn = nil
+	return err
+}
+
+func (tr *Transaction) Rollback() error {
+	err := tr.Transaction.Rollback()
+	tr.conn.unlock()
+	tr.conn = nil
+	return err
+}
+
 func init() {
 	mysql.New = New
 }

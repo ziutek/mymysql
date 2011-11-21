@@ -1,6 +1,6 @@
 package mysql
 
-type Conn interface {
+type conn interface {
 	Connect() error
 	IsConnected() bool
 	Close() error
@@ -16,6 +16,17 @@ type Conn interface {
 	SetMaxPktSize(new_size int) int
 
 	Query(sql string, params ...interface{}) ([]Row, Result, error)
+}
+
+type Conn interface {
+	conn
+	Begin() (Transaction, error)
+}
+
+type Transaction interface {
+	conn
+	Commit() error
+	Rollback() error
 }
 
 type Stmt interface {

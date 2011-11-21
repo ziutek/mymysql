@@ -87,7 +87,6 @@ func (my *Conn) SetMaxPktSize(new_size int) int {
 	return old_size
 }
 
-// Thread unsafe connect
 func (my *Conn) connect() (err error) {
 	defer catchError(&err)
 
@@ -185,7 +184,6 @@ func (my *Conn) IsConnected() bool {
 	return my.net_conn != nil
 }
 
-// Thread unsafe close
 func (my *Conn) closeConn() (err error) {
 	defer catchError(&err)
 
@@ -213,7 +211,7 @@ func (my *Conn) Close() (err error) {
 	return my.closeConn()
 }
 
-// Close and reopen connection in one, thread-safe operation.
+// Close and reopen connection.
 // Ignore unreaded rows, reprepare all prepared statements.
 func (my *Conn) Reconnect() (err error) {
 	if my.net_conn != nil {
@@ -678,6 +676,29 @@ func (my *Conn) EscapeString(txt string) string {
 		return escapeQuotes(txt)
 	}
 	return escapeString(txt)
+}
+
+type Transaction struct {
+	*Conn
+}
+
+// Starts a new transaction
+func (my *Conn) Begin() (mysql.Transaction, error) {
+	_, err := my.Start("START TRANSACTION")
+	return &Transaction{my}, err
+}
+
+// Commit a transaction
+func (tr *Transaction) Commit() error {
+	_, err := tr.Start("COMMIT")
+	tr.Conn = nil // Invalidate this transaction
+	return err
+}
+
+func (tr *Transaction) Rollback() error {
+	_, err := tr.Start("ROLLBACK")
+	tr.Conn = nil // Invalidate this transaction
+	return err
 }
 
 func init() {

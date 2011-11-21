@@ -5,7 +5,7 @@ import (
 	"strings"
 	"exp/sql"
 	"exp/sql/driver"
-	"github.com/ziutek/mymysql"
+	"github.com/ziutek/mymysql/native"
 )
 
 type conn struct {

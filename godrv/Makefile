@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-TARG=github.com/ziutek/mymysql/driver
+TARG=github.com/ziutek/mymysql/godrv
 GOFILES=\
 	driver.go\
 

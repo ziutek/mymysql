@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4 (2011-10-12)
+## MyMySQL v0.4 (2011-11-??)
 
 This package contains MySQL client API written entirely in Go. It was created
 due to lack of properly working MySQL client API package, ready for my
@@ -18,16 +18,19 @@ code changes during development will not break the package itself.
 
 #### v0.4
 
-Modular design
-1. MySQL wire protocol handling moved to *mymysql/native*
-2. Thread safe wrapper of *native* engine in separate "mymysql/thrsafe"
-3. Main package contains definitions of interfaces to engines and common
+1. Modular design:
+
+* MySQL wire protocol handling moved to *mymysql/native*
+* Thread safe wrapper of *native* engine in separate "mymysql/thrsafe"
+* Main package contains definitions of interfaces to engines and common
 (engine-independent) functions.
-4. Automatic reconnect interface moved to *mymysql/autorc*.
-*mysql.New* and other functions returns mostly interface types. So all
+* Automatic reconnect interface moved to *mymysql/autorc*.
+
+2. *mysql.New* and other functions returns mostly interface types. So all
 previously exported members were converted to methods (with except *mysql.Row*
 and *mysql.Field* - they deffinition didn't changed).
-5. Transactions added. If you use *mymysql/thrsafe" engine transactions are
+
+3. Transactions added. If you use *mymysql/thrsafe" engine transactions are
 full thread safe.
 
 #### v0.3.8

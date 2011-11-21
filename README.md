@@ -106,11 +106,7 @@ For testing you need test database and test user:
     mysql> set password for testuser@localhost = password("TestPasswd9")
 
 Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is greater than
-33M (needed to test long packets) and logging is disabled. If logging is enabled
-test may fail with this message:
-
-	--- FAIL: mysql.TestSendLongData
-	Error: Received #1210 error from MySQL server: "Incorrect arguments to mysqld_stmt_execute"
+33M (needed to test long packets).
 
 The default MySQL test server address is *127.0.0.1:3306*. You may change it in
 *mymy_test.go* file.
@@ -280,7 +276,7 @@ This is improved part of previous example:
 
     var url string
 
-    ins.BindParams(&url, nil)
+    ins.BindParams(&url, []byte(nil)) // []byte(nil) for properly type binding
 
     for  {
         // Read URL from stdin

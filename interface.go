@@ -2,6 +2,7 @@ package mysql
 
 type Conn interface {
 	Connect() error
+	IsConnected() bool
 	Close() error
 	Reconnect() error
 	Ping() error
@@ -9,6 +10,9 @@ type Conn interface {
 	Start(sql string, params ...interface{}) (Result, error)
 	Prepare(sql string) (Stmt, error)
 
+	ThreadId() uint32
+	Register(sql string)
+	EscapeString(txt string) string
 	SetMaxPktSize(new_size int) int
 
 	Query(sql string, params ...interface{}) ([]Row, Result, error)

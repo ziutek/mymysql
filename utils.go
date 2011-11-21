@@ -1,6 +1,5 @@
 package mysql
 
-
 type ConnUtils struct {
 	Con Conn
 }

@@ -591,4 +591,4 @@ Workaround: change password using result from MYSQL >= 4.1 *PASSWORD* function
 [native](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/native)
 [thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/thrsafe)
 [autorc](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/autorc)
-[godrv](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/autorc)
+[godrv](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/godrv)

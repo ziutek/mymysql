@@ -100,8 +100,12 @@ database. This interface does not appear to be useful with local transactions.
 
 ### Using *goinstall* - preferred way:
 
-     $ goinstall github.com/ziutek/mymysql
+To install all subpackages of mymysql you need to goinstal two of them:
 
+     $ goinstall github.com/ziutek/mymysql/thrsafe
+     $ goinstall github.com/ziutek/mymysql/autorc
+
+*goinstall* automagicly select proper version of *mymysql* for your Go release.
 After this command *mymysql* is ready to use. You may find source in
 
     $GOROOT/src/pkg/github.com/ziutek/mymysql
@@ -112,15 +116,7 @@ You can use `goinstall -u -a` for update all installed packages.
 
 ### Using *git clone* command:
 
-    $ git clone git://github.com/ziutek/mymysql
-    $ cd mymysql
-    $ make install
-
-### Version for Go weekly releases
-
-If master branch can't be compiled with Go weekly release, try clone MyMySQL weekly branch:
-
-    $ git clone -b weekly git://github.com/ziutek/mymysql
+    $ git clone git://github.com/ziutek/mymysql.git
     $ cd mymysql
     $ make install
 

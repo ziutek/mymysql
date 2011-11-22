@@ -22,9 +22,9 @@ code changes during development will not break the package itself.
 
     MySQL wire protocol handling moved to *mymysql/native*
 
-    Thread safe wrapper of *native* engine in separate "mymysql/thrsafe"
+    Thread safe wrapper of *native* engine in separate *mymysql/thrsafe*
 
-    *mymysql/mysql" package contains definitions of interfaces to engines and
+    *mymysql/mysql* package contains definitions of interfaces to engines and
     common (engine-independent) functions.
 
     Automatic reconnect interface moved to *mymysql/autorc*.
@@ -585,7 +585,10 @@ to MySQL server as user which have old password format in *user* table.
 Workaround: change password using result from MYSQL >= 4.1 *PASSWORD* function
 (you can generate the old password format back using *OLD_PASSWORD* function).
 
-# Package documentation
+# Documentation
 
-See *GODOC.html* or try [this
-link](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql)
+[mysql](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/mysql)
+[native](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/native)
+[thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/thrsafe)
+[autorc](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/autorc)
+[godrv](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/autorc)

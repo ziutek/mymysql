@@ -1,20 +1,19 @@
 package godrv
 
 import (
+	"io"
 	"errors"
-	"strings"
 	"exp/sql"
 	"exp/sql/driver"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native"
+	"reflect"
+	"strings"
+	"fmt"
 )
 
 type conn struct {
 	my mysql.Conn
-}
-
-func (c conn) Close() error {
-	return c.my.Close()
 }
 
 func (c conn) Prepare(query string) (driver.Stmt, error) {
@@ -25,6 +24,30 @@ func (c conn) Prepare(query string) (driver.Stmt, error) {
 	return stmt{st}, nil
 }
 
+func (c conn) Close() error {
+	return c.my.Close()
+}
+
+func (c conn) Begin() (driver.Tx, error) {
+	t, err := c.my.Begin()
+	if err != nil {
+		return tx{nil}, err
+	}
+	return tx{t}, nil
+}
+
+type tx struct {
+	my mysql.Transaction
+}
+
+func (t tx) Commit() error {
+	return t.my.Commit()
+}
+
+func (t tx) Rollback() error {
+	return t.my.Rollback()
+}
+
 type stmt struct {
 	my mysql.Stmt
 }
@@ -33,10 +56,91 @@ func (s stmt) Close() error {
 	return s.my.Delete()
 }
 
-func (s stmt) Close() error {
-	return s.my.Delete()
+func (s stmt) NumInput() int {
+	return s.my.NumParam()
 }
 
+func (s stmt) run(args []interface{}) (rowsRes, error) {
+	res, err := s.my.Run(args...)
+	if err != nil {
+		return rowsRes{nil}, err
+	}
+	return rowsRes{res}, nil
+}
+
+func (s stmt) Exec(args []interface{}) (driver.Result, error) {
+	return s.run(args)
+}
+
+func (s stmt) Query(args []interface{}) (driver.Rows, error) {
+	return s.run(args)
+}
+
+type rowsRes struct {
+	my mysql.Result
+}
+
+func (r rowsRes) LastInsertId() (int64, error) {
+	return int64(r.my.InsertId()), nil
+}
+
+func (r rowsRes) RowsAffected() (int64, error) {
+	return int64(r.my.AffectedRows()), nil
+}
+
+func (r rowsRes) Columns() []string {
+	flds := r.my.Fields()
+	cls := make([]string, len(flds))
+	for i, f := range flds {
+		cls[i] = f.Name
+	}
+	return cls
+}
+
+func (r rowsRes) Close() error {
+	return r.my.End()
+}
+
+func (r rowsRes) Next(dest []interface{}) error {
+	row, err := r.my.GetRow()
+	if err != nil {
+		return err
+	}
+	if row == nil {
+		return io.EOF
+	}
+	for i, col := range row {
+		if col == nil {
+			dest[i] = nil
+			continue
+		}
+		v := reflect.ValueOf(col)
+		switch v.Type() {
+		case mysql.DatetimeType, mysql.DateType:
+			dest[i] = []byte(v.Interface().(fmt.Stringer).String())
+			continue
+		}
+		switch v.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+				reflect.Int64:
+			// This contains mysql.Time to
+			dest[i] = v.Int()
+		case reflect.Float32, reflect.Float64:
+			dest[i] = v.Float()
+		case reflect.Bool:
+			dest[i] = v.Bool()
+		case reflect.Slice:
+			if v.Type().Elem().Kind() == reflect.Uint8 {
+				dest[i] = v.Interface().([]byte)
+				break
+			}
+			fallthrough
+		default:
+			panic(fmt.Sprint("Unknown type of column: ", v.Type()))
+		}
+	}
+	return nil
+}
 
 type drv struct {
 	// Defaults
@@ -48,7 +152,6 @@ type drv struct {
 //   unix:SOCKPATH*DBNAME/USER/PASSWD
 //   tcp:ADDR*DBNAME/USER/PASSWD
 func (d *drv) Open(uri string) (driver.Conn, error) {
-	var db string
 	pd := strings.SplitN(uri, "*", 2)
 	if len(pd) == 2 {
 		// Parse protocol part of URI
@@ -75,9 +178,8 @@ func (d *drv) Open(uri string) (driver.Conn, error) {
 	if err := c.my.Connect(); err != nil {
 		return nil, err
 	}
-	return c, nil
+	return &c, nil
 }
-
 
 func init() {
 	sql.Register("mymysql", &drv{proto: "tcp", raddr: "127.0.0.1:3306"})

@@ -449,10 +449,10 @@ func (stmt *Stmt) BindParams(params ...interface{}) {
 		}
 		typ := pval.Type()
 		if kind == reflect.Struct &&
-			typ != reflectDatetimeType &&
-			typ != reflectDateType &&
-			typ != reflectTimestampType &&
-			typ != reflectRawType {
+			typ != mysql.DatetimeType &&
+			typ != mysql.DateType &&
+			typ != mysql.TimestampType &&
+			typ != mysql.RawType {
 			// We have struct to bind
 			if pval.NumField() != stmt.param_count {
 				panic(BIND_COUNT_ERROR)

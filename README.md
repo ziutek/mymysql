@@ -36,6 +36,8 @@ and *mysql.Field* - they deffinition didn't changed).
 3. Transactions added. If you use *mymysql/thrsafe" engine transactions are
 full thread safe.
 
+4. Driver for *exp/sql*.
+
 #### v0.3.8
 
 1. Package name changed to *mysql*.

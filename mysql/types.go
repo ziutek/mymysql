@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
     "fmt"
+	"reflect"
 )
 
 type Datetime struct {
@@ -226,4 +227,11 @@ type Raw struct {
     Val *[]byte
 }
 
-
+var (
+	BlobType = reflect.TypeOf(Blob{})
+	DatetimeType = reflect.TypeOf(Datetime{})
+	DateType = reflect.TypeOf(Date{})
+	TimestampType = reflect.TypeOf(Timestamp{})
+	TimeType = reflect.TypeOf(Time(0))
+	RawType = reflect.TypeOf(Raw{})
+)

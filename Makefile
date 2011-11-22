@@ -1,11 +1,13 @@
-all:
-	./make.bash clean install
+install:
+	./make.bash install
 
 clean:
 	./make.bash clean
 
-install:
-	./make.bash install
-
 test:
 	./make.bash test
+
+all:
+	./make.bash clean install test
+
+.PHONY : install clean test all

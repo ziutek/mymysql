@@ -5,15 +5,6 @@ import (
 	"github.com/ziutek/mymysql/mysql"
 )
 
-var (
-    reflectBlobType = reflect.TypeOf(mysql.Blob{})
-    reflectDatetimeType = reflect.TypeOf(mysql.Datetime{})
-    reflectDateType = reflect.TypeOf(mysql.Date{})
-    reflectTimestampType = reflect.TypeOf(mysql.Timestamp{})
-    reflectTimeType = reflect.TypeOf(mysql.Time(0))
-    reflectRawType = reflect.TypeOf(mysql.Raw{})
-)
-
 // val should be an addressable value
 func bindValue(val reflect.Value) (out *paramValue) {
     if !val.IsValid() {
@@ -64,7 +55,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
         return
 
     case reflect.Int64:
-        if typ == reflectTimeType {
+        if typ == mysql.TimeType {
             out.typ = MYSQL_TYPE_TIME
             out.length = -1
             return
@@ -94,7 +85,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
         return
 
     case reflect.Uint64:
-        if typ == reflectTimeType {
+        if typ == mysql.TimeType {
             out.typ = MYSQL_TYPE_TIME
             out.length = -1
             return
@@ -115,7 +106,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
 
     case reflect.Slice:
         out.length = -1
-        if typ == reflectBlobType {
+        if typ == mysql.BlobType {
             out.typ = MYSQL_TYPE_BLOB
             return
         }
@@ -126,19 +117,19 @@ func bindValue(val reflect.Value) (out *paramValue) {
 
     case reflect.Struct:
         out.length = -1
-        if typ == reflectDatetimeType {
+        if typ == mysql.DatetimeType {
             out.typ = MYSQL_TYPE_DATETIME
             return
         }
-        if typ == reflectDateType {
+        if typ == mysql.DateType {
             out.typ = MYSQL_TYPE_DATE
             return
         }
-        if typ == reflectTimestampType {
+        if typ == mysql.TimestampType {
             out.typ = MYSQL_TYPE_TIMESTAMP
             return
         }
-        if typ == reflectRawType {
+        if typ == mysql.RawType {
             out.typ = val.FieldByName("Typ").Interface().(uint16)
             out.SetAddr(val.FieldByName("Val").Pointer())
             out.raw = true

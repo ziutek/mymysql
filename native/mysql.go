@@ -23,8 +23,6 @@ type serverInfo struct {
 
 // MySQL connection handler
 type Conn struct {
-	mysql.ConnUtils
-
 	proto string // Network protocol
 	laddr string // Local address
 	raddr string // Remote (server) address
@@ -60,7 +58,7 @@ type Conn struct {
 // for create connection. user and passwd are for authentication. Optional db
 // is database name (you may not specifi it and use Use() method later).
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
-	my := &Conn{
+	my := Conn{
 		proto:        proto,
 		laddr:        laddr,
 		raddr:        raddr,
@@ -69,13 +67,12 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 		stmt_map:     make(map[uint32]*Stmt),
 		max_pkt_size: 16*1024*1024 - 1,
 	}
-	my.ConnUtils.Con = my
 	if len(db) == 1 {
 		my.dbname = db[0]
 	} else if len(db) > 1 {
 		panic("mymy.New: too many arguments")
 	}
-	return my
+	return &my
 }
 
 // If new_size > 0 sets maximum packet size. Returns old size.
@@ -352,18 +349,6 @@ func (res *Result) nextResult() (next *Result, err error) {
 func (res *Result) NextResult() (mysql.Result, error) {
 	res, err := res.nextResult()
 	return res, err
-}
-
-// Read all unreaded rows and discard them. This function is useful if you
-// don't want to use the remaining rows. It has an impact only on current
-// result. If there is multi result query, you must use NextResult method and
-// read/discard all rows in this result, before use other method that sends
-// data to the server.
-func (res *Result) End() (err error) {
-	for err == nil && res.my.unreaded_rows {
-		_, err = res.GetRow()
-	}
-	return
 }
 
 // Send MySQL PING to the server.
@@ -669,6 +654,26 @@ func (my *Conn) ThreadId() uint32 {
 // the order of registration. Yhis method is mainly useful for reconnect.
 func (my *Conn) Register(sql string) {
 	my.init_cmds = append(my.init_cmds, sql)
+}
+
+// See mysql.Query
+func (my *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Result, error){
+	return mysql.Query(my, sql, params...)
+}
+
+// See mysql.Exec
+func (stmt *Stmt) Exec(params ...interface{}) ([]mysql.Row, mysql.Result, error) {
+	return mysql.Exec(stmt, params...)
+}
+
+// See mysql.End
+func (res *Result) End() error {
+	return mysql.End(res)
+}
+
+// See mysql.GetRows
+func (res *Result) GetRows() ([]mysql.Row, error) {
+	return mysql.GetRows(res)
 }
 
 // Escapes special characters in the txt, so it is safe to place returned string

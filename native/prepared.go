@@ -5,8 +5,6 @@ import (
 	"github.com/ziutek/mymysql/mysql"
 )
 type Stmt struct {
-	mysql.StmtUtils
-
 	my  *Conn
 
 	id  uint32
@@ -148,9 +146,8 @@ func (my *Conn) getPrepareOkPacket(pr *pktReader) (stmt *Stmt) {
 	}
 
 	stmt = new(Stmt)
-	// First byte was readed by getPrepRes
-	stmt.StmtUtils.Stm = stmt
 	stmt.my = my
+	// First byte was readed by getPrepRes
 	stmt.id = readU32(pr)
 	stmt.fields = make([]*mysql.Field, int(readU16(pr))) // FieldCount
 	stmt.params = make([]*paramValue, int(readU16(pr)))  // ParamCount

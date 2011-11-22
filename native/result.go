@@ -7,8 +7,6 @@ import (
 )
 
 type Result struct {
-	mysql.ResultUtils
-
 	my     *Conn
 	binary bool // Binary result expected
 
@@ -115,7 +113,6 @@ func (my *Conn) getOkPacket(pr *pktReader) (res *Result) {
 		log.Printf("[%2d ->] OK packet:", my.seq-1)
 	}
 	res = new(Result)
-	res.ResultUtils.Res = res
 	res.my = my
 	// First byte was readed by getResult
 	res.affected_rows = readNotNullU64(pr)

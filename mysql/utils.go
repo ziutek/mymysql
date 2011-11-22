@@ -1,54 +1,26 @@
 package mysql
 
-type ConnUtils struct {
-	Con Conn
-}
-
 // This call Start and next call GetRow as long as it reads all rows from the
 // result. Next it returns all readed rows as the slice of rows.
-func (cu ConnUtils) Query(sql string, params ...interface{}) (rows []Row, res Result, err error) {
-	res, err = cu.Con.Start(sql, params...)
+func Query(c Conn, sql string, params ...interface{}) (rows []Row, res Result, err error) {
+	res, err = c.Start(sql, params...)
 	if err != nil {
 		return
 	}
-	// Read rows
-	var row Row
-	for {
-		row, err = res.GetRow()
-		if err != nil || row == nil {
-			break
-		}
-		rows = append(rows, row)
-	}
+	rows, err = GetRows(res)
 	return
 }
 
 
-type StmtUtils struct {
-	Stm Stmt
-}
-
-func (su StmtUtils) Exec(params ...interface{}) (rows []Row, res Result, err error) {
-
-	res, err = su.Stm.Run(params...)
+// This call Run and next call GetRow as long as it reads all rows from the
+// result. Next it returns all readed rows as the slice of rows.
+func Exec(s Stmt, params ...interface{}) (rows []Row, res Result, err error) {
+	res, err = s.Run(params...)
 	if err != nil {
 		return
 	}
-	// Read rows
-	var row Row
-	for {
-		row, err = res.GetRow()
-		if err != nil || row == nil {
-			break
-		}
-		rows = append(rows, row)
-	}
+	rows, err = GetRows(res)
 	return
-}
-
-
-type ResultUtils struct {
-	Res Result
 }
 
 // Read all unreaded rows and discard them. This function is useful if you
@@ -56,10 +28,10 @@ type ResultUtils struct {
 // result. If there is multi result query, you must use NextResult method and
 // read/discard all rows in this result, before use other method that sends
 // data to the server.
-func (ru ResultUtils) End() (err error) {
+func End(r Result) (err error) {
 	var row Row
 	for {
-		row, err = ru.Res.GetRow();
+		row, err = r.GetRow();
 		if err != nil || row == nil {
 			break
 		}
@@ -68,10 +40,10 @@ func (ru ResultUtils) End() (err error) {
 }
 
 // Reads all rows from result and returns them as slice.
-func (ru ResultUtils) GetRows() (rows []Row, err error) {
+func GetRows(r Result) (rows []Row, err error) {
 	var row Row
 	for {
-		row, err = ru.Res.GetRow()
+		row, err = r.GetRow()
 		if err != nil || row == nil {
 			break
 		}

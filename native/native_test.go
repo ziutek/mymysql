@@ -64,7 +64,7 @@ func checkWarnCount(t *testing.T, res_cnt, exp_cnt int) {
 
 func checkErrWarn(t *testing.T, res, exp *RowsResErr) {
 	checkErr(t, res.err, exp.err)
-	checkWarnCount(t, res.res.WarningCount(), exp.res.WarningCount())
+	checkWarnCount(t, res.res.WarnCount(), exp.res.WarnCount())
 }
 
 func types(row mysql.Row) (tt []reflect.Type) {
@@ -109,7 +109,6 @@ func checkErrWarnRows(t *testing.T, res, exp *RowsResErr) {
 
 func checkResult(t *testing.T, res, exp *RowsResErr) {
 	checkErrWarnRows(t, res, exp)
-	exp.res.(*Result).ResultUtils.Res = res.res.(*Result).ResultUtils.Res
 	if (!reflect.DeepEqual(res.res, exp.res)) {
 		t.Fatalf("Bad result:\nres=%+v\nexp=%+v", res.res, exp.res)
 	}

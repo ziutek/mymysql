@@ -1,5 +1,6 @@
-// MySQL Client API written entirely in Go without any external dependences.
-// This is thread safe wrapper over native engine.
+// Thread safe engine for MyMySQL
+
+
 // See documentation of mymysql/native for details/
 package thrsafe
 

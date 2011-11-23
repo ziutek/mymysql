@@ -1,3 +1,4 @@
+// MySQL Client API written entirely in Go without any external dependences.
 package mysql
 
 type conn interface {

@@ -1,3 +1,4 @@
+//MySQL driver for Go sql package
 package godrv
 
 import (

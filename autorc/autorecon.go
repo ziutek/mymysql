@@ -1,3 +1,4 @@
+// Auto reconnect interface for MyMySQL
 package autorc
 
 import (

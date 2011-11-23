@@ -1,6 +1,4 @@
-// MySQL Client API written entirely in Go without any external dependences.
-// This is thread unsafe package. Two threads should not use the same
-// connection in the same time.
+// Thread unsafe engine for MyMySQL
 package native
 
 import (

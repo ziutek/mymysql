@@ -489,7 +489,7 @@ mapped for MySQL protocol types as below:
        int64, uint64  -->  MYSQL_TYPE_LONGLONG
              float32  -->  MYSQL_TYPE_FLOAT
              float64  -->  MYSQL_TYPE_DOUBLE
-     *mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
+    *mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
      *mysql.Datetime  -->  MYSQL_TYPE_DATETIME
          *mysql.Date  -->  MYSQL_TYPE_DATE
          *mysql.Time  -->  MYSQL_TYPE_TIME

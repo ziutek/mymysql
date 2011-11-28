@@ -7,7 +7,6 @@ type ConnCommon interface {
 
 	Ping() error
 	ThreadId() uint32
-	Register(sql string)
 	EscapeString(txt string) string
 
 	Query(sql string, params ...interface{}) ([]Row, Result, error)
@@ -21,6 +20,7 @@ type Conn interface {
 	IsConnected() bool
 	Reconnect() error
 	Use(dbname string) error
+	Register(sql string)
 	SetMaxPktSize(new_size int) int
 
 	Begin() (Transaction, error)

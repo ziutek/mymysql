@@ -1,7 +1,7 @@
 // MySQL Client API written entirely in Go without any external dependences.
 package mysql
 
-type conn interface {
+type ConnCommon interface {
 	Connect() error
 	IsConnected() bool
 	Close() error
@@ -20,12 +20,12 @@ type conn interface {
 }
 
 type Conn interface {
-	conn
+	ConnCommon
 	Begin() (Transaction, error)
 }
 
 type Transaction interface {
-	conn
+	ConnCommon
 	Commit() error
 	Rollback() error
 	Do(st Stmt) Stmt

@@ -481,20 +481,20 @@ In case of prepared statements, the type mapping is slightly more complicated.
 For parameters sended from the client to the server, Go/mymysql types are
 mapped for MySQL protocol types as below:
 
-             string  -->  MYSQL_TYPE_STRING
-             []byte  -->  MYSQL_TYPE_VAR_STRING
-        int8, uint8  -->  MYSQL_TYPE_TINY
-      int16, uint16  -->  MYSQL_TYPE_SHORT
-      int32, uint32  -->  MYSQL_TYPE_LONG
-      int64, uint64  -->  MYSQL_TYPE_LONGLONG
-            float32  -->  MYSQL_TYPE_FLOAT
-            float64  -->  MYSQL_TYPE_DOUBLE
-   *mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
-    *mysql.Datetime  -->  MYSQL_TYPE_DATETIME
-        *mysql.Date  -->  MYSQL_TYPE_DATE
-        *mysql.Time  -->  MYSQL_TYPE_TIME
-         mysql.Blob  -->  MYSQL_TYPE_BLOB
-                nil  -->  MYSQL_TYPE_NULL
+              string  -->  MYSQL_TYPE_STRING
+              []byte  -->  MYSQL_TYPE_VAR_STRING
+         int8, uint8  -->  MYSQL_TYPE_TINY
+       int16, uint16  -->  MYSQL_TYPE_SHORT
+       int32, uint32  -->  MYSQL_TYPE_LONG
+       int64, uint64  -->  MYSQL_TYPE_LONGLONG
+             float32  -->  MYSQL_TYPE_FLOAT
+             float64  -->  MYSQL_TYPE_DOUBLE
+     *mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
+     *mysql.Datetime  -->  MYSQL_TYPE_DATETIME
+         *mysql.Date  -->  MYSQL_TYPE_DATE
+         *mysql.Time  -->  MYSQL_TYPE_TIME
+          mysql.Blob  -->  MYSQL_TYPE_BLOB
+                 nil  -->  MYSQL_TYPE_NULL
 
 The MySQL server maps/converts them to a particular MySQL storage type.
 
@@ -570,13 +570,10 @@ running on dual-core machine with GOMAXPROCS=2. It was tested using *siege*:
     Longest transaction:            9.28
     Shortest transaction:           0.01
 
-Thanks to *siege* stress tests I fixed some multi-threading bugs in v0.3.2.
+## To do
 
-## TODO
-
-1. Complete documentation
-2. stmt.BindResult
-3. io.Writer as bind result variable
+1. Transactions in auto reconnect interface.
+2. Complete documentation
 
 ## Known bugs
 

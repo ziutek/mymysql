@@ -2,30 +2,33 @@
 package mysql
 
 type ConnCommon interface {
-	Connect() error
-	IsConnected() bool
-	Close() error
-	Reconnect() error
-	Ping() error
-	Use(dbname string) error
 	Start(sql string, params ...interface{}) (Result, error)
 	Prepare(sql string) (Stmt, error)
 
+	Ping() error
 	ThreadId() uint32
 	Register(sql string)
 	EscapeString(txt string) string
-	SetMaxPktSize(new_size int) int
 
 	Query(sql string, params ...interface{}) ([]Row, Result, error)
 }
 
 type Conn interface {
 	ConnCommon
+
+	Connect() error
+	Close() error
+	IsConnected() bool
+	Reconnect() error
+	Use(dbname string) error
+	SetMaxPktSize(new_size int) int
+
 	Begin() (Transaction, error)
 }
 
 type Transaction interface {
 	ConnCommon
+
 	Commit() error
 	Rollback() error
 	Do(st Stmt) Stmt

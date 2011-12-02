@@ -38,7 +38,7 @@ func (c *Conn) reconnectIfNetErr(nn *int, err *error) {
 		if c.Debug {
 			log.Printf("Error: '%s' - reconnecting...", *err)
 		}
-		time.Sleep(int64(1e9) * int64(*nn))
+		time.Sleep(1e9 * time.Duration(*nn))
 		*err = c.Raw.Reconnect()
 		if c.Debug && *err != nil {
 			log.Println("Can't reconnect:", *err)

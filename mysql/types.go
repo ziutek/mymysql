@@ -204,18 +204,18 @@ func StrToTime(str string) *Time {
 	return &tt
 }
 
-// Convert *time.Time to *Datetime. Return nil if tt is nil
-func TimeToDatetime(tt *time.Time) *Datetime {
-	if tt == nil {
+// Convert time.Time to *Datetime. Return nil if tt is zero
+func TimeToDatetime(tt time.Time) *Datetime {
+	if tt.IsZero()  {
 		return nil
 	}
 	return &Datetime{
-		Year:   int16(tt.Year),
-		Month:  uint8(tt.Month),
-		Day:    uint8(tt.Day),
-		Hour:   uint8(tt.Hour),
-		Minute: uint8(tt.Minute),
-		Second: uint8(tt.Second),
+		Year:   int16(tt.Year()),
+		Month:  uint8(tt.Month()),
+		Day:    uint8(tt.Day()),
+		Hour:   uint8(tt.Hour()),
+		Minute: uint8(tt.Minute()),
+		Second: uint8(tt.Second()),
 	}
 }
 

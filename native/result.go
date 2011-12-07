@@ -1,9 +1,9 @@
 package native
 
 import (
+	"github.com/ziutek/mymysql/mysql"
 	"log"
 	"math"
-	"github.com/ziutek/mymysql/mysql"
 )
 
 type Result struct {
@@ -11,7 +11,7 @@ type Result struct {
 	binary bool // Binary result expected
 
 	field_count int
-	fields      []*mysql.Field       // Fields table
+	fields      []*mysql.Field // Fields table
 	fc_map      map[string]int // Maps field name to column number
 
 	message       []byte
@@ -177,7 +177,7 @@ func (my *Conn) getResSetHeadPacket(pr *pktReader) (res *Result) {
 	res = &Result{
 		my:     my,
 		fields: make([]*mysql.Field, field_count),
-		fc_map:    make(map[string]int),
+		fc_map: make(map[string]int),
 	}
 
 	if my.Debug {
@@ -320,5 +320,3 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 	}
 	return row
 }
-
-

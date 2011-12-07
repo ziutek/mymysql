@@ -4,10 +4,10 @@ package native
 import (
 	"bufio"
 	"fmt"
+	"github.com/ziutek/mymysql/mysql"
 	"io"
 	"net"
 	"reflect"
-	"github.com/ziutek/mymysql/mysql"
 )
 
 type serverInfo struct {
@@ -655,7 +655,7 @@ func (my *Conn) Register(sql string) {
 }
 
 // See mysql.Query
-func (my *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Result, error){
+func (my *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Result, error) {
 	return mysql.Query(my, sql, params...)
 }
 

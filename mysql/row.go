@@ -111,7 +111,9 @@ func (tr Row) UintErr(nn int) (val uint, err error) {
 	case uint8:
 		val = uint(data)
 	case []byte:
-		val, err = strconv.Atoui(string(data))
+		var v uint64
+		v, err = strconv.ParseUint(string(data), 0, strconv.IntSize)
+		val = uint(v)
 	case uint64:
 		if strconv.IntSize > 32 {
 			val = uint(data)

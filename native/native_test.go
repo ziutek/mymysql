@@ -1,14 +1,14 @@
 package native
 
 import (
-	"testing"
-	"reflect"
-	"os"
-	"fmt"
-	"time"
 	"bytes"
-	"io/ioutil"
+	"fmt"
 	"github.com/ziutek/mymysql/mysql"
+	"io/ioutil"
+	"os"
+	"reflect"
+	"testing"
+	"time"
 )
 
 var (
@@ -109,14 +109,14 @@ func checkErrWarnRows(t *testing.T, res, exp *RowsResErr) {
 
 func checkResult(t *testing.T, res, exp *RowsResErr) {
 	checkErrWarnRows(t, res, exp)
-	if (!reflect.DeepEqual(res.res, exp.res)) {
+	if !reflect.DeepEqual(res.res, exp.res) {
 		t.Fatalf("Bad result:\nres=%+v\nexp=%+v", res.res, exp.res)
 	}
 }
 
 func cmdOK(affected uint64, binary bool) *RowsResErr {
 	return &RowsResErr{res: &Result{my: my.(*Conn), binary: binary, status: 0x2,
-	message: []byte{}, affected_rows: affected}}
+		message: []byte{}, affected_rows: affected}}
 }
 
 func selectOK(rows []mysql.Row, binary bool) (exp *RowsResErr) {
@@ -166,7 +166,7 @@ func TestQuery(t *testing.T) {
 
 	exp := &RowsResErr{
 		res: &Result{
-			my:         my.(*Conn),
+			my:          my.(*Conn),
 			field_count: 1,
 			fields: []*mysql.Field{
 				&mysql.Field{
@@ -182,7 +182,7 @@ func TestQuery(t *testing.T) {
 					Scale:    0,
 				},
 			},
-			fc_map:    map[string]int{"Str": 0},
+			fc_map: map[string]int{"Str": 0},
 			status: _SERVER_STATUS_AUTOCOMMIT,
 		},
 	}
@@ -282,11 +282,11 @@ func TestPrepared(t *testing.T) {
 				Scale:   0,
 			},
 		},
-		fc_map:          map[string]int{"i": 0, "s": 1, "d": 2},
+		fc_map:        map[string]int{"i": 0, "s": 1, "d": 2},
 		field_count:   3,
 		param_count:   2,
 		warning_count: 0,
-		status:       0x2,
+		status:        0x2,
 	}
 
 	sel := prepare("select ii i, ss s, dd d from P where ii = ? and ss = ?")
@@ -300,16 +300,16 @@ func TestPrepared(t *testing.T) {
 
 	exp_rows := []mysql.Row{
 		mysql.Row{
-			2, "Taki tekst", mysql.TimeToDatetime(time.SecondsToLocalTime(123456789)),
+			2, "Taki tekst", mysql.TimeToDatetime(time.Unix(123456789, 0)),
 		},
 		mysql.Row{
-			3, "Łódź się kołysze!", mysql.TimeToDatetime(time.SecondsToLocalTime(0)),
+			3, "Łódź się kołysze!", mysql.TimeToDatetime(time.Unix(0, 0)),
 		},
 		mysql.Row{
-			5, "Pąk róży", mysql.TimeToDatetime(time.SecondsToLocalTime(9999999999)),
+			5, "Pąk róży", mysql.TimeToDatetime(time.Unix(9999999999, 0)),
 		},
 		mysql.Row{
-			11, "Zero UTC datetime", mysql.TimeToDatetime(time.SecondsToUTC(0)),
+			11, "Zero UTC datetime", mysql.TimeToDatetime(time.Unix(0, 0).UTC()),
 		},
 		mysql.Row{
 			17, mysql.Blob([]byte("Zero datetime")), new(mysql.Datetime),

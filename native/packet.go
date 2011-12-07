@@ -1,8 +1,8 @@
 package native
 
 import (
-	"io"
 	"bufio"
+	"io"
 )
 
 type pktReader struct {

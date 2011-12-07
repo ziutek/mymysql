@@ -1,11 +1,12 @@
 package native
 
 import (
-	"log"
 	"github.com/ziutek/mymysql/mysql"
+	"log"
 )
+
 type Stmt struct {
-	my  *Conn
+	my *Conn
 
 	id  uint32
 	sql string // For reprepare during reconnect
@@ -21,7 +22,6 @@ type Stmt struct {
 	warning_count int
 	status        uint16
 }
-
 
 // Returns index for given name or -1 if field of that name doesn't exist
 func (res *Stmt) Map(field_name string) int {

@@ -48,6 +48,7 @@ func (tr Row) Str(nn int) (str string) {
 // Get the nn-th value and return it as int (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) IntErr(nn int) (val int, err error) {
+	fn := "IntErr"
 	switch data := tr[nn].(type) {
 	case nil:
 		val = 0
@@ -67,18 +68,18 @@ func (tr Row) IntErr(nn int) (val int, err error) {
 		if strconv.IntSize > 32 {
 			val = int(data)
 		} else {
-			err = &strconv.NumError{fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 		}
 	case int64:
 		if strconv.IntSize > 32 {
 			val = int(data)
 		} else {
-			err = &strconv.NumError{fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 		}
 	case uint64:
-		err = &strconv.NumError{fmt.Sprint(data), os.ERANGE}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 	default:
-		err = &strconv.NumError{fmt.Sprint(data), os.EINVAL}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
 	}
 	return
 }
@@ -103,6 +104,7 @@ func (tr Row) Int(nn int) (val int) {
 // Get the nn-th value and return it as uint (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) UintErr(nn int) (val uint, err error) {
+	fn := "UintErr"
 	switch data := tr[nn].(type) {
 	case uint32:
 		val = uint(data)
@@ -118,12 +120,12 @@ func (tr Row) UintErr(nn int) (val uint, err error) {
 		if strconv.IntSize > 32 {
 			val = uint(data)
 		} else {
-			err = &strconv.NumError{fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 		}
 	case int8, int16, int32, int64:
-		err = &strconv.NumError{fmt.Sprint(data), os.ERANGE}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 	default:
-		err = &strconv.NumError{fmt.Sprint(data), os.EINVAL}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
 	}
 	return
 }

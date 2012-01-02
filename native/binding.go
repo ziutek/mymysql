@@ -85,11 +85,6 @@ func bindValue(val reflect.Value) (out *paramValue) {
 		return
 
 	case reflect.Uint64:
-		if typ == mysql.TimeType {
-			out.typ = MYSQL_TYPE_TIME
-			out.length = -1
-			return
-		}
 		out.typ = MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK
 		out.length = 8
 		return

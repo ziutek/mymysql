@@ -132,7 +132,7 @@ func (r rowsRes) Next(dest []interface{}) error {
 			if u > math.MaxInt64 {
 				panic("Value to large for int64 type")
 			}
-			dest[i] = u
+			dest[i] = int64(u)
 		case reflect.Float32, reflect.Float64:
 			dest[i] = v.Float()
 		case reflect.Bool:

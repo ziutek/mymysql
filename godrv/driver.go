@@ -2,15 +2,16 @@
 package godrv
 
 import (
-	"io"
 	"errors"
 	"exp/sql"
 	"exp/sql/driver"
+	"fmt"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native"
+	"io"
+	"math"
 	"reflect"
 	"strings"
-	"fmt"
 )
 
 type conn struct {
@@ -123,9 +124,15 @@ func (r rowsRes) Next(dest []interface{}) error {
 		}
 		switch v.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
-				reflect.Int64:
-			// This contains mysql.Time to
+			reflect.Int64: // This contains mysql.Time to
 			dest[i] = v.Int()
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+			reflect.Uint64:
+			u := v.Uint()
+			if u > math.MaxInt64 {
+				panic("Value to large for int64 type")
+			}
+			dest[i] = u
 		case reflect.Float32, reflect.Float64:
 			dest[i] = v.Float()
 		case reflect.Bool:

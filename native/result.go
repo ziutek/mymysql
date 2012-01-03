@@ -26,6 +26,12 @@ type Result struct {
 
 	// MySQL server status immediately after the query execution
 	status uint16
+
+	// Have we received the end of Field Packets EOF?
+	field_eof bool
+
+	// Have we received the end of Data Packets EOF?
+	row_data_eof bool
 }
 
 func (res *Result) Fields() []*mysql.Field {
@@ -57,6 +63,14 @@ func (res *Result) WarnCount() int {
 }
 
 func (my *Conn) getResult(res *Result) interface{} {
+
+	// No-Op if done reading rows
+	// This avoids a case where readByte() blocks
+	// indefintely
+	if res != nil && res.row_data_eof {
+		return res
+	}
+
 loop:
 	pr := my.newPktReader() // New reader for next packet
 	pkt0 := readByte(pr)
@@ -84,6 +98,11 @@ loop:
 			// EOF packet
 			res.warning_count, res.status = my.getEofPacket(pr)
 			my.status = res.status
+			if res.field_eof {
+				res.row_data_eof = true
+			} else {
+				res.field_eof = true
+			}
 			return res
 
 		case pkt0 > 0 && pkt0 < 251 && res.field_count < len(res.fields):
@@ -175,9 +194,11 @@ func (my *Conn) getResSetHeadPacket(pr *pktReader) (res *Result) {
 	pr.checkEof()
 
 	res = &Result{
-		my:     my,
-		fields: make([]*mysql.Field, field_count),
-		fc_map: make(map[string]int),
+		my:           my,
+		fields:       make([]*mysql.Field, field_count),
+		fc_map:       make(map[string]int),
+		field_eof:    false,
+		row_data_eof: false,
 	}
 
 	if my.Debug {

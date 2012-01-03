@@ -533,7 +533,7 @@ field in database handler to appropriate value before connect, and change
 
 ## Thread safe engine
 
-If you import "mymysql/thrsafe" instead of in multithreading enviroment all methods are thread safe, unless the description of the method says something else.
+If you import "mymysql/thrsafe" engine instead of "mymysql/native" engine all methods are thread safe, unless the description of the method says something else.
 
 If one thread is calling *Query* or *Exec* method, other threads will be
 blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send

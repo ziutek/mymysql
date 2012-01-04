@@ -483,7 +483,6 @@ func TestDate(t *testing.T) {
 }
 
 // Big blob
-
 func TestBigBlob(t *testing.T) {
 	myConnect(t, true, 34*1024*1024)
 	query("drop table P") // Drop test table if exists
@@ -573,8 +572,39 @@ func TestBigBlob(t *testing.T) {
 	myClose(t)
 }
 
-// Reconnect test
+// Test for empty result
+func TestEmpty(t *testing.T) {
+	checkNil := func(r mysql.Row) {
+		if r != nil {
+			t.Error("Not empty result")
+		}
+	}
+	myConnect(t, true, 0)
+	query("drop table E") // Drop test table if exists
+	// Create table 
+	checkResult(t,
+		query("create table E (id int)"),
+		cmdOK(0, false),
+	)
+	// Text query
+	res, err := my.Start("select * from E")
+	checkErr(t, err, nil)
+	row, err := res.GetRow()
+	checkErr(t, err, nil)
+	checkNil(row)
+	// Prepared statement
+	sel, err := my.Prepare("select * from E")
+	checkErr(t, err, nil)
+	res, err = sel.Run()
+	checkErr(t, err, nil)
+	row, err = res.GetRow()
+	checkErr(t, err, nil)
+	checkNil(row)
+	// Drop test table
+	checkResult(t, query("drop table E"), cmdOK(0, false))
+}
 
+// Reconnect test
 func TestReconnect(t *testing.T) {
 	myConnect(t, true, 0)
 	query("drop table R") // Drop test table if exists

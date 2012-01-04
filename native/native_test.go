@@ -114,13 +114,13 @@ func checkResult(t *testing.T, res, exp *RowsResErr) {
 	}
 }
 
-func cmdOK(affected uint64, binary bool) *RowsResErr {
+func cmdOK(affected uint64, binary, eor bool) *RowsResErr {
 	return &RowsResErr{res: &Result{my: my.(*Conn), binary: binary, status: 0x2,
-		message: []byte{}, affected_rows: affected}}
+		message: []byte{}, affected_rows: affected, eor_returned: eor}}
 }
 
 func selectOK(rows []mysql.Row, binary bool) (exp *RowsResErr) {
-	exp = cmdOK(0, binary)
+	exp = cmdOK(0, binary, true)
 	exp.rows = rows
 	return
 }
@@ -138,7 +138,7 @@ func myConnect(t *testing.T, with_dbname bool, max_pkt_size int) {
 	my.(*Conn).Debug = debug
 
 	checkErr(t, my.Connect(), nil)
-	checkResult(t, query("set names utf8"), cmdOK(0, false))
+	checkResult(t, query("set names utf8"), cmdOK(0, false, true))
 }
 
 func myClose(t *testing.T) {
@@ -162,7 +162,8 @@ func TestPing(t *testing.T) {
 func TestQuery(t *testing.T) {
 	myConnect(t, true, 0)
 	query("drop table T") // Drop test table if exists
-	checkResult(t, query("create table T (s varchar(40))"), cmdOK(0, false))
+	checkResult(t, query("create table T (s varchar(40))"),
+		cmdOK(0, false, true))
 
 	exp := &RowsResErr{
 		res: &Result{
@@ -182,27 +183,29 @@ func TestQuery(t *testing.T) {
 					Scale:    0,
 				},
 			},
-			fc_map: map[string]int{"Str": 0},
-			status: _SERVER_STATUS_AUTOCOMMIT,
+			fc_map:       map[string]int{"Str": 0},
+			status:       _SERVER_STATUS_AUTOCOMMIT,
+			eor_returned: true,
 		},
 	}
 
 	for ii := 0; ii > 10000; ii += 3 {
 		var val interface{}
 		if ii%10 == 0 {
-			checkResult(t, query("insert T values (null)"), cmdOK(1, false))
+			checkResult(t, query("insert T values (null)"),
+				cmdOK(1, false, true))
 			val = nil
 		} else {
 			txt := []byte(fmt.Sprintf("%d %d %d %d %d", ii, ii, ii, ii, ii))
 			checkResult(t,
-				query("insert T values ('%s')", txt), cmdOK(1, false))
+				query("insert T values ('%s')", txt), cmdOK(1, false, true))
 			val = txt
 		}
 		exp.rows = append(exp.rows, mysql.Row{val})
 	}
 
 	checkResult(t, query("select s as Str from T as Test"), exp)
-	checkResult(t, query("drop table T"), cmdOK(0, false))
+	checkResult(t, query("drop table T"), cmdOK(0, false, true))
 	myClose(t)
 }
 
@@ -249,7 +252,7 @@ func TestPrepared(t *testing.T) {
 				"   ii int not null, ss varchar(20), dd datetime"+
 				") default charset=utf8",
 		),
-		cmdOK(0, false),
+		cmdOK(0, false, true),
 	)
 
 	exp := Stmt{
@@ -325,7 +328,7 @@ func TestPrepared(t *testing.T) {
 	for _, row := range exp_rows {
 		checkErrWarn(t,
 			exec(ins.stmt, row[0], row[1], row[2]),
-			cmdOK(1, true),
+			cmdOK(1, true, true),
 		)
 	}
 
@@ -367,7 +370,7 @@ func TestPrepared(t *testing.T) {
 	checkErrWarn(t, exec(sel.stmt, 2, "Taki tekst"), selectOK(exp_rows, true))
 	checkErrWarnRows(t, exec(all.stmt), selectOK(exp_rows, true))
 
-	checkResult(t, query("drop table P"), cmdOK(0, false))
+	checkResult(t, query("drop table P"), cmdOK(0, false, true))
 
 	checkErr(t, sel.stmt.Delete(), nil)
 	checkErr(t, all.stmt.Delete(), nil)
@@ -383,7 +386,7 @@ func TestVarBinding(t *testing.T) {
 	query("drop table P") // Drop test table if exists
 	checkResult(t,
 		query("create table T (id int primary key, str varchar(20))"),
-		cmdOK(0, false),
+		cmdOK(0, false, true),
 	)
 
 	ins, err := my.Prepare("insert T values (?, ?)")
@@ -403,7 +406,7 @@ func TestVarBinding(t *testing.T) {
 	id = &i1
 	str = &s1
 	rre.res, rre.err = ins.Run()
-	checkResult(t, &rre, cmdOK(1, true))
+	checkResult(t, &rre, cmdOK(1, true, false))
 
 	i2 := 2
 	s2 := "Ma kota!"
@@ -411,14 +414,14 @@ func TestVarBinding(t *testing.T) {
 	str = &s2
 
 	rre.res, rre.err = ins.Run()
-	checkResult(t, &rre, cmdOK(1, true))
+	checkResult(t, &rre, cmdOK(1, true, false))
 
 	ins.BindParams(&ii, &ss)
 	ii = 3
 	ss = "A kot ma Ale!"
 
 	rre.res, rre.err = ins.Run()
-	checkResult(t, &rre, cmdOK(1, true))
+	checkResult(t, &rre, cmdOK(1, true, false))
 
 	sel, err := my.Prepare("select str from T where id = ?")
 	checkErr(t, err, nil)
@@ -441,7 +444,7 @@ func TestVarBinding(t *testing.T) {
 		t.Fatal("Thrid string don't match")
 	}
 
-	checkResult(t, query("drop table T"), cmdOK(0, false))
+	checkResult(t, query("drop table T"), cmdOK(0, false, true))
 	myClose(t)
 }
 
@@ -450,7 +453,7 @@ func TestDate(t *testing.T) {
 	query("drop table D") // Drop test table if exists
 	checkResult(t,
 		query("create table D (id int, dd date, dt datetime, tt time)"),
-		cmdOK(0, false),
+		cmdOK(0, false, true),
 	)
 
 	dd := "2011-12-13"
@@ -478,7 +481,7 @@ func TestDate(t *testing.T) {
 		t.Fatal("Bad tt", rows[0][1].(mysql.Time))
 	}
 
-	checkResult(t, query("drop table D"), cmdOK(0, false))
+	checkResult(t, query("drop table D"), cmdOK(0, false, true))
 	myClose(t)
 }
 
@@ -488,7 +491,7 @@ func TestBigBlob(t *testing.T) {
 	query("drop table P") // Drop test table if exists
 	checkResult(t,
 		query("create table P (id int primary key, bb longblob)"),
-		cmdOK(0, false),
+		cmdOK(0, false, true),
 	)
 
 	ins, err := my.Prepare("insert P values (?, ?)")
@@ -519,7 +522,7 @@ func TestBigBlob(t *testing.T) {
 
 	// Insert full blob. Three packets are sended. First two has maximum length
 	rre.res, rre.err = ins.Run()
-	checkResult(t, &rre, cmdOK(1, true))
+	checkResult(t, &rre, cmdOK(1, true, false))
 
 	// Struct binding
 	ins.BindParams(&data)
@@ -528,7 +531,7 @@ func TestBigBlob(t *testing.T) {
 
 	// Insert part of blob - Two packets are sended. All has maximum length.
 	rre.res, rre.err = ins.Run()
-	checkResult(t, &rre, cmdOK(1, true))
+	checkResult(t, &rre, cmdOK(1, true, false))
 
 	sel.BindParams(&id)
 
@@ -568,7 +571,7 @@ func TestBigBlob(t *testing.T) {
 		t.Fatal("Partial blob data don't match")
 	}
 
-	checkResult(t, query("drop table P"), cmdOK(0, false))
+	checkResult(t, query("drop table P"), cmdOK(0, false, true))
 	myClose(t)
 }
 
@@ -584,13 +587,16 @@ func TestEmpty(t *testing.T) {
 	// Create table 
 	checkResult(t,
 		query("create table E (id int)"),
-		cmdOK(0, false),
+		cmdOK(0, false, true),
 	)
 	// Text query
 	res, err := my.Start("select * from E")
 	checkErr(t, err, nil)
 	row, err := res.GetRow()
 	checkErr(t, err, nil)
+	checkNil(row)
+	row, err = res.GetRow()
+	checkErr(t, err, READ_AFTER_EOR_ERROR)
 	checkNil(row)
 	// Prepared statement
 	sel, err := my.Prepare("select * from E")
@@ -600,8 +606,11 @@ func TestEmpty(t *testing.T) {
 	row, err = res.GetRow()
 	checkErr(t, err, nil)
 	checkNil(row)
+	row, err = res.GetRow()
+	checkErr(t, err, READ_AFTER_EOR_ERROR)
+	checkNil(row)
 	// Drop test table
-	checkResult(t, query("drop table E"), cmdOK(0, false))
+	checkResult(t, query("drop table E"), cmdOK(0, false, true))
 }
 
 // Reconnect test
@@ -610,7 +619,7 @@ func TestReconnect(t *testing.T) {
 	query("drop table R") // Drop test table if exists
 	checkResult(t,
 		query("create table R (id int primary key, str varchar(20))"),
-		cmdOK(0, false),
+		cmdOK(0, false, true),
 	)
 
 	ins, err := my.Prepare("insert R values (?, ?)")
@@ -652,7 +661,7 @@ func TestReconnect(t *testing.T) {
 
 	checkErr(t, my.Reconnect(), nil)
 
-	checkResult(t, query("drop table R"), cmdOK(0, false))
+	checkResult(t, query("drop table R"), cmdOK(0, false, true))
 	myClose(t)
 }
 
@@ -663,7 +672,7 @@ func TestSendLongData(t *testing.T) {
 	query("drop table L") // Drop test table if exists
 	checkResult(t,
 		query("create table L (id int primary key, bb longblob)"),
-		cmdOK(0, false),
+		cmdOK(0, false, true),
 	)
 	ins, err := my.Prepare("insert L values (?, ?)")
 	checkErr(t, err, nil)
@@ -690,7 +699,7 @@ func TestSendLongData(t *testing.T) {
 
 	id = 1
 	rre.res, rre.err = ins.Run()
-	checkResult(t, &rre, cmdOK(1, true))
+	checkResult(t, &rre, cmdOK(1, true, false))
 
 	return
 	res, err := sel.Run()
@@ -719,7 +728,7 @@ func TestSendLongData(t *testing.T) {
 
 	id = 2
 	rre.res, rre.err = ins.Run()
-	checkResult(t, &rre, cmdOK(1, true))
+	checkResult(t, &rre, cmdOK(1, true, false))
 
 	res, err = sel.Run()
 	checkErr(t, err, nil)
@@ -738,7 +747,7 @@ func TestSendLongData(t *testing.T) {
 		t.Fatal("Bad result")
 	}
 
-	checkResult(t, query("drop table L"), cmdOK(0, false))
+	checkResult(t, query("drop table L"), cmdOK(0, false, true))
 	myClose(t)
 }
 
@@ -747,14 +756,17 @@ func TestMultipleResults(t *testing.T) {
 	query("drop table M") // Drop test table if exists
 	checkResult(t,
 		query("create table M (id int primary key, str varchar(20))"),
-		cmdOK(0, false),
+		cmdOK(0, false, true),
 	)
 
 	str := []string{"zero", "jeden", "dwa"}
 
-	checkResult(t, query("insert M values (0, '%s')", str[0]), cmdOK(1, false))
-	checkResult(t, query("insert M values (1, '%s')", str[1]), cmdOK(1, false))
-	checkResult(t, query("insert M values (2, '%s')", str[2]), cmdOK(1, false))
+	checkResult(t, query("insert M values (0, '%s')", str[0]),
+		cmdOK(1, false, true))
+	checkResult(t, query("insert M values (1, '%s')", str[1]),
+		cmdOK(1, false, true))
+	checkResult(t, query("insert M values (2, '%s')", str[2]),
+		cmdOK(1, false, true))
 
 	res, err := my.Start("select id from M; select str from M")
 	checkErr(t, err, nil)
@@ -782,7 +794,7 @@ func TestMultipleResults(t *testing.T) {
 		}
 	}
 
-	checkResult(t, query("drop table M"), cmdOK(0, false))
+	checkResult(t, query("drop table M"), cmdOK(0, false, true))
 	myClose(t)
 }
 

@@ -26,6 +26,9 @@ type Result struct {
 
 	// MySQL server status immediately after the query execution
 	status uint16
+
+	// Seted by GetRow if it returns nil row
+	eor_returned bool
 }
 
 func (res *Result) Fields() []*mysql.Field {

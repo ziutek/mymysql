@@ -27,7 +27,7 @@ func Exec(s Stmt, params ...interface{}) (rows []Row, res Result, err error) {
 // don't want to use the remaining rows. It has an impact only on current
 // result. If there is multi result query, you must use NextResult method and
 // read/discard all rows in this result, before use other method that sends
-// data to the server.
+// data to the server. You can't use this function if last GetRow returned nil.
 func End(r Result) (err error) {
 	var row Row
 	for {

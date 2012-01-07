@@ -7,7 +7,7 @@ import (
 	"exp/sql/driver"
 	"fmt"
 	"github.com/ziutek/mymysql/mysql"
-	_ "github.com/ziutek/mymysql/native"
+	"github.com/ziutek/mymysql/native"
 	"io"
 	"math"
 	"reflect"
@@ -27,7 +27,9 @@ func (c conn) Prepare(query string) (driver.Stmt, error) {
 }
 
 func (c conn) Close() error {
-	return c.my.Close()
+	err := c.my.Close()
+	c.my = nil
+	return err
 }
 
 func (c conn) Begin() (driver.Tx, error) {
@@ -55,7 +57,9 @@ type stmt struct {
 }
 
 func (s stmt) Close() error {
-	return s.my.Delete()
+	err := s.my.Delete()
+	s.my = nil
+	return err
 }
 
 func (s stmt) NumInput() int {
@@ -100,7 +104,12 @@ func (r rowsRes) Columns() []string {
 }
 
 func (r rowsRes) Close() error {
-	return r.my.End()
+	err := r.my.End()
+	r.my = nil
+	if err != native.READ_AFTER_EOR_ERROR {
+		return err
+	}
+	return nil
 }
 
 func (r rowsRes) Next(dest []interface{}) error {

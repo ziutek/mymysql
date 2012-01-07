@@ -36,7 +36,7 @@ type Conn struct {
 	info serverInfo // MySQL server information
 	seq  byte       // MySQL sequence number
 
-	unreaded_rows bool
+	unreaded_reply bool
 
 	init_cmds []string         // MySQL commands/queries executed after connect
 	stmt_map  map[uint32]*Stmt // For reprepare during reconnect
@@ -199,8 +199,8 @@ func (my *Conn) Close() (err error) {
 	if my.net_conn == nil {
 		return NOT_CONN_ERROR
 	}
-	if my.unreaded_rows {
-		return UNREADED_ROWS_ERROR
+	if my.unreaded_reply {
+		return UNREADED_REPLY_ERROR
 	}
 
 	return my.closeConn()
@@ -247,8 +247,8 @@ func (my *Conn) Use(dbname string) (err error) {
 	if my.net_conn == nil {
 		return NOT_CONN_ERROR
 	}
-	if my.unreaded_rows {
-		return UNREADED_ROWS_ERROR
+	if my.unreaded_reply {
+		return UNREADED_REPLY_ERROR
 	}
 
 	// Send command
@@ -268,7 +268,7 @@ func (my *Conn) getResponse() (res *Result) {
 	}
 	if res.field_count != 0 {
 		// This query can return rows (this isn't OK result)
-		my.unreaded_rows = true
+		my.unreaded_reply = true
 	}
 	return
 }
@@ -284,8 +284,8 @@ func (my *Conn) Start(sql string, params ...interface{}) (res mysql.Result, err 
 	if my.net_conn == nil {
 		return nil, NOT_CONN_ERROR
 	}
-	if my.unreaded_rows {
-		return nil, UNREADED_ROWS_ERROR
+	if my.unreaded_reply {
+		return nil, UNREADED_REPLY_ERROR
 	}
 
 	if len(params) != 0 {
@@ -323,13 +323,21 @@ func (res *Result) MoreResults() bool {
 // Get the data row from server. This method reads one row of result directly
 // from network connection (without rows buffering on client side).
 func (res *Result) GetRow() (row mysql.Row, err error) {
+	if res.eor_returned {
+		err = READ_AFTER_EOR_ERROR
+		return
+	}
 	if res.field_count == 0 {
 		// There is no fields in result (OK result)
+		res.eor_returned = true
 		return
 	}
 	row, err = res.getRow()
-	if err == nil && row == nil && !res.MoreResults() {
-		res.my.unreaded_rows = false
+	if err == nil && row == nil {
+		res.eor_returned = true
+		if!res.MoreResults() {
+			res.my.unreaded_reply = false
+		}
 	}
 	return
 }
@@ -356,8 +364,8 @@ func (my *Conn) Ping() (err error) {
 	if my.net_conn == nil {
 		return NOT_CONN_ERROR
 	}
-	if my.unreaded_rows {
-		return UNREADED_ROWS_ERROR
+	if my.unreaded_reply {
+		return UNREADED_REPLY_ERROR
 	}
 
 	// Send command
@@ -394,8 +402,8 @@ func (my *Conn) Prepare(sql string) (mysql.Stmt, error) {
 	if my.net_conn == nil {
 		return nil, NOT_CONN_ERROR
 	}
-	if my.unreaded_rows {
-		return nil, UNREADED_ROWS_ERROR
+	if my.unreaded_reply {
+		return nil, UNREADED_REPLY_ERROR
 	}
 
 	stmt, err := my.prepare(sql)
@@ -493,8 +501,8 @@ func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
 	if stmt.my.net_conn == nil {
 		return nil, NOT_CONN_ERROR
 	}
-	if stmt.my.unreaded_rows {
-		return nil, UNREADED_ROWS_ERROR
+	if stmt.my.unreaded_reply {
+		return nil, UNREADED_REPLY_ERROR
 	}
 
 	// Bind parameters if any
@@ -521,8 +529,8 @@ func (stmt *Stmt) Delete() (err error) {
 	if stmt.my.net_conn == nil {
 		return NOT_CONN_ERROR
 	}
-	if stmt.my.unreaded_rows {
-		return UNREADED_ROWS_ERROR
+	if stmt.my.unreaded_reply {
+		return UNREADED_REPLY_ERROR
 	}
 
 	// Allways delete statement on client side, even if
@@ -547,8 +555,8 @@ func (stmt *Stmt) Reset() (err error) {
 	if stmt.my.net_conn == nil {
 		return NOT_CONN_ERROR
 	}
-	if stmt.my.unreaded_rows {
-		return UNREADED_ROWS_ERROR
+	if stmt.my.unreaded_reply {
+		return UNREADED_REPLY_ERROR
 	}
 
 	// Next exec must send type information. We set rebind flag regardless of
@@ -586,8 +594,8 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) (err er
 	if stmt.my.net_conn == nil {
 		return NOT_CONN_ERROR
 	}
-	if stmt.my.unreaded_rows {
-		return UNREADED_ROWS_ERROR
+	if stmt.my.unreaded_reply {
+		return UNREADED_REPLY_ERROR
 	}
 	if pnum < 0 || pnum >= stmt.param_count {
 		return WRONG_PARAM_NUM_ERROR

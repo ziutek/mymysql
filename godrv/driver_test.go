@@ -13,7 +13,7 @@ func checkErr(t *testing.T, err error) {
 func checkErrId(t *testing.T, err error, rid, eid int64) {
 	checkErr(t, err)
 	if rid != eid {
-		t.Fatal("res.LastInsertId() ==", rid, "but should be", eid )
+		t.Fatal("res.LastInsertId() ==", rid, "but should be", eid)
 	}
 }
 
@@ -32,6 +32,11 @@ func TestAll(t *testing.T) {
 	checkErr(t, err)
 
 	ins, err := db.Prepare("INSERT go SET txt=?")
+	checkErr(t, err)
+	err = ins.Close()
+	checkErr(t, err)
+
+	ins, err = db.Prepare("INSERT go SET txt=?")
 	checkErr(t, err)
 
 	tx, err := db.Begin()

@@ -15,20 +15,27 @@ import (
 )
 
 type conn struct {
-	my mysql.Conn
+	my    mysql.Conn
+	stmts map[string]driver.Stmt
 }
 
 func (c conn) Prepare(query string) (driver.Stmt, error) {
-	st, err := c.my.Prepare(query)
-	if err != nil {
-		return nil, err
+	ret, ok := c.stmts[query]
+	if !ok {
+		st, err := c.my.Prepare(query)
+		if err != nil {
+			return nil, err
+		}
+		ret = stmt{st, &c, query}
+		c.stmts[query] = ret
 	}
-	return stmt{st}, nil
+	return ret, nil
 }
 
 func (c conn) Close() error {
 	err := c.my.Close()
 	c.my = nil
+	c.stmts = make(map[string]driver.Stmt)
 	return err
 }
 
@@ -53,12 +60,15 @@ func (t tx) Rollback() error {
 }
 
 type stmt struct {
-	my mysql.Stmt
+	my    mysql.Stmt
+	c     *conn
+	query string
 }
 
 func (s stmt) Close() error {
 	err := s.my.Delete()
 	s.my = nil
+	delete(s.c.stmts, s.query)
 	return err
 }
 
@@ -191,7 +201,8 @@ func (d *drv) Open(uri string) (driver.Conn, error) {
 	d.passwd = dup[2]
 
 	// Establish the connection
-	c := conn{mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)}
+	mc := mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)
+	c := conn{mc, make(map[string]driver.Stmt)}
 	if err := c.my.Connect(); err != nil {
 		return nil, err
 	}

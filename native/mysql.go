@@ -424,8 +424,8 @@ func (my *Conn) Prepare(sql string) (mysql.Stmt, error) {
 // params may be a parameter list (slice), a struct or a pointer to the struct.
 // A struct field can by value or pointer to value. A parameter (slice element)
 // can be value, pointer to value or pointer to pointer to value.
-// Values may be of the folowind types: intXX, uintXX, floatXX, []byte, Blob,
-// string, Datetime, Date, Time, Timestamp, Raw.
+// Values may be of the folowind types: intXX, uintXX, floatXX, bool, []byte,
+// Blob, string, Datetime, Date, Time, Timestamp, Raw.
 func (stmt *Stmt) BindParams(params ...interface{}) {
 	stmt.rebind = true
 

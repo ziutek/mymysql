@@ -1,11 +1,12 @@
 package mysql
 
 import (
-	"errors"
-	"strconv"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"reflect"
+	"strconv"
 )
 
 // Result row - contains values for any column of received row.
@@ -45,6 +46,9 @@ func (tr Row) Str(nn int) (str string) {
 	return
 }
 
+const _MAX_INT = int(^uint(0) >> 1)
+const _MIN_INT = -_MAX_INT - 1
+
 // Get the nn-th value and return it as int (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) IntErr(nn int) (val int, err error) {
@@ -64,20 +68,24 @@ func (tr Row) IntErr(nn int) (val int, err error) {
 		val = int(data)
 	case []byte:
 		val, err = strconv.Atoi(string(data))
-	case uint32:
-		if strconv.IntSize > 32 {
+	case int64:
+		if data >= int64(_MIN_INT) && data <= int64(_MAX_INT) {
 			val = int(data)
 		} else {
 			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 		}
-	case int64:
-		if strconv.IntSize > 32 {
+	case uint32:
+		if data <= uint32(_MAX_INT) {
 			val = int(data)
 		} else {
 			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 		}
 	case uint64:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+		if data <= uint64(_MAX_INT) {
+			val = int(data)
+		} else {
+			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+		}
 	default:
 		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
 	}
@@ -101,6 +109,8 @@ func (tr Row) Int(nn int) (val int) {
 	return
 }
 
+const _MAX_UINT = ^uint(0)
+
 // Get the nn-th value and return it as uint (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) UintErr(nn int) (val uint, err error) {
@@ -119,13 +129,18 @@ func (tr Row) UintErr(nn int) (val uint, err error) {
 		v, err = strconv.ParseUint(string(data), 0, 0)
 		val = uint(v)
 	case uint64:
-		if strconv.IntSize > 32 {
+		if data <= uint64(_MAX_UINT) {
 			val = uint(data)
 		} else {
 			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 		}
 	case int8, int16, int32, int64:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+		v := reflect.ValueOf(data).Int()
+		if v >= 0 && v <= int64(_MAX_UINT) {
+			val = uint(v)
+		} else {
+			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+		}
 	default:
 		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
 	}
@@ -266,7 +281,7 @@ func (tr Row) Time(nn int) (val Time) {
 
 // Get the nn-th value and return it as bool. Return error
 // if conversion is impossible.
-func (tr Row)  BoolErr(nn int) (val bool, err error) {
+func (tr Row) BoolErr(nn int) (val bool, err error) {
 	fn := "BoolErr"
 	switch data := tr[nn].(type) {
 	case nil:

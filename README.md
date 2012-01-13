@@ -11,7 +11,7 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 #### v0.4.1
 
-    BindParams supports Go bool type. 
+BindParams supports Go bool type. 
 
 #### v0.4
 

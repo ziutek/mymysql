@@ -51,7 +51,7 @@ func (tr Row) IntErr(nn int) (val int, err error) {
 	fn := "IntErr"
 	switch data := tr[nn].(type) {
 	case nil:
-		val = 0
+		// nop
 	case int32:
 		val = int(data)
 	case int16:
@@ -106,6 +106,8 @@ func (tr Row) Int(nn int) (val int) {
 func (tr Row) UintErr(nn int) (val uint, err error) {
 	fn := "UintErr"
 	switch data := tr[nn].(type) {
+	case nil:
+		// nop
 	case uint32:
 		val = uint(data)
 	case uint16:
@@ -262,4 +264,46 @@ func (tr Row) Time(nn int) (val Time) {
 	return
 }
 
+// Get the nn-th value and return it as bool. Return error
+// if conversion is impossible.
+func (tr Row)  BoolErr(nn int) (val bool, err error) {
+	fn := "BoolErr"
+	switch data := tr[nn].(type) {
+	case nil:
+		// nop
+	case int8:
+		val = (data != 0)
+	case int32:
+		val = (data != 0)
+	case int16:
+		val = (data != 0)
+	case int64:
+		val = (data != 0)
+	case uint8:
+		val = (data != 0)
+	case uint32:
+		val = (data != 0)
+	case uint16:
+		val = (data != 0)
+	case uint64:
+		val = (data != 0)
+	default:
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
+	}
+	return
+}
 
+// It is like BoolErr but panics if conversion is impossible.
+func (tr Row) MustBool(nn int) (val bool) {
+	val, err := tr.BoolErr(nn)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+// It is like BoolErr but return false if conversion is impossible.
+func (tr Row) Bool(nn int) (val bool) {
+	val, _ = tr.BoolErr(nn)
+	return
+}

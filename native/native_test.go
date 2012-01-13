@@ -382,8 +382,8 @@ func TestPrepared(t *testing.T) {
 // Bind testing
 
 func TestVarBinding(t *testing.T) {
-	myConnect(t, true, 34*1024*1024)
-	query("drop table P") // Drop test table if exists
+	myConnect(t, true, 0)
+	query("drop table T") // Drop test table if exists
 	checkResult(t,
 		query("create table T (id int primary key, str varchar(20))"),
 		cmdOK(0, false, true),
@@ -442,6 +442,47 @@ func TestVarBinding(t *testing.T) {
 	checkErr(t, err, nil)
 	if len(rows) != 1 || bytes.Compare([]byte(ss), rows[0].Bin(0)) != 0 {
 		t.Fatal("Thrid string don't match")
+	}
+
+	checkResult(t, query("drop table T"), cmdOK(0, false, true))
+	myClose(t)
+}
+
+func TestBindStruct(t *testing.T) {
+	myConnect(t, true, 0)
+	query("drop table T") // Drop test table if exists
+	checkResult(t,
+		query("create table T (id int primary key, txt varchar(20), b bool)"),
+		cmdOK(0, false, true),
+	)
+
+	ins, err := my.Prepare("insert T values (?, ?, ?)")
+	checkErr(t, err, nil)
+	sel, err := my.Prepare("select txt, b from T where id = ?")
+	checkErr(t, err, nil)
+
+	var (
+		s struct {
+			Id  int
+			Txt string
+			B   bool
+		}
+		rre RowsResErr
+	)
+
+	ins.BindParams(&s)
+
+	s.Id = 2
+	s.Txt = "Ala ma kota."
+	s.B = true
+
+	rre.res, rre.err = ins.Run()
+	checkResult(t, &rre, cmdOK(1, true, false))
+
+	rows, _, err := sel.Exec(s.Id)
+	checkErr(t, err, nil)
+	if len(rows) != 1 || rows[0].Str(0) != s.Txt || rows[0].Bool(1) != s.B {
+		t.Fatal("selected data don't match inserted data")
 	}
 
 	checkResult(t, query("drop table T"), cmdOK(0, false, true))

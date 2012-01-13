@@ -130,6 +130,12 @@ func bindValue(val reflect.Value) (out *paramValue) {
 			out.raw = true
 			return
 		}
+
+	case reflect.Bool:
+		out.typ = MYSQL_TYPE_TINY
+		// bool implementation isn't documented so we treat it in special way
+		out.length = -1
+		return
 	}
 	panic(BIND_UNK_TYPE)
 }

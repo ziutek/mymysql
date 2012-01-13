@@ -1,20 +1,17 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4 (2011-11-22)
+## MyMySQL v0.4.1 (2012-01-13)
 
-This package contains MySQL client API written entirely in Go. It was created
-due to lack of properly working MySQL client API package, ready for my
-production application (December 2010).
-
-This package works with the MySQL protocol version 4.1 or greater. It definitely
-works well with MySQL 5.0 and 5.1 (I use these versions of MySQL for my
-production application).
-
-The package includes an extensive set of automated tests that ensure that any
-code changes during development will not break the package itself.
+This package contains MySQL client API written entirely in Go. It works with
+the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
+5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.1
+
+    BindParams supports Go bool type. 
 
 #### v0.4
 
@@ -487,8 +484,11 @@ mapped for MySQL protocol types as below:
        int16, uint16  -->  MYSQL_TYPE_SHORT
        int32, uint32  -->  MYSQL_TYPE_LONG
        int64, uint64  -->  MYSQL_TYPE_LONGLONG
+           int, uint  -->  integer protocol type which match size of int
+                bool  -->  MYSQL_TYPE_TINY
              float32  -->  MYSQL_TYPE_FLOAT
              float64  -->  MYSQL_TYPE_DOUBLE
+                
     *mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
      *mysql.Datetime  -->  MYSQL_TYPE_DATETIME
          *mysql.Date  -->  MYSQL_TYPE_DATE

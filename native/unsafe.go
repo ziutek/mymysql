@@ -45,6 +45,9 @@ func (val *paramValue) Len() int {
 
 	case MYSQL_TYPE_TIME:
 		return lenNtime((*mysql.Time)(ptr))
+
+	case MYSQL_TYPE_TINY: // val.length < 0 so this is bool
+		return 1
 	}
 	// MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_BLOB and type of Raw value
 	return lenNbin((*[]byte)(ptr))
@@ -82,7 +85,16 @@ func writeValue(wr io.Writer, val *paramValue) {
 		writeU16(wr, *(*uint16)(ptr))
 
 	case MYSQL_TYPE_TINY:
-		writeByte(wr, *(*byte)(ptr))
+		if val.length == -1 {
+			// Translate bool value to MySQL tiny
+			if *(*bool)(ptr) {
+				writeByte(wr, 1)
+			} else {
+				writeByte(wr, 0)
+			}
+		} else {
+			writeByte(wr, *(*byte)(ptr))
+		}
 
 	case MYSQL_TYPE_LONGLONG, MYSQL_TYPE_DOUBLE:
 		writeU64(wr, *(*uint64)(ptr))

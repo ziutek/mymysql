@@ -34,6 +34,11 @@ func bindValue(val reflect.Value) (out *paramValue) {
 		out.length = -1
 		return
 
+	case reflect.Bool:
+		out.typ = MYSQL_TYPE_TINY
+		out.length = 1
+		return
+
 	case reflect.Int:
 		out.typ = _INT_TYPE
 		out.length = _SIZE_OF_INT

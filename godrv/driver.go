@@ -132,11 +132,10 @@ func (r rowsRes) Next(dest []interface{}) error {
 			continue
 		}
 		switch v.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
-			reflect.Int64: // This contains mysql.Time to
+		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			// This contains mysql.Time to
 			dest[i] = v.Int()
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
-			reflect.Uint64:
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			u := v.Uint()
 			if u > math.MaxInt64 {
 				panic("Value to large for int64 type")
@@ -144,8 +143,6 @@ func (r rowsRes) Next(dest []interface{}) error {
 			dest[i] = int64(u)
 		case reflect.Float32, reflect.Float64:
 			dest[i] = v.Float()
-		case reflect.Bool:
-			dest[i] = v.Bool()
 		case reflect.Slice:
 			if v.Type().Elem().Kind() == reflect.Uint8 {
 				dest[i] = v.Interface().([]byte)

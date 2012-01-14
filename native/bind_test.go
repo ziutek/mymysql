@@ -16,6 +16,7 @@ var (
 	tstamp = mysql.Timestamp{Year: 2001, Month: 2, Day: 3, Hour: 7, Minute: 2}
 	date   = mysql.Date{Year: 2011, Month: 2, Day: 3}
 	tim    = -mysql.Time((5*24*3600+4*3600+3*60+2)*1e9 + 1)
+	bol    = true
 
 	pBytes  *[]byte
 	pString *string
@@ -24,6 +25,7 @@ var (
 	pTstamp *mysql.Timestamp
 	pDate   *mysql.Date
 	pTim    *mysql.Time
+	pBol    *bool
 
 	raw = mysql.Raw{MYSQL_TYPE_INT24, &[]byte{3, 2, 1}}
 
@@ -71,6 +73,7 @@ var bindTests = []BindTest{
 	BindTest{tstamp, MYSQL_TYPE_TIMESTAMP, -1},
 	BindTest{date, MYSQL_TYPE_DATE, -1},
 	BindTest{tim, MYSQL_TYPE_TIME, -1},
+	BindTest{bol, MYSQL_TYPE_TINY, -1},
 
 	BindTest{&Bytes, MYSQL_TYPE_VAR_STRING, -1},
 	BindTest{&String, MYSQL_TYPE_STRING, -1},
@@ -87,6 +90,7 @@ var bindTests = []BindTest{
 	BindTest{pTstamp, MYSQL_TYPE_TIMESTAMP, -1},
 	BindTest{pDate, MYSQL_TYPE_DATE, -1},
 	BindTest{pTim, MYSQL_TYPE_TIME, -1},
+	BindTest{pBol, MYSQL_TYPE_TINY, -1},
 
 	BindTest{raw, MYSQL_TYPE_INT24, -1},
 
@@ -221,6 +225,8 @@ func init() {
 			&tim,
 			[]byte{12, 1, 5, 0, 0, 0, 4, 3, 2, 1, 0, 0, 0},
 		},
+		WriteTest{bol, []byte{1}},
+		WriteTest{&bol, []byte{1}},
 		WriteTest{dateT, EncodeDatetime(&dateT)},
 		WriteTest{&dateT, EncodeDatetime(&dateT)},
 		WriteTest{pDateT, nil},

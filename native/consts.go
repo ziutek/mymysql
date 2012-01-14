@@ -78,7 +78,7 @@ const (
 // MySQL types are marked with a comment contains mymysql type that uses it.
 const (
 	MYSQL_TYPE_DECIMAL     = 0x00
-	MYSQL_TYPE_TINY        = 0x01 // int8, uint8
+	MYSQL_TYPE_TINY        = 0x01 // int8, uint8, bool
 	MYSQL_TYPE_SHORT       = 0x02 // int16, uint16
 	MYSQL_TYPE_LONG        = 0x03 // int32, uint32
 	MYSQL_TYPE_FLOAT       = 0x04 // float32

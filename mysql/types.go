@@ -1,41 +1,56 @@
 package mysql
 
 import (
-	"strings"
-	"strconv"
-	"time"
-    "fmt"
+	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
+	"time"
 )
 
+// For MySQL DATETIME type
 type Datetime struct {
-    Year  int16
-    Month, Day, Hour, Minute, Second uint8
-    Nanosec uint32
+	Year                             int16
+	Month, Day, Hour, Minute, Second uint8
+	Nanosec                          uint32
 }
+
 func (dt *Datetime) String() string {
-    if dt == nil {
-        return "NULL"
-    }
-    if dt.Nanosec != 0 {
-        return fmt.Sprintf(
-            "%04d-%02d-%02d %02d:%02d:%02d.%09d",
-            dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second,
-            dt.Nanosec,
-        )
-    }
-    return fmt.Sprintf(
-        "%04d-%02d-%02d %02d:%02d:%02d",
-        dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second,
-    )
+	if dt == nil {
+		return "NULL"
+	}
+	if dt.Nanosec != 0 {
+		return fmt.Sprintf(
+			"%04d-%02d-%02d %02d:%02d:%02d.%09d",
+			dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second,
+			dt.Nanosec,
+		)
+	}
+	return fmt.Sprintf(
+		"%04d-%02d-%02d %02d:%02d:%02d",
+		dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second,
+	)
 }
+
+func (dt *Datetime) Time(loc *time.Location) time.Time {
+	return time.Date(
+		int(dt.Year), time.Month(dt.Month), int(dt.Day),
+		int(dt.Hour), int(dt.Minute), int(dt.Second), int(dt.Nanosec),
+		loc,
+	)
+}
+
+func (dt *Datetime) Localtime() time.Time {
+	return dt.Time(time.Local)
+}
+
 
 // Convert string datetime in format YYYY-MM-DD[ HH:MM:SS] to Datetime.
 // Leading and trailing spaces are ignored. If format is invalid returns nil.
 func StrToDatetime(str string) (dt *Datetime) {
 	str = strings.TrimSpace(str)
 	if len(str) >= 10 {
-		dt = DateToDatetime(StrToDate(str[0:10]))
+		dt = StrToDate(str[0:10]).Datetime()
 	}
 	if len(str) == 10 || dt == nil {
 		return
@@ -58,18 +73,20 @@ func StrToDatetime(str string) (dt *Datetime) {
 	return
 }
 
-// Convert *Date to *Datetime. Return nil if dd is nil
-func DateToDatetime(dd *Date) *Datetime {
-	if dd == nil {
+// Convert time.Time to *Datetime. Return nil if tt is zero
+func TimeToDatetime(tt time.Time) *Datetime {
+	if tt.IsZero() {
 		return nil
 	}
 	return &Datetime{
-		Year:  dd.Year,
-		Month: dd.Month,
-		Day:   dd.Day,
+		Year:   int16(tt.Year()),
+		Month:  uint8(tt.Month()),
+		Day:    uint8(tt.Day()),
+		Hour:   uint8(tt.Hour()),
+		Minute: uint8(tt.Minute()),
+		Second: uint8(tt.Second()),
 	}
 }
-
 
 // True if datetime is 0000-00-00 00:00:00
 func IsDatetimeZero(dt *Datetime) bool {
@@ -78,15 +95,29 @@ func IsDatetimeZero(dt *Datetime) bool {
 }
 
 
+// For MySQL DATE type
 type Date struct {
-    Year  int16
-    Month, Day uint8
+	Year       int16
+	Month, Day uint8
 }
+
 func (dd *Date) String() string {
-    if dd == nil {
-        return "NULL"
-    }
-    return fmt.Sprintf("%04d-%02d-%02d", dd.Year, dd.Month, dd.Day)
+	if dd == nil {
+		return "NULL"
+	}
+	return fmt.Sprintf("%04d-%02d-%02d", dd.Year, dd.Month, dd.Day)
+}
+
+// Convert *Date to *Datetime. Return nil if dd is nil
+func (dd *Date) Datetime() *Datetime {
+	if dd == nil {
+		return nil
+	}
+	return &Datetime{
+		Year:  dd.Year,
+		Month: dd.Month,
+		Day:   dd.Day,
+	}
 }
 
 // Convert string date in format YYYY-MM-DD to Date.
@@ -121,34 +152,49 @@ func IsDateZero(dd *Date) bool {
 	return dd.Day == 0 && dd.Month == 0 && dd.Year == 0
 }
 
+// For MySQL TIMESTAMP type. See Datetime documentation
 type Timestamp Datetime
+
 func (ts *Timestamp) String() string {
-    return (*Datetime)(ts).String()
+	return (*Datetime)(ts).String()
+}
+
+func (ts *Timestamp) Time(loc *time.Location) time.Time {
+	return (*Datetime)(ts).Time(loc)
+}
+
+func (ts *Timestamp) Localtime() time.Time {
+	return (*Datetime)(ts).Localtime()
+}
+
+func TimeToTimestamp(tt time.Time) *Timestamp {
+	return (*Timestamp)(TimeToDatetime(tt))
 }
 
 // MySQL TIME in nanoseconds. Note that MySQL doesn't store fractional part
 // of second but it is permitted for temporal values.
 type Time int64
+
 func (tt *Time) String() string {
-    if tt == nil {
-        return "NULL"
-    }
-    ti := int64(*tt)
-    sign := 1
-    if ti < 0 {
-        sign = -1
-        ti = -ti
-    }
-    ns := int(ti % 1e9)
-    ti /= 1e9
-    sec := int(ti % 60)
-    ti /= 60
-    min := int(ti % 60)
-    hour := int(ti / 60) * sign
-    if ns == 0 {
-        return fmt.Sprintf("%d:%02d:%02d", hour, min, sec)
-    }
-    return fmt.Sprintf("%d:%02d:%02d.%09d", hour, min, sec, ns)
+	if tt == nil {
+		return "NULL"
+	}
+	ti := int64(*tt)
+	sign := 1
+	if ti < 0 {
+		sign = -1
+		ti = -ti
+	}
+	ns := int(ti % 1e9)
+	ti /= 1e9
+	sec := int(ti % 60)
+	ti /= 60
+	min := int(ti % 60)
+	hour := int(ti/60) * sign
+	if ns == 0 {
+		return fmt.Sprintf("%d:%02d:%02d", hour, min, sec)
+	}
+	return fmt.Sprintf("%d:%02d:%02d.%09d", hour, min, sec, ns)
 }
 
 // Convert string time in format [+-]H+:MM:SS[.UUUUUUUUU] to Time.
@@ -204,34 +250,18 @@ func StrToTime(str string) *Time {
 	return &tt
 }
 
-// Convert time.Time to *Datetime. Return nil if tt is zero
-func TimeToDatetime(tt time.Time) *Datetime {
-	if tt.IsZero()  {
-		return nil
-	}
-	return &Datetime{
-		Year:   int16(tt.Year()),
-		Month:  uint8(tt.Month()),
-		Day:    uint8(tt.Day()),
-		Hour:   uint8(tt.Hour()),
-		Minute: uint8(tt.Minute()),
-		Second: uint8(tt.Second()),
-	}
-}
-
-
 type Blob []byte
 
 type Raw struct {
-    Typ uint16
-    Val *[]byte
+	Typ uint16
+	Val *[]byte
 }
 
 var (
-	BlobType = reflect.TypeOf(Blob{})
-	DatetimeType = reflect.TypeOf(Datetime{})
-	DateType = reflect.TypeOf(Date{})
+	BlobType      = reflect.TypeOf(Blob{})
+	DatetimeType  = reflect.TypeOf(Datetime{})
+	DateType      = reflect.TypeOf(Date{})
 	TimestampType = reflect.TypeOf(Timestamp{})
-	TimeType = reflect.TypeOf(Time(0))
-	RawType = reflect.TypeOf(Raw{})
+	TimeType      = reflect.TypeOf(Time(0))
+	RawType       = reflect.TypeOf(Raw{})
 )

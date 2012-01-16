@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"strconv"
@@ -210,7 +211,7 @@ func (tr Row) DatetimeErr(nn int) (val *Datetime, err error) {
 	case *Datetime:
 		val = data
 	case *Date:
-		val = DateToDatetime(data)
+		val = data.Datetime()
 	case []byte:
 		val = StrToDatetime(string(data))
 	}
@@ -320,5 +321,85 @@ func (tr Row) MustBool(nn int) (val bool) {
 // It is like BoolErr but return false if conversion is impossible.
 func (tr Row) Bool(nn int) (val bool) {
 	val, _ = tr.BoolErr(nn)
+	return
+}
+
+// Get the nn-th value and return it as int64 (0 if NULL). Return error if
+// conversion is impossible.
+func (tr Row) Int64Err(nn int) (val int64, err error) {
+	fn := "Int64Err"
+	switch data := tr[nn].(type) {
+	case nil:
+		// nop
+	case int64, int32, int16, int8:
+		val = reflect.ValueOf(data).Int()
+	case uint64, uint32, uint16, uint8:
+		u := reflect.ValueOf(data).Uint()
+		if u > math.MaxInt64 {
+			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+		}
+		val = int64(u)
+	case []byte:
+		val, err = strconv.ParseInt(string(data), 10, 64)
+	default:
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
+	}
+	return
+}
+
+// Get the nn-th value and return it as int64 (0 if NULL).
+// Panic if conversion is impossible.
+func (tr Row) MustInt64(nn int) (val int64) {
+	val, err := tr.Int64Err(nn)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+// Get the nn-th value and return it as int64. Return 0 if value is NULL or
+// conversion is impossible.
+func (tr Row) Int64(nn int) (val int64) {
+	val, _ = tr.Int64Err(nn)
+	return
+}
+
+// Get the nn-th value and return it as uint64 (0 if NULL). Return error if
+// conversion is impossible.
+func (tr Row) Uint64Err(nn int) (val uint64, err error) {
+	fn := "Int64Err"
+	switch data := tr[nn].(type) {
+	case nil:
+		// nop
+	case uint64, uint32, uint16, uint8:
+		val = reflect.ValueOf(data).Uint()
+	case int64, int32, int16, int8:
+		i := reflect.ValueOf(data).Int()
+		if i < 0 {
+			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+		}
+	   val = uint64(i)
+	case []byte:
+		val, err = strconv.ParseUint(string(data), 10, 64)
+	default:
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
+	}
+	return
+}
+
+// Get the nn-th value and return it as uint64 (0 if NULL).
+// Panic if conversion is impossible.
+func (tr Row) MustUint64(nn int) (val uint64) {
+	val, err := tr.Uint64Err(nn)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+// Get the nn-th value and return it as uint64. Return 0 if value is NULL or
+// conversion is impossible.
+func (tr Row) Uint64(nn int) (val uint64) {
+	val, _ = tr.Uint64Err(nn)
 	return
 }

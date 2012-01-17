@@ -24,7 +24,8 @@ func (dd Date) IsZero() bool {
 	return dd.Day == 0 && dd.Month == 0 && dd.Year == 0
 }
 
-// Convert Date to time.Time using loc location.
+// Converts Date to time.Time using loc location.
+// Converts MySQL zero to time.Time zero.
 func (dd Date) Datetime(loc *time.Location) (t time.Time) {
 	if !dd.IsZero() {
 		t = time.Date(
@@ -36,7 +37,8 @@ func (dd Date) Datetime(loc *time.Location) (t time.Time) {
 	return
 }
 
-/// Convert Date to time.Time using Local location 
+// Converts Date to time.Time using Local location.
+// Converts MySQL zero to time.Time zero.
 func (dd Date) Localtime() time.Time {
 	return dd.Datetime(time.Local)
 }
@@ -44,10 +46,13 @@ func (dd Date) Localtime() time.Time {
 // Convert string date in format YYYY-MM-DD to Date.
 // Leading and trailing spaces are ignored. If format is invalid returns zero.
 func ParseDate(str string) (dd Date, err error) {
+	str = strings.TrimSpace(str)
+	if str == "0000-00-00" {
+		return
+	}
 	var (
 		y, m, d int
 	)
-	str = strings.TrimSpace(str)
 	if len(str) != 10 || str[4] != '-' || str[7] != '-' {
 		goto invalid
 	}
@@ -76,12 +81,50 @@ invalid:
 	return
 }
 
+// Sandard MySQL datetime format
+const DatetimeFormat = "2006-01-02 15:04:05.000000000"
+
+// Returns t as string in MySQL format Converts time.Time zero to MySQL zero.
+func DatetimeString(t time.Time) string {
+	if t.IsZero() {
+		return "0000-00-00 00:00:00"
+	}
+	if t.Nanosecond() == 0 {
+		return t.Format(DatetimeFormat[:19])
+	}
+	return t.Format(DatetimeFormat)
+}
+
+// Parses string datetime in DatetimeFormat using loc location.
+// Converts MySQL zero to time.Time zero.
+func ParseDatetime(str string, loc *time.Location) (t time.Time, err error) {
+	str = strings.TrimSpace(str)
+	format := DatetimeFormat[:19]
+	switch len(str) {
+	case 10:
+		if str == "0000-00-00" {
+			return
+		}
+		format = format[:10]
+	case 19:
+		if str == "0000-00-00 00:00:00" {
+			return
+		}
+	}
+	// Don't expect 0000-00-00 00:00:00.0+
+	t, err = time.Parse(format, str)
+	if err == nil && loc != time.UTC {
+		t = convertTime(t, loc)
+	}
+	return
+}
+
 // Convert time.Duration to string representation of mysql.TIME
 func DurationString(d time.Duration) string {
 	sign := 1
 	if d < 0 {
 		sign = -1
-		d = d
+		d = -d
 	}
 	ns := int(d % 1e9)
 	d /= 1e9
@@ -165,6 +208,10 @@ type Raw struct {
 
 type Timestamp struct {
 	time.Time
+}
+
+func (t Timestamp) String() string {
+	return DatetimeString(t.Time)
 }
 
 var (

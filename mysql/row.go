@@ -42,6 +42,10 @@ func (tr Row) Str(nn int) (str string) {
 		// str = ""
 	case []byte:
 		str = string(data)
+	case time.Time:
+		str = DatetimeString(data)
+	case time.Duration:
+		str = DurationString(data)
 	default:
 		str = fmt.Sprint(data)
 	}
@@ -199,18 +203,6 @@ func convertTime(t time.Time, loc *time.Location) time.Time {
 	y, mon, d := t.Date()
 	h, m, s := t.Clock()
 	return time.Date(y, mon, d, h, m, s, t.Nanosecond(), loc)
-}
-
-// Sandard MySQL datetime format
-const DatetimeFormat = "2006-01-02 15:04:05"
-
-// Parses string datetime in DatetimeFormat using loc location
-func ParseDatetime(str string, loc *time.Location) (t time.Time, err error) {
-	t, err = time.Parse(DatetimeFormat, str)
-	if err == nil && loc != time.UTC {
-		t = convertTime(t, loc)
-	}
-	return
 }
 
 // Get the nn-th value and return it as time.Time in loc location (zero if NULL)

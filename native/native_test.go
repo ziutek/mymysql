@@ -311,15 +311,14 @@ func TestPrepared(t *testing.T) {
 
 	parsed, err := mysql.ParseDatetime("2012-01-17 01:10:10", time.Local)
 	checkErr(t, err, nil)
-	parsedZero, err := mysql.ParseDatetime("0001-01-01 0:00:00", time.Local)
-
+	parsedZero, err := mysql.ParseDatetime("0000-00-00 00:00:00", time.Local)
 	checkErr(t, err, nil)
+	if !parsedZero.IsZero() {
+		t.Fatalf("time '%s' isn't zero", parsedZero)
+	}
 	exp_rows := []mysql.Row{
 		mysql.Row{
 			2, "Taki tekst", time.Unix(123456789, 0),
-		},
-		mysql.Row{
-			3, "Łódź się kołysze!", time.Unix(999999, 0),
 		},
 		mysql.Row{
 			5, "Pąk róży", parsed,
@@ -510,9 +509,17 @@ func TestDate(t *testing.T) {
 		cmdOK(0, false, true),
 	)
 
-	dd := "2011-11-13"
-	dt := "2010-12-12 11:24:00"
-	tt := -time.Duration((124*3600+4*3600+3*60+2)*1e9 + 1)
+	test := []struct{dd, dt string; tt time.Duration} {
+		{
+			"2011-11-13",
+			"2010-12-12 11:24:00",
+			-time.Duration((128*3600+3*60+2)*1e9),
+		},{
+			"0000-00-00",
+			"0000-00-00 00:00:00",
+			time.Duration(0),
+		},
+	}
 
 	ins, err := my.Prepare("insert D values (?, ?, ?, ?)")
 	checkErr(t, err, nil)
@@ -520,27 +527,26 @@ func TestDate(t *testing.T) {
 	sel, err := my.Prepare("select id, tt from D where dd = ? && dt = ?")
 	checkErr(t, err, nil)
 
-	_, err = ins.Run(1, dd, dt, tt)
-	checkErr(t, err, nil)
+	for i, r := range test {
+		_, err = ins.Run(i, r.dd, r.dt, r.tt)
+		checkErr(t, err, nil)
 
-	sdt, err := mysql.ParseDatetime(dt, time.Local)
-	checkErr(t, err, nil)
-	sdd, err := mysql.ParseDate(dd)
-	checkErr(t, err, nil)
+		sdt, err := mysql.ParseDatetime(r.dt, time.Local)
+		checkErr(t, err, nil)
+		sdd, err := mysql.ParseDate(r.dd)
+		checkErr(t, err, nil)
 
-	_, err = ins.Run(2, sdd, sdt, tt)
-	checkErr(t, err, nil)
-
-	rows, _, err := sel.Exec(sdd, sdt)
-	checkErr(t, err, nil)
-	if rows == nil {
-		t.Fatal("nil result")
-	}
-	if rows[0].Int(0) != 1 {
-		t.Fatal("Bad id", rows[0].Int(1))
-	}
-	if rows[0][1].(time.Duration) != tt+1 {
-		t.Fatal("Bad tt", rows[0][1].(time.Duration))
+		rows, _, err := sel.Exec(sdd, sdt)
+		checkErr(t, err, nil)
+		if rows == nil {
+			t.Fatal("nil result")
+		}
+		if rows[0].Int(0) != i {
+			t.Fatal("Bad id", rows[0].Int(1))
+		}
+		if rows[0][1].(time.Duration) != r.tt {
+			t.Fatal("Bad tt", rows[0].Duration(1))
+		}
 	}
 
 	//checkResult(t, query("drop table D"), cmdOK(0, false, true))
@@ -763,7 +769,6 @@ func TestSendLongData(t *testing.T) {
 	rre.res, rre.err = ins.Run()
 	checkResult(t, &rre, cmdOK(1, true, false))
 
-	return
 	res, err := sel.Run()
 	checkErr(t, err, nil)
 

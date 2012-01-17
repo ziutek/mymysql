@@ -324,7 +324,7 @@ func writeDuration(wr io.Writer, d time.Duration) {
 
 func lenDuration(d time.Duration) int {
 	if d == 0 {
-		return 1
+		return 2
 	}
 	if d%1e9 != 0 {
 		return 13
@@ -343,7 +343,7 @@ func readDatetime(rd io.Reader) time.Time {
 		// Null
 		panic(UNEXP_NULL_DATE_ERROR)
 	case 0:
-		// 0000-00-00
+		// return 0000-00-00 converted to time.Time zero
 		return time.Time{}
 	case 4, 7, 11:
 		// Properly datetime length
@@ -374,7 +374,7 @@ func readDatetime(rd io.Reader) time.Time {
 	return time.Date(y, time.Month(mon), d, h, m, s, n, time.Local)
 }
 
-func encodeDatetime(y int16, mon, d, h, m, s byte, n uint32) []byte {
+func encodeNonzeroDatetime(y int16, mon, d, h, m, s byte, n uint32) []byte {
 	buf := make([]byte, 12)
 	switch {
 	case n != 0:
@@ -386,22 +386,23 @@ func encodeDatetime(y int16, mon, d, h, m, s byte, n uint32) []byte {
 		buf[6] = m
 		buf[5] = h
 		buf[0] += 3
-		fallthrough
-	case d != 0 || mon != 0 || y != 0:
-		buf[4] = d
-		buf[3] = mon
-		copy(buf[1:3], EncodeU16(uint16(y)))
-		buf[0] += 4
 	}
+	buf[4] = d
+	buf[3] = mon
+	copy(buf[1:3], EncodeU16(uint16(y)))
+	buf[0] += 4
 	buf = buf[0 : buf[0]+1]
 	return buf
 }
 
 func EncodeDatetime(t time.Time) []byte {
+	if t.IsZero() {
+		return []byte{0} // MySQL zero
+	}
 	y, mon, d := t.Date()
 	h, m, s := t.Clock()
 	n := t.Nanosecond()
-	return encodeDatetime(
+	return encodeNonzeroDatetime(
 		int16(y), byte(mon), byte(d),
 		byte(h), byte(m), byte(s), uint32(n),
 	)
@@ -413,14 +414,14 @@ func writeDatetime(wr io.Writer, t time.Time) {
 
 func lenDatetime(t time.Time) int {
 	switch {
+	case t.IsZero():
+		return 1
 	case t.Nanosecond() != 0:
 		return 12
 	case t.Second() != 0 || t.Minute() != 0 || t.Hour() != 0:
 		return 8
-	case t.Day() != 0 || t.Month() != 0 || t.Year() != 0:
-		return 5
 	}
-	return 1
+	return 5
 }
 
 func readDate(rd io.Reader) mysql.Date {
@@ -429,7 +430,10 @@ func readDate(rd io.Reader) mysql.Date {
 }
 
 func EncodeDate(d mysql.Date) []byte {
-	return encodeDatetime(d.Year, d.Month, d.Day, 0, 0, 0, 0)
+	if d.IsZero() {
+		return []byte{0} // MySQL zero
+	}
+	return encodeNonzeroDatetime(d.Year, d.Month, d.Day, 0, 0, 0, 0)
 }
 
 func writeDate(wr io.Writer, d mysql.Date) {
@@ -437,10 +441,10 @@ func writeDate(wr io.Writer, d mysql.Date) {
 }
 
 func lenDate(d mysql.Date) int {
-	if d.Day != 0 || d.Month != 0 || d.Year != 0 {
-		return 5
+	if d.IsZero() {
+		return 1
 	}
-	return 1
+	return 5
 }
 
 // Borrowed from GoMySQL

@@ -1,13 +1,22 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.1 (2012-01-13)
+## MyMySQL v0.4.2 (2012-01-18)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.2
+
+A lot of changes in MySQL time handling:
+
+1. Datetime type replaced by time.Time.
+2. Time type replaced by time.Duration.
+3. Support for time.Time type added to godrv.
+4. row.Int64/row.Uint64 methods added.
 
 #### v0.4.1
 
@@ -64,7 +73,7 @@ older Go release use mymysql v0.3.3
 
 #### v0.3.3
 
-1. *Time* and *Date* types added.
+1. *Datetime* and *Date* types added.
 2. *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
 *QueryAC* no longer accept prepared statement as first argument.
 

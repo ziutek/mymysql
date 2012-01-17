@@ -12,6 +12,7 @@ import (
 	"math"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type conn struct {
@@ -112,6 +113,7 @@ func (r rowsRes) Close() error {
 	return nil
 }
 
+// DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone
 func (r rowsRes) Next(dest []interface{}) error {
 	row, err := r.my.GetRow()
 	if err != nil {
@@ -125,15 +127,21 @@ func (r rowsRes) Next(dest []interface{}) error {
 			dest[i] = nil
 			continue
 		}
-		v := reflect.ValueOf(col)
-		switch v.Type() {
-		case mysql.TimeType, mysql.DateType:
-			dest[i] = []byte(v.Interface().(fmt.Stringer).String())
+		switch c := col.(type) {
+		case time.Time:
+			dest[i] = c
+			continue
+		case mysql.Timestamp:
+			dest[i] = c.Time
+			continue
+		case mysql.Date:
+			dest[i] = c.Localtime()
 			continue
 		}
+		v := reflect.ValueOf(col)
 		switch v.Kind() {
 		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			// This contains mysql.Time to
+			// this contains time.Duration to
 			dest[i] = v.Int()
 		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			u := v.Uint()

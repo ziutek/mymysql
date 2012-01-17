@@ -13,7 +13,7 @@ func checkErr(t *testing.T, err error) {
 func checkErrId(t *testing.T, err error, rid, eid int64) {
 	checkErr(t, err)
 	if rid != eid {
-		t.Fatal("res.LastInsertId() ==", rid, "but should be", eid )
+		t.Fatal("res.LastInsertId() ==", rid, "but should be", eid)
 	}
 }
 

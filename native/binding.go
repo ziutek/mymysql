@@ -55,7 +55,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
 		return
 
 	case reflect.Int64:
-		if typ == mysql.TimeType {
+		if typ == mysql.DurationType {
 			out.typ = MYSQL_TYPE_TIME
 			out.length = -1
 			return
@@ -112,7 +112,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
 
 	case reflect.Struct:
 		out.length = -1
-		if typ == mysql.DatetimeType {
+		if typ == mysql.TimeType {
 			out.typ = MYSQL_TYPE_DATETIME
 			return
 		}

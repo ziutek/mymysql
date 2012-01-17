@@ -309,9 +309,9 @@ func TestPrepared(t *testing.T) {
 	ins := prepare("insert into P values (?, ?, ?)")
 	checkErr(t, ins.err, nil)
 
-	parsed, err := mysql.ParseDatetime("2012-01-17 01:10:10", time.Local)
+	parsed, err := mysql.ParseTime("2012-01-17 01:10:10", time.Local)
 	checkErr(t, err, nil)
-	parsedZero, err := mysql.ParseDatetime("0000-00-00 00:00:00", time.Local)
+	parsedZero, err := mysql.ParseTime("0000-00-00 00:00:00", time.Local)
 	checkErr(t, err, nil)
 	if !parsedZero.IsZero() {
 		t.Fatalf("time '%s' isn't zero", parsedZero)
@@ -509,12 +509,15 @@ func TestDate(t *testing.T) {
 		cmdOK(0, false, true),
 	)
 
-	test := []struct{dd, dt string; tt time.Duration} {
+	test := []struct {
+		dd, dt string
+		tt     time.Duration
+	}{
 		{
 			"2011-11-13",
 			"2010-12-12 11:24:00",
-			-time.Duration((128*3600+3*60+2)*1e9),
-		},{
+			-time.Duration((128*3600 + 3*60 + 2) * 1e9),
+		}, {
 			"0000-00-00",
 			"0000-00-00 00:00:00",
 			time.Duration(0),
@@ -531,7 +534,7 @@ func TestDate(t *testing.T) {
 		_, err = ins.Run(i, r.dd, r.dt, r.tt)
 		checkErr(t, err, nil)
 
-		sdt, err := mysql.ParseDatetime(r.dt, time.Local)
+		sdt, err := mysql.ParseTime(r.dt, time.Local)
 		checkErr(t, err, nil)
 		sdd, err := mysql.ParseDate(r.dd)
 		checkErr(t, err, nil)

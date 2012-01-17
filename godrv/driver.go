@@ -127,7 +127,7 @@ func (r rowsRes) Next(dest []interface{}) error {
 		}
 		v := reflect.ValueOf(col)
 		switch v.Type() {
-		case mysql.DatetimeType, mysql.DateType:
+		case mysql.TimeType, mysql.DateType:
 			dest[i] = []byte(v.Interface().(fmt.Stringer).String())
 			continue
 		}

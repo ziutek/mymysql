@@ -183,10 +183,8 @@ func init() {
 		WriteTest{pString, nil},
 		WriteTest{
 			blob,
-			append(
-				append([]byte{253}, EncodeU24(uint32(len(blob)))...),
-				[]byte(blob)...,
-			),
+			append(append([]byte{253}, EncodeU24(uint32(len(blob)))...),
+				[]byte(blob)...),
 		},
 		WriteTest{
 			dateT,
@@ -232,12 +230,12 @@ func init() {
 		WriteTest{&bol, []byte{1}},
 		WriteTest{pBol, nil},
 
-		WriteTest{dateT, EncodeDatetime(dateT)},
-		WriteTest{&dateT, EncodeDatetime(dateT)},
+		WriteTest{dateT, EncodeTime(dateT)},
+		WriteTest{&dateT, EncodeTime(dateT)},
 		WriteTest{pDateT, nil},
 
-		WriteTest{tstamp, EncodeDatetime(tstamp.Time)},
-		WriteTest{&tstamp, EncodeDatetime(tstamp.Time)},
+		WriteTest{tstamp, EncodeTime(tstamp.Time)},
+		WriteTest{&tstamp, EncodeTime(tstamp.Time)},
 		WriteTest{pTstamp, nil},
 
 		WriteTest{date, EncodeDate(date)},

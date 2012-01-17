@@ -26,7 +26,7 @@ func (dd Date) IsZero() bool {
 
 // Converts Date to time.Time using loc location.
 // Converts MySQL zero to time.Time zero.
-func (dd Date) Datetime(loc *time.Location) (t time.Time) {
+func (dd Date) Time(loc *time.Location) (t time.Time) {
 	if !dd.IsZero() {
 		t = time.Date(
 			int(dd.Year), time.Month(dd.Month), int(dd.Day),
@@ -40,7 +40,7 @@ func (dd Date) Datetime(loc *time.Location) (t time.Time) {
 // Converts Date to time.Time using Local location.
 // Converts MySQL zero to time.Time zero.
 func (dd Date) Localtime() time.Time {
-	return dd.Datetime(time.Local)
+	return dd.Time(time.Local)
 }
 
 // Convert string date in format YYYY-MM-DD to Date.
@@ -82,24 +82,24 @@ invalid:
 }
 
 // Sandard MySQL datetime format
-const DatetimeFormat = "2006-01-02 15:04:05.000000000"
+const TimeFormat = "2006-01-02 15:04:05.000000000"
 
 // Returns t as string in MySQL format Converts time.Time zero to MySQL zero.
-func DatetimeString(t time.Time) string {
+func TimeString(t time.Time) string {
 	if t.IsZero() {
 		return "0000-00-00 00:00:00"
 	}
 	if t.Nanosecond() == 0 {
-		return t.Format(DatetimeFormat[:19])
+		return t.Format(TimeFormat[:19])
 	}
-	return t.Format(DatetimeFormat)
+	return t.Format(TimeFormat)
 }
 
-// Parses string datetime in DatetimeFormat using loc location.
+// Parses string datetime in TimeFormat using loc location.
 // Converts MySQL zero to time.Time zero.
-func ParseDatetime(str string, loc *time.Location) (t time.Time, err error) {
+func ParseTime(str string, loc *time.Location) (t time.Time, err error) {
 	str = strings.TrimSpace(str)
-	format := DatetimeFormat[:19]
+	format := TimeFormat[:19]
 	switch len(str) {
 	case 10:
 		if str == "0000-00-00" {
@@ -211,14 +211,14 @@ type Timestamp struct {
 }
 
 func (t Timestamp) String() string {
-	return DatetimeString(t.Time)
+	return TimeString(t.Time)
 }
 
 var (
-	DatetimeType  = reflect.TypeOf(time.Time{})
+	TimeType      = reflect.TypeOf(time.Time{})
 	TimestampType = reflect.TypeOf(Timestamp{})
 	DateType      = reflect.TypeOf(Date{})
-	TimeType      = reflect.TypeOf(time.Duration(0))
+	DurationType  = reflect.TypeOf(time.Duration(0))
 	BlobType      = reflect.TypeOf(Blob{})
 	RawType       = reflect.TypeOf(Raw{})
 )

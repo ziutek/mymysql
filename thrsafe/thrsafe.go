@@ -1,6 +1,5 @@
 // Thread safe engine for MyMySQL
 
-
 // See documentation of mymysql/native for details/
 package thrsafe
 
@@ -43,7 +42,7 @@ type Transaction struct {
 
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &Conn{
-		Conn: orgNew(proto, laddr, raddr, user, passwd, db...),
+		Conn:  orgNew(proto, laddr, raddr, user, passwd, db...),
 		mutex: new(sync.Mutex),
 	}
 }
@@ -166,7 +165,7 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) error {
 	return stmt.Stmt.SendLongData(pnum, data, pkt_size)
 }
 
-func (c *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Result, error){
+func (c *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Result, error) {
 	return mysql.Query(c, sql, params...)
 }
 

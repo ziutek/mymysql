@@ -335,7 +335,7 @@ func (res *Result) GetRow() (row mysql.Row, err error) {
 	row, err = res.getRow()
 	if err == nil && row == nil {
 		res.eor_returned = true
-		if!res.MoreResults() {
+		if !res.MoreResults() {
 			res.my.unreaded_reply = false
 		}
 	}
@@ -425,7 +425,7 @@ func (my *Conn) Prepare(sql string) (mysql.Stmt, error) {
 // A struct field can by value or pointer to value. A parameter (slice element)
 // can be value, pointer to value or pointer to pointer to value.
 // Values may be of the folowind types: intXX, uintXX, floatXX, bool, []byte,
-// Blob, string, Datetime, Date, Time, Timestamp, Raw.
+// Blob, string, Time, Date, Time, Timestamp, Raw.
 func (stmt *Stmt) BindParams(params ...interface{}) {
 	stmt.rebind = true
 
@@ -440,7 +440,7 @@ func (stmt *Stmt) BindParams(params ...interface{}) {
 		}
 		typ := pval.Type()
 		if kind == reflect.Struct &&
-			typ != mysql.DatetimeType &&
+			typ != mysql.TimeType &&
 			typ != mysql.DateType &&
 			typ != mysql.TimestampType &&
 			typ != mysql.RawType {

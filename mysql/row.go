@@ -43,7 +43,7 @@ func (tr Row) Str(nn int) (str string) {
 	case []byte:
 		str = string(data)
 	case time.Time:
-		str = DatetimeString(data)
+		str = TimeString(data)
 	case time.Duration:
 		str = DurationString(data)
 	default:
@@ -207,7 +207,7 @@ func convertTime(t time.Time, loc *time.Location) time.Time {
 
 // Get the nn-th value and return it as time.Time in loc location (zero if NULL)
 // Returns error if conversion is impossible. It can convert Date to time.Time.
-func (tr Row) DatetimeErr(nn int, loc *time.Location) (t time.Time, err error) {
+func (tr Row) TimeErr(nn int, loc *time.Location) (t time.Time, err error) {
 	switch data := tr[nn].(type) {
 	case nil:
 		// nop
@@ -217,26 +217,26 @@ func (tr Row) DatetimeErr(nn int, loc *time.Location) (t time.Time, err error) {
 			t = convertTime(t, loc)
 		}
 	case Date:
-		t = data.Datetime(loc)
+		t = data.Time(loc)
 	case []byte:
-		t, err = ParseDatetime(string(data), loc)
+		t, err = ParseTime(string(data), loc)
 	}
 	return
 }
 
-// As DatetimeErr but panics if conversion is impossible.
-func (tr Row) MustDatetime(nn int, loc *time.Location) (val time.Time) {
-	val, err := tr.DatetimeErr(nn, loc)
+// As TimeErr but panics if conversion is impossible.
+func (tr Row) MustTime(nn int, loc *time.Location) (val time.Time) {
+	val, err := tr.TimeErr(nn, loc)
 	if err != nil {
 		panic(err)
 	}
 	return
 }
 
-// It is like DatetimeErr but returns 0000-00-00 00:00:00 if conversion is
+// It is like TimeErr but returns 0000-00-00 00:00:00 if conversion is
 // impossible.
-func (tr Row) Datetime(nn int, loc *time.Location) (val time.Time) {
-	val, _ = tr.DatetimeErr(nn, loc)
+func (tr Row) Time(nn int, loc *time.Location) (val time.Time) {
+	val, _ = tr.TimeErr(nn, loc)
 	return
 }
 
@@ -250,9 +250,9 @@ func (tr Row) LocaltimeErr(nn int) (t time.Time, err error) {
 	case time.Time:
 		t = data
 	case Date:
-		t = data.Datetime(time.Local)
+		t = data.Time(time.Local)
 	case []byte:
-		t, err = ParseDatetime(string(data), time.Local)
+		t, err = ParseTime(string(data), time.Local)
 	}
 	return
 }
@@ -392,7 +392,7 @@ func (tr Row) Int64(nn int) (val int64) {
 // Get the nn-th value and return it as uint64 (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) Uint64Err(nn int) (val uint64, err error) {
-	fn := "Int64Err"
+	fn := "Uint64Err"
 	switch data := tr[nn].(type) {
 	case nil:
 		// nop

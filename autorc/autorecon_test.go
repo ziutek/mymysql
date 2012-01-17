@@ -1,12 +1,12 @@
 package autorc
 
 import (
-	"testing"
 	_ "github.com/ziutek/mymysql/thrsafe"
+	"testing"
 )
 
 var (
-	conn  = []string{"tcp", "", "127.0.0.1:3306"}
+	conn   = []string{"tcp", "", "127.0.0.1:3306"}
 	user   = "testuser"
 	passwd = "TestPasswd9"
 	dbname = "test"

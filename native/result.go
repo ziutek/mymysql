@@ -309,7 +309,7 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 			row[ii] = readDate(pr)
 
 		case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
-			row[ii] = readDatetime(pr)
+			row[ii] = readTime(pr)
 
 		case MYSQL_TYPE_TIME:
 			row[ii] = readDuration(pr)

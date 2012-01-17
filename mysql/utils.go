@@ -11,7 +11,6 @@ func Query(c Conn, sql string, params ...interface{}) (rows []Row, res Result, e
 	return
 }
 
-
 // This call Run and next call GetRow as long as it reads all rows from the
 // result. Next it returns all readed rows as the slice of rows.
 func Exec(s Stmt, params ...interface{}) (rows []Row, res Result, err error) {
@@ -31,7 +30,7 @@ func Exec(s Stmt, params ...interface{}) (rows []Row, res Result, err error) {
 func End(r Result) (err error) {
 	var row Row
 	for {
-		row, err = r.GetRow();
+		row, err = r.GetRow()
 		if err != nil || row == nil {
 			break
 		}

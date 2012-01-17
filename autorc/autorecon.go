@@ -2,11 +2,11 @@
 package autorc
 
 import (
-	"io"
-	"net"
-	"log"
-	"time"
 	"github.com/ziutek/mymysql/mysql"
+	"io"
+	"log"
+	"net"
+	"time"
 )
 
 // Return true if error is network error or UnexpectedEOF.
@@ -106,7 +106,7 @@ func (c *Conn) Prepare(sql string) (*Stmt, error) {
 	for {
 		var (
 			err error
-			s mysql.Stmt
+			s   mysql.Stmt
 		)
 		if s, err = c.Raw.Prepare(sql); err == nil {
 			return &Stmt{s, c}, nil

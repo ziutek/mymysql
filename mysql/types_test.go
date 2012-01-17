@@ -48,9 +48,9 @@ var datetimes = []sio{
 	sio{"2000-11-22 11:11:11.000111222", "2000-11-22 11:11:11.000111222"},
 }
 
-func TestConvDatetime(t *testing.T) {
+func TestConvTime(t *testing.T) {
 	conv := func(str string) interface{} {
-		d, err := ParseDatetime(str, time.Local)
+		d, err := ParseTime(str, time.Local)
 		if err != nil {
 			return err
 		}
@@ -69,7 +69,7 @@ var times = []sio{
 	sio{"-1:23:45.000111333", "-1:23:45.000111333"},
 }
 
-func TestConvTime(t *testing.T) {
+func TestConvDuration(t *testing.T) {
 	conv := func(str string) interface{} {
 		d, err := ParseDuration(str)
 		if err != nil {

@@ -336,7 +336,7 @@ func lenDuration(d time.Duration) int {
 	return 6
 }
 
-func readDatetime(rd io.Reader) time.Time {
+func readTime(rd io.Reader) time.Time {
 	dlen := readByte(rd)
 	switch dlen {
 	case 251:
@@ -374,7 +374,7 @@ func readDatetime(rd io.Reader) time.Time {
 	return time.Date(y, time.Month(mon), d, h, m, s, n, time.Local)
 }
 
-func encodeNonzeroDatetime(y int16, mon, d, h, m, s byte, n uint32) []byte {
+func encodeNonzeroTime(y int16, mon, d, h, m, s byte, n uint32) []byte {
 	buf := make([]byte, 12)
 	switch {
 	case n != 0:
@@ -395,24 +395,24 @@ func encodeNonzeroDatetime(y int16, mon, d, h, m, s byte, n uint32) []byte {
 	return buf
 }
 
-func EncodeDatetime(t time.Time) []byte {
+func EncodeTime(t time.Time) []byte {
 	if t.IsZero() {
 		return []byte{0} // MySQL zero
 	}
 	y, mon, d := t.Date()
 	h, m, s := t.Clock()
 	n := t.Nanosecond()
-	return encodeNonzeroDatetime(
+	return encodeNonzeroTime(
 		int16(y), byte(mon), byte(d),
 		byte(h), byte(m), byte(s), uint32(n),
 	)
 }
 
-func writeDatetime(wr io.Writer, t time.Time) {
-	write(wr, EncodeDatetime(t))
+func writeTime(wr io.Writer, t time.Time) {
+	write(wr, EncodeTime(t))
 }
 
-func lenDatetime(t time.Time) int {
+func lenTime(t time.Time) int {
 	switch {
 	case t.IsZero():
 		return 1
@@ -425,7 +425,7 @@ func lenDatetime(t time.Time) int {
 }
 
 func readDate(rd io.Reader) mysql.Date {
-	y, m, d := readDatetime(rd).Date()
+	y, m, d := readTime(rd).Date()
 	return mysql.Date{int16(y), byte(m), byte(d)}
 }
 
@@ -433,7 +433,7 @@ func EncodeDate(d mysql.Date) []byte {
 	if d.IsZero() {
 		return []byte{0} // MySQL zero
 	}
-	return encodeNonzeroDatetime(d.Year, d.Month, d.Day, 0, 0, 0, 0)
+	return encodeNonzeroTime(d.Year, d.Month, d.Day, 0, 0, 0, 0)
 }
 
 func writeDate(wr io.Writer, d mysql.Date) {

@@ -42,7 +42,7 @@ func (val *paramValue) Len() int {
 		return lenDate(*(*mysql.Date)(ptr))
 
 	case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
-		return lenDatetime(*(*time.Time)(ptr))
+		return lenTime(*(*time.Time)(ptr))
 
 	case MYSQL_TYPE_TIME:
 		return lenDuration(*(*time.Duration)(ptr))
@@ -104,7 +104,7 @@ func writeValue(wr io.Writer, val *paramValue) {
 		writeDate(wr, *(*mysql.Date)(ptr))
 
 	case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
-		writeDatetime(wr, *(*time.Time)(ptr))
+		writeTime(wr, *(*time.Time)(ptr))
 
 	case MYSQL_TYPE_TIME:
 		writeDuration(wr, *(*time.Duration)(ptr))

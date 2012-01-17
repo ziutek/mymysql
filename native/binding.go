@@ -3,6 +3,16 @@ package native
 import (
 	"github.com/ziutek/mymysql/mysql"
 	"reflect"
+	"time"
+)
+
+var (
+	timeType      = reflect.TypeOf(time.Time{})
+	timestampType = reflect.TypeOf(mysql.Timestamp{})
+	dateType      = reflect.TypeOf(mysql.Date{})
+	durationType  = reflect.TypeOf(time.Duration(0))
+	blobType      = reflect.TypeOf(mysql.Blob{})
+	rawType       = reflect.TypeOf(mysql.Raw{})
 )
 
 // val should be an addressable value
@@ -55,7 +65,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
 		return
 
 	case reflect.Int64:
-		if typ == mysql.DurationType {
+		if typ == durationType {
 			out.typ = MYSQL_TYPE_TIME
 			out.length = -1
 			return
@@ -101,7 +111,7 @@ func bindValue(val reflect.Value) (out *paramValue) {
 
 	case reflect.Slice:
 		out.length = -1
-		if typ == mysql.BlobType {
+		if typ == blobType {
 			out.typ = MYSQL_TYPE_BLOB
 			return
 		}
@@ -112,19 +122,19 @@ func bindValue(val reflect.Value) (out *paramValue) {
 
 	case reflect.Struct:
 		out.length = -1
-		if typ == mysql.TimeType {
+		if typ == timeType {
 			out.typ = MYSQL_TYPE_DATETIME
 			return
 		}
-		if typ == mysql.DateType {
+		if typ == dateType {
 			out.typ = MYSQL_TYPE_DATE
 			return
 		}
-		if typ == mysql.TimestampType {
+		if typ == timestampType {
 			out.typ = MYSQL_TYPE_TIMESTAMP
 			return
 		}
-		if typ == mysql.RawType {
+		if typ == rawType {
 			out.typ = val.FieldByName("Typ").Interface().(uint16)
 			out.SetAddr(val.FieldByName("Val").Pointer())
 			out.raw = true

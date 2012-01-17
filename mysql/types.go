@@ -3,7 +3,6 @@ package mysql
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -213,12 +212,3 @@ type Timestamp struct {
 func (t Timestamp) String() string {
 	return TimeString(t.Time)
 }
-
-var (
-	TimeType      = reflect.TypeOf(time.Time{})
-	TimestampType = reflect.TypeOf(Timestamp{})
-	DateType      = reflect.TypeOf(Date{})
-	DurationType  = reflect.TypeOf(time.Duration(0))
-	BlobType      = reflect.TypeOf(Blob{})
-	RawType       = reflect.TypeOf(Raw{})
-)

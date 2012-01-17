@@ -5,7 +5,10 @@ import (
 	"crypto/sha1"
 	"github.com/ziutek/mymysql/mysql"
 	"io"
+	"time"
 )
+
+// Integers
 
 func DecodeU16(buf []byte) uint16 {
 	return uint16(buf[1])<<8 | uint16(buf[0])
@@ -79,34 +82,31 @@ func writeU64(wr io.Writer, val uint64) {
 	write(wr, EncodeU64(val))
 }
 
-func readNu64(rd io.Reader) *uint64 {
+// Variable length values
+
+func readNullLCB(rd io.Reader) (lcb uint64, null bool) {
 	bb := readByte(rd)
-	var val uint64
 	switch bb {
 	case 251:
-		return nil
-
+		null = true
 	case 252:
-		val = uint64(readU16(rd))
-
+		lcb = uint64(readU16(rd))
 	case 253:
-		val = uint64(readU24(rd))
-
+		lcb = uint64(readU24(rd))
 	case 254:
-		val = readU64(rd)
-
+		lcb = readU64(rd)
 	default:
-		val = uint64(bb)
+		lcb = uint64(bb)
 	}
-	return &val
+	return
 }
 
-func readNotNullU64(rd io.Reader) (val uint64) {
-	nu := readNu64(rd)
-	if nu == nil {
+func readLCB(rd io.Reader) uint64 {
+	lcb, null := readNullLCB(rd)
+	if null {
 		panic(UNEXP_NULL_LCB_ERROR)
 	}
-	return *nu
+	return lcb
 }
 
 func writeLCB(wr io.Writer, val uint64) {
@@ -142,94 +142,59 @@ func lenLCB(val uint64) int {
 	return 9
 }
 
-func writeNu64(wr io.Writer, nu *uint64) {
-	if nu == nil {
-		writeByte(wr, 251)
-	} else {
-		writeLCB(wr, *nu)
-	}
-}
-
-func lenNu64(nu *uint64) int {
-	if nu == nil {
-		return 1
-	}
-	return lenLCB(*nu)
-}
-
-func readNbin(rd io.Reader) *[]byte {
-	if nu := readNu64(rd); nu != nil {
-		buf := make([]byte, *nu)
-		readFull(rd, buf)
-		return &buf
-	}
-	return nil
-}
-
-func readNotNullBin(rd io.Reader) []byte {
-	nbuf := readNbin(rd)
-	if nbuf == nil {
-		panic(UNEXP_NULL_LCS_ERROR)
-	}
-	return *nbuf
-}
-
-func writeNbin(wr io.Writer, nbuf *[]byte) {
-	if nbuf == nil {
-		writeByte(wr, 251)
+func readNullBin(rd io.Reader) (buf []byte, null bool) {
+	var l uint64
+	l, null = readNullLCB(rd)
+	if null {
 		return
 	}
-	writeLCB(wr, uint64(len(*nbuf)))
-	write(wr, *nbuf)
-}
-
-func lenNbin(nbuf *[]byte) int {
-	if nbuf == nil {
-		return 1
-	}
-	return lenLCB(uint64(len(*nbuf))) + len(*nbuf)
-}
-
-func readNstr(rd io.Reader) (nstr *string) {
-	if nbuf := readNbin(rd); nbuf != nil {
-		str := string(*nbuf)
-		nstr = &str
-	}
+	buf = make([]byte, l)
+	readFull(rd, buf)
 	return
 }
 
-func readNotNullStr(rd io.Reader) (str string) {
-	buf := readNotNullBin(rd)
+func readBin(rd io.Reader) []byte {
+	buf, null := readNullBin(rd)
+	if null {
+		panic(UNEXP_NULL_LCS_ERROR)
+	}
+	return buf
+}
+
+func writeBin(wr io.Writer, buf []byte) {
+	writeLCB(wr, uint64(len(buf)))
+	write(wr, buf)
+}
+
+func lenBin(buf []byte) int {
+	return lenLCB(uint64(len(buf))) + len(buf)
+}
+
+func readStr(rd io.Reader) (str string) {
+	buf := readBin(rd)
 	str = string(buf)
 	return
 }
 
-func writeNstr(wr io.Writer, nstr *string) {
-	if nstr == nil {
-		writeByte(wr, 251)
-		return
-	}
-	writeLCB(wr, uint64(len(*nstr)))
-	writeString(wr, *nstr)
+func writeStr(wr io.Writer, str string) {
+	writeLCB(wr, uint64(len(str)))
+	writeString(wr, str)
 }
 
-func lenNstr(nstr *string) int {
-	if nstr == nil {
-		return 1
-	}
-	return lenLCB(uint64(len(*nstr))) + len(*nstr)
+func lenStr(str string) int {
+	return lenLCB(uint64(len(str))) + len(str)
 }
 
 func writeLC(wr io.Writer, v interface{}) {
 	switch val := v.(type) {
 	case []byte:
-		writeNbin(wr, &val)
-	case string:
-		writeNstr(wr, &val)
+		writeBin(wr, val)
 	case *[]byte:
-		writeNbin(wr, val)
+		writeBin(wr, *val)
+	case string:
+		writeStr(wr, val)
 	case *string:
-		writeNstr(wr, val)
+		writeStr(wr, *val)
 	default:
 		panic("Unknown data type for write as lenght coded string")
 	}
@@ -238,13 +203,13 @@ func writeLC(wr io.Writer, v interface{}) {
 func lenLC(v interface{}) int {
 	switch val := v.(type) {
 	case []byte:
-		return lenNbin(&val)
-	case string:
-		return lenNstr(&val)
+		return lenBin(val)
 	case *[]byte:
-		return lenNbin(val)
+		return lenBin(*val)
+	case string:
+		return lenStr(val)
 	case *string:
-		return lenNstr(val)
+		return lenStr(*val)
 	}
 	panic("Unknown data type for write as lenght coded string")
 }
@@ -287,15 +252,17 @@ func writeNT(wr io.Writer, v interface{}) {
 	}
 }
 
-func readNtime(rd io.Reader) *mysql.Time {
+// Date and time
+
+func readDuration(rd io.Reader) time.Duration {
 	dlen := readByte(rd)
 	switch dlen {
 	case 251:
 		// Null
-		return nil
+		panic(UNEXP_NULL_TIME_ERROR)
 	case 0:
 		// 00:00:00
-		return new(mysql.Time)
+		return 0
 	case 5, 8, 12:
 		// Properly time length
 	default:
@@ -321,40 +288,28 @@ func readNtime(rd io.Reader) *mysql.Time {
 	if buf[0] != 0 {
 		tt = -tt
 	}
-	return (*mysql.Time)(&tt)
+	return time.Duration(tt)
 }
 
-func readNotNullTime(rd io.Reader) mysql.Time {
-	tt := readNtime(rd)
-	if tt == nil {
-		panic(UNEXP_NULL_DATE_ERROR)
-	}
-	return *tt
-}
-
-func EncodeTime(tt *mysql.Time) []byte {
-	if tt == nil {
-		return []byte{251}
-	}
+func EncodeDuration(d time.Duration) []byte {
 	buf := make([]byte, 13)
-	ti := int64(*tt)
-	if ti < 0 {
+	if d < 0 {
 		buf[1] = 1
-		ti = -ti
+		d = -d
 	}
-	if ns := uint32(ti % 1e9); ns != 0 {
+	if ns := uint32(d % 1e9); ns != 0 {
 		copy(buf[9:13], EncodeU32(ns)) // nanosecond
 		buf[0] += 4
 	}
-	ti /= 1e9
-	if hms := int(ti % (24 * 3600)); buf[0] != 0 || hms != 0 {
+	d /= 1e9
+	if hms := int(d % (24 * 3600)); buf[0] != 0 || hms != 0 {
 		buf[8] = byte(hms % 60) // second
 		hms /= 60
 		buf[7] = byte(hms % 60) // minute
 		buf[6] = byte(hms / 60) // hour
 		buf[0] += 3
 	}
-	if day := uint32(ti / (24 * 3600)); buf[0] != 0 || day != 0 {
+	if day := uint32(d / (24 * 3600)); buf[0] != 0 || day != 0 {
 		copy(buf[2:6], EncodeU32(day)) // day
 		buf[0] += 4
 	}
@@ -363,34 +318,33 @@ func EncodeTime(tt *mysql.Time) []byte {
 	return buf
 }
 
-func writeNtime(wr io.Writer, tt *mysql.Time) {
-	write(wr, EncodeTime(tt))
+func writeDuration(wr io.Writer, d time.Duration) {
+	write(wr, EncodeDuration(d))
 }
 
-func lenNtime(tt *mysql.Time) int {
-	if tt == nil || *tt == 0 {
+func lenDuration(d time.Duration) int {
+	if d == 0 {
 		return 1
 	}
-	ti := int64(*tt)
-	if ti%1e9 != 0 {
+	if d%1e9 != 0 {
 		return 13
 	}
-	ti /= 1e9
-	if ti%(24*3600) != 0 {
+	d /= 1e9
+	if d%(24*3600) != 0 {
 		return 9
 	}
 	return 6
 }
 
-func readNdatetime(rd io.Reader) *mysql.Datetime {
+func readDatetime(rd io.Reader) time.Time {
 	dlen := readByte(rd)
 	switch dlen {
 	case 251:
 		// Null
-		return nil
+		panic(UNEXP_NULL_DATE_ERROR)
 	case 0:
 		// 0000-00-00
-		return new(mysql.Datetime)
+		return time.Time{}
 	case 4, 7, 11:
 		// Properly datetime length
 	default:
@@ -399,107 +353,94 @@ func readNdatetime(rd io.Reader) *mysql.Datetime {
 
 	buf := make([]byte, dlen)
 	readFull(rd, buf)
-	var dt mysql.Datetime
+	var y, mon, d, h, m, s, n int
 	switch dlen {
 	case 11:
 		// 2006-01-02 15:04:05.001004005
-		dt.Nanosec = DecodeU32(buf[7:])
+		n = int(DecodeU32(buf[7:]))
 		fallthrough
 	case 7:
 		// 2006-01-02 15:04:05
-		dt.Hour = buf[4]
-		dt.Minute = buf[5]
-		dt.Second = buf[6]
+		h = int(buf[4])
+		m = int(buf[5])
+		s = int(buf[6])
 		fallthrough
 	case 4:
 		// 2006-01-02
-		dt.Year = int16(DecodeU16(buf[0:2]))
-		dt.Month = buf[2]
-		dt.Day = buf[3]
+		y = int(DecodeU16(buf[0:2]))
+		mon = int(buf[2])
+		d = int(buf[3])
 	}
-	return &dt
+	return time.Date(y, time.Month(mon), d, h, m, s, n, time.Local)
 }
 
-func readNotNullDatetime(rd io.Reader) (dt *mysql.Datetime) {
-	dt = readNdatetime(rd)
-	if dt == nil {
-		panic(UNEXP_NULL_DATE_ERROR)
-	}
-	return
-}
-
-func EncodeDatetime(dt *mysql.Datetime) []byte {
-	if dt == nil {
-		return []byte{251}
-	}
+func encodeDatetime(y int16, mon, d, h, m, s byte, n uint32) []byte {
 	buf := make([]byte, 12)
 	switch {
-	case dt.Nanosec != 0:
-		copy(buf[7:12], EncodeU32(dt.Nanosec))
+	case n != 0:
+		copy(buf[7:12], EncodeU32(n))
 		buf[0] += 4
 		fallthrough
-
-	case dt.Second != 0 || dt.Minute != 0 || dt.Hour != 0:
-		buf[7] = dt.Second
-		buf[6] = dt.Minute
-		buf[5] = dt.Hour
+	case s != 0 || m != 0 || h != 0:
+		buf[7] = s
+		buf[6] = m
+		buf[5] = h
 		buf[0] += 3
 		fallthrough
-
-	case dt.Day != 0 || dt.Month != 0 || dt.Year != 0:
-		buf[4] = dt.Day
-		buf[3] = dt.Month
-		copy(buf[1:3], EncodeU16(uint16(dt.Year)))
+	case d != 0 || mon != 0 || y != 0:
+		buf[4] = d
+		buf[3] = mon
+		copy(buf[1:3], EncodeU16(uint16(y)))
 		buf[0] += 4
 	}
 	buf = buf[0 : buf[0]+1]
 	return buf
 }
 
-func writeNdatetime(wr io.Writer, dt *mysql.Datetime) {
-	write(wr, EncodeDatetime(dt))
+func EncodeDatetime(t time.Time) []byte {
+	y, mon, d := t.Date()
+	h, m, s := t.Clock()
+	n := t.Nanosecond()
+	return encodeDatetime(
+		int16(y), byte(mon), byte(d),
+		byte(h), byte(m), byte(s), uint32(n),
+	)
 }
 
-func lenNdatetime(dt *mysql.Datetime) int {
+func writeDatetime(wr io.Writer, t time.Time) {
+	write(wr, EncodeDatetime(t))
+}
+
+func lenDatetime(t time.Time) int {
 	switch {
-	case dt == nil:
-		return 1
-	case dt.Nanosec != 0:
+	case t.Nanosecond() != 0:
 		return 12
-	case dt.Second != 0 || dt.Minute != 0 || dt.Hour != 0:
+	case t.Second() != 0 || t.Minute() != 0 || t.Hour() != 0:
 		return 8
-	case dt.Day != 0 || dt.Month != 0 || dt.Year != 0:
+	case t.Day() != 0 || t.Month() != 0 || t.Year() != 0:
 		return 5
 	}
 	return 1
 }
 
-func readNdate(rd io.Reader) *mysql.Date {
-	dt := readNdatetime(rd)
-	if dt == nil {
-		return nil
+func readDate(rd io.Reader) mysql.Date {
+	y, m, d := readDatetime(rd).Date()
+	return mysql.Date{int16(y), byte(m), byte(d)}
+}
+
+func EncodeDate(d mysql.Date) []byte {
+	return encodeDatetime(d.Year, d.Month, d.Day, 0, 0, 0, 0)
+}
+
+func writeDate(wr io.Writer, d mysql.Date) {
+	write(wr, EncodeDate(d))
+}
+
+func lenDate(d mysql.Date) int {
+	if d.Day != 0 || d.Month != 0 || d.Year != 0 {
+		return 5
 	}
-	return &mysql.Date{Year: dt.Year, Month: dt.Month, Day: dt.Day}
-}
-
-func readNotNullDate(rd io.Reader) (dt *mysql.Date) {
-	dt = readNdate(rd)
-	if dt == nil {
-		panic(UNEXP_NULL_DATE_ERROR)
-	}
-	return
-}
-
-func EncodeDate(dd *mysql.Date) []byte {
-	return EncodeDatetime(mysql.DateToDatetime(dd))
-}
-
-func writeNdate(wr io.Writer, dd *mysql.Date) {
-	write(wr, EncodeDate(dd))
-}
-
-func lenNdate(dd *mysql.Date) int {
-	return lenNdatetime(mysql.DateToDatetime(dd))
+	return 1
 }
 
 // Borrowed from GoMySQL

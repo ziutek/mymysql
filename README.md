@@ -489,9 +489,9 @@ mapped for MySQL protocol types as below:
              float32  -->  MYSQL_TYPE_FLOAT
              float64  -->  MYSQL_TYPE_DOUBLE
                 
-    *mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
-     *mysql.Datetime  -->  MYSQL_TYPE_DATETIME
-         *mysql.Date  -->  MYSQL_TYPE_DATE
+           time.Time  -->  MYSQL_TYPE_DATETIME
+     mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
+          mysql.Date  -->  MYSQL_TYPE_DATE
           mysql.Time  -->  MYSQL_TYPE_TIME
           mysql.Blob  -->  MYSQL_TYPE_BLOB
                  nil  -->  MYSQL_TYPE_NULL
@@ -511,8 +511,8 @@ below:
                          UNSIGNED BIGINT  -->  uint64
                                    FLOAT  -->  float32
                                   DOUBLE  -->  float64
-                     TIMESTAMP, DATETIME  -->  *mysql.Datetime
-                                    DATE  -->  *mysql.Date
+                     TIMESTAMP, DATETIME  -->  time.Time
+                                    DATE  -->  mysql.Date
                                     TIME  -->  mysql.Time
                                     YEAR  -->  int16
         CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte

@@ -57,7 +57,7 @@ func (my *Conn) auth() {
 	writeByte(pw, my.info.lang) // Charset number
 	write(pw, make([]byte, 23)) // Filler
 	writeNTS(pw, my.user)       // Username
-	writeNbin(pw, &encr_passwd) // Encrypted password
+	writeBin(pw, encr_passwd) // Encrypted password
 	if len(my.dbname) > 0 {
 		writeNTS(pw, my.dbname)
 	}

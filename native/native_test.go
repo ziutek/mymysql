@@ -80,7 +80,9 @@ func checkErrWarnRows(t *testing.T, res, exp *RowsResErr) {
 	if !reflect.DeepEqual(res.rows, exp.rows) {
 		rlen := len(res.rows)
 		elen := len(exp.rows)
-		t.Errorf("Rows are different:\nLen: res=%d  exp=%d", rlen, elen)
+		t.Error("Rows are different!")
+		t.Errorf("len/cap: res=%d/%d exp=%d/%d",
+			rlen, cap(res.rows), elen, cap(exp.rows))
 		max := rlen
 		if elen > max {
 			max = elen
@@ -101,6 +103,12 @@ func checkErrWarnRows(t *testing.T, res, exp *RowsResErr) {
 			}
 			if ii < len(exp.rows) {
 				t.Error(" exp: ", exp.rows[ii])
+			}
+			if ii < len(res.rows) {
+				t.Errorf(" res: %#v", res.rows[ii][2])
+			}
+			if ii < len(exp.rows) {
+				t.Errorf(" exp: %#v", exp.rows[ii][2])
 			}
 		}
 		t.FailNow()
@@ -301,24 +309,29 @@ func TestPrepared(t *testing.T) {
 	ins := prepare("insert into P values (?, ?, ?)")
 	checkErr(t, ins.err, nil)
 
+	parsed, err := mysql.ParseDatetime("2012-01-17 01:10:10", time.Local)
+	checkErr(t, err, nil)
+	parsedZero, err := mysql.ParseDatetime("0001-01-01 0:00:00", time.Local)
+
+	checkErr(t, err, nil)
 	exp_rows := []mysql.Row{
 		mysql.Row{
-			2, "Taki tekst", mysql.TimeToDatetime(time.Unix(123456789, 0)),
+			2, "Taki tekst", time.Unix(123456789, 0),
 		},
 		mysql.Row{
-			3, "Łódź się kołysze!", mysql.TimeToDatetime(time.Unix(0, 0)),
+			3, "Łódź się kołysze!", time.Unix(999999, 0),
 		},
 		mysql.Row{
-			5, "Pąk róży", mysql.TimeToDatetime(time.Unix(9999999999, 0)),
+			5, "Pąk róży", parsed,
 		},
 		mysql.Row{
-			11, "Zero UTC datetime", mysql.TimeToDatetime(time.Unix(0, 0).UTC()),
+			11, "Zero UTC datetime", time.Unix(0, 0),
 		},
 		mysql.Row{
-			17, mysql.Blob([]byte("Zero datetime")), new(mysql.Datetime),
+			17, mysql.Blob([]byte("Zero datetime")), parsedZero,
 		},
 		mysql.Row{
-			23, []byte("NULL datetime"), (*mysql.Datetime)(nil),
+			23, []byte("NULL datetime"), (*time.Time)(nil),
 		},
 		mysql.Row{
 			23, "NULL", nil,
@@ -497,20 +510,28 @@ func TestDate(t *testing.T) {
 		cmdOK(0, false, true),
 	)
 
-	dd := "2011-12-13"
+	dd := "2011-11-13"
 	dt := "2010-12-12 11:24:00"
-	tt := -mysql.Time((124*3600+4*3600+3*60+2)*1e9 + 1)
+	tt := -time.Duration((124*3600+4*3600+3*60+2)*1e9 + 1)
 
 	ins, err := my.Prepare("insert D values (?, ?, ?, ?)")
 	checkErr(t, err, nil)
 
-	sel, err := my.Prepare("select id, tt from D where dd <= ? && dt <= ?")
+	sel, err := my.Prepare("select id, tt from D where dd = ? && dt = ?")
 	checkErr(t, err, nil)
 
 	_, err = ins.Run(1, dd, dt, tt)
 	checkErr(t, err, nil)
 
-	rows, _, err := sel.Exec(mysql.StrToDatetime(dd), mysql.StrToDate(dd))
+	sdt, err := mysql.ParseDatetime(dt, time.Local)
+	checkErr(t, err, nil)
+	sdd, err := mysql.ParseDate(dd)
+	checkErr(t, err, nil)
+
+	_, err = ins.Run(2, sdd, sdt, tt)
+	checkErr(t, err, nil)
+
+	rows, _, err := sel.Exec(sdd, sdt)
 	checkErr(t, err, nil)
 	if rows == nil {
 		t.Fatal("nil result")
@@ -518,11 +539,11 @@ func TestDate(t *testing.T) {
 	if rows[0].Int(0) != 1 {
 		t.Fatal("Bad id", rows[0].Int(1))
 	}
-	if rows[0][1].(mysql.Time) != tt+1 {
-		t.Fatal("Bad tt", rows[0][1].(mysql.Time))
+	if rows[0][1].(time.Duration) != tt+1 {
+		t.Fatal("Bad tt", rows[0][1].(time.Duration))
 	}
 
-	checkResult(t, query("drop table D"), cmdOK(0, false, true))
+	//checkResult(t, query("drop table D"), cmdOK(0, false, true))
 	myClose(t)
 }
 

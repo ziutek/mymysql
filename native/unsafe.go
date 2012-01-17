@@ -3,6 +3,7 @@ package native
 import (
 	"github.com/ziutek/mymysql/mysql"
 	"io"
+	"time"
 	"unsafe"
 )
 
@@ -35,22 +36,22 @@ func (val *paramValue) Len() int {
 
 	switch val.typ {
 	case MYSQL_TYPE_STRING:
-		return lenNstr((*string)(ptr))
+		return lenStr(*(*string)(ptr))
 
 	case MYSQL_TYPE_DATE:
-		return lenNdate((*mysql.Date)(ptr))
+		return lenDate(*(*mysql.Date)(ptr))
 
 	case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
-		return lenNdatetime((*mysql.Datetime)(ptr))
+		return lenDatetime(*(*time.Time)(ptr))
 
 	case MYSQL_TYPE_TIME:
-		return lenNtime((*mysql.Time)(ptr))
+		return lenDuration(*(*time.Duration)(ptr))
 
 	case MYSQL_TYPE_TINY: // val.length < 0 so this is bool
 		return 1
 	}
 	// MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_BLOB and type of Raw value
-	return lenNbin((*[]byte)(ptr))
+	return lenBin(*(*[]byte)(ptr))
 }
 
 func writeValue(wr io.Writer, val *paramValue) {
@@ -67,7 +68,7 @@ func writeValue(wr io.Writer, val *paramValue) {
 
 	if val.raw || val.typ == MYSQL_TYPE_VAR_STRING ||
 		val.typ == MYSQL_TYPE_BLOB {
-		writeNbin(wr, (*[]byte)(ptr))
+		writeBin(wr, *(*[]byte)(ptr))
 		return
 	}
 	// We don't need unsigned bit to check type
@@ -76,7 +77,7 @@ func writeValue(wr io.Writer, val *paramValue) {
 		// Don't write null values
 
 	case MYSQL_TYPE_STRING:
-		writeNstr(wr, (*string)(ptr))
+		writeStr(wr, *(*string)(ptr))
 
 	case MYSQL_TYPE_LONG, MYSQL_TYPE_FLOAT:
 		writeU32(wr, *(*uint32)(ptr))
@@ -100,13 +101,13 @@ func writeValue(wr io.Writer, val *paramValue) {
 		writeU64(wr, *(*uint64)(ptr))
 
 	case MYSQL_TYPE_DATE:
-		writeNdate(wr, (*mysql.Date)(ptr))
+		writeDate(wr, *(*mysql.Date)(ptr))
 
 	case MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME:
-		writeNdatetime(wr, (*mysql.Datetime)(ptr))
+		writeDatetime(wr, *(*time.Time)(ptr))
 
 	case MYSQL_TYPE_TIME:
-		writeNtime(wr, (*mysql.Time)(ptr))
+		writeDuration(wr, *(*time.Duration)(ptr))
 
 	default:
 		panic(BIND_UNK_TYPE)

@@ -118,8 +118,8 @@ func (my *Conn) getOkPacket(pr *pktReader) (res *Result) {
 	res = new(Result)
 	res.my = my
 	// First byte was readed by getResult
-	res.affected_rows = readNotNullU64(pr)
-	res.insert_id = readNotNullU64(pr)
+	res.affected_rows = readLCB(pr)
+	res.insert_id = readLCB(pr)
 	res.status = readU16(pr)
 	my.status = res.status
 	res.warning_count = int(readU16(pr))
@@ -174,7 +174,7 @@ func (my *Conn) getResSetHeadPacket(pr *pktReader) (res *Result) {
 	}
 	pr.unreadByte()
 
-	field_count := int(readNotNullU64(pr))
+	field_count := int(readLCB(pr))
 	pr.checkEof()
 
 	res = &Result{
@@ -196,12 +196,12 @@ func (my *Conn) getFieldPacket(pr *pktReader) (field *mysql.Field) {
 	pr.unreadByte()
 
 	field = new(mysql.Field)
-	field.Catalog = readNotNullStr(pr)
-	field.Db = readNotNullStr(pr)
-	field.Table = readNotNullStr(pr)
-	field.OrgTable = readNotNullStr(pr)
-	field.Name = readNotNullStr(pr)
-	field.OrgName = readNotNullStr(pr)
+	field.Catalog = readStr(pr)
+	field.Db = readStr(pr)
+	field.Table = readStr(pr)
+	field.OrgTable = readStr(pr)
+	field.Name = readStr(pr)
+	field.OrgName = readStr(pr)
 	read(pr, 1+2)
 	//field.Charset= readU16(pr)
 	field.DispLen = readU32(pr)
@@ -225,11 +225,11 @@ func (my *Conn) getTextRowPacket(pr *pktReader, res *Result) mysql.Row {
 
 	row := make(mysql.Row, res.field_count)
 	for ii := 0; ii < res.field_count; ii++ {
-		nbin := readNbin(pr)
-		if nbin == nil {
+		bin, null := readNullBin(pr)
+		if null {
 			row[ii] = nil
 		} else {
-			row[ii] = *nbin
+			row[ii] = bin
 		}
 	}
 	pr.checkEof()
@@ -303,16 +303,16 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 			MYSQL_TYPE_VARCHAR, MYSQL_TYPE_BIT, MYSQL_TYPE_BLOB,
 			MYSQL_TYPE_TINY_BLOB, MYSQL_TYPE_MEDIUM_BLOB,
 			MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET, MYSQL_TYPE_ENUM:
-			row[ii] = readNotNullBin(pr)
+			row[ii] = readBin(pr)
 
 		case MYSQL_TYPE_DATE:
-			row[ii] = readNotNullDate(pr)
+			row[ii] = readDate(pr)
 
 		case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
-			row[ii] = readNotNullDatetime(pr)
+			row[ii] = readDatetime(pr)
 
 		case MYSQL_TYPE_TIME:
-			row[ii] = readNotNullTime(pr)
+			row[ii] = readDuration(pr)
 
 		// TODO:
 		// MYSQL_TYPE_NEWDATE, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_GEOMETRY      

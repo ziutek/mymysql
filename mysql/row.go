@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 // Result row - contains values for any column of received row.
@@ -15,8 +16,8 @@ import (
 // If row is a result of ordinary text query, its element can be
 // []byte slice, contained result text or nil if NULL is returned.
 //
-// If it is result of prepared statement execution, its element field can
-// be: intXX, uintXX, floatXX, []byte, *Date, *Datetime, Time or nil
+// If it is result of prepared statement execution, its element field can be:
+// intX, uintX, floatX, []byte, Date, Time, time.Time (in Local location) or nil
 type Row []interface{}
 
 // Get the nn-th value and return it as []byte ([]byte{} if NULL)
@@ -167,25 +168,20 @@ func (tr Row) Uint(nn int) (val uint) {
 
 // Get the nn-th value and return it as Date (0000-00-00 if NULL). Return error
 // if conversion is impossible.
-func (tr Row) DateErr(nn int) (val *Date, err error) {
+func (tr Row) DateErr(nn int) (val Date, err error) {
 	switch data := tr[nn].(type) {
 	case nil:
-		val = new(Date)
-	case *Date:
+		// nop
+	case Date:
 		val = data
 	case []byte:
-		val = StrToDate(string(data))
-	}
-	if val == nil {
-		err = errors.New(
-			fmt.Sprintf("Can't convert `%v` to Date", tr[nn]),
-		)
+		val, err = ParseDate(string(data))
 	}
 	return
 }
 
 // It is like DateErr but panics if conversion is impossible.
-func (tr Row) MustDate(nn int) (val *Date) {
+func (tr Row) MustDate(nn int) (val Date) {
 	val, err := tr.DateErr(nn)
 	if err != nil {
 		panic(err)
@@ -194,89 +190,126 @@ func (tr Row) MustDate(nn int) (val *Date) {
 }
 
 // It is like DateErr but return 0000-00-00 if conversion is impossible.
-func (tr Row) Date(nn int) (val *Date) {
+func (tr Row) Date(nn int) (val Date) {
 	val, _ = tr.DateErr(nn)
-	if val == nil {
-		val = new(Date)
+	return
+}
+
+func convertTime(t time.Time, loc *time.Location) time.Time {
+	y, mon, d := t.Date()
+	h, m, s := t.Clock()
+	return time.Date(y, mon, d, h, m, s, t.Nanosecond(), loc)
+}
+
+// Sandard MySQL datetime format
+const DatetimeFormat = "2006-01-02 15:04:05"
+
+// Parses string datetime in DatetimeFormat using loc location
+func ParseDatetime(str string, loc *time.Location) (t time.Time, err error) {
+	t, err = time.Parse(DatetimeFormat, str)
+	if err == nil && loc != time.UTC {
+		t = convertTime(t, loc)
 	}
 	return
 }
 
-// Get the nn-th value and return it as Datetime (0000-00-00 00:00:00 if NULL).
-// Return error if conversion is impossible. It can convert Date to Datetime.
-func (tr Row) DatetimeErr(nn int) (val *Datetime, err error) {
+// Get the nn-th value and return it as time.Time in loc location (zero if NULL)
+// Returns error if conversion is impossible. It can convert Date to time.Time.
+func (tr Row) DatetimeErr(nn int, loc *time.Location) (t time.Time, err error) {
 	switch data := tr[nn].(type) {
 	case nil:
-		val = new(Datetime)
-	case *Datetime:
-		val = data
-	case *Date:
-		val = data.Datetime()
+		// nop
+	case time.Time:
+		t = data.In(loc)
+		if loc != time.Local {
+			t = convertTime(t, loc)
+		}
+	case Date:
+		t = data.Datetime(loc)
 	case []byte:
-		val = StrToDatetime(string(data))
-	}
-	if val == nil {
-		err = errors.New(
-			fmt.Sprintf("Can't convert `%v` to Datetime", tr[nn]),
-		)
+		t, err = ParseDatetime(string(data), loc)
 	}
 	return
 }
 
 // As DatetimeErr but panics if conversion is impossible.
-func (tr Row) MustDatetime(nn int) (val *Datetime) {
-	val, err := tr.DatetimeErr(nn)
+func (tr Row) MustDatetime(nn int, loc *time.Location) (val time.Time) {
+	val, err := tr.DatetimeErr(nn, loc)
 	if err != nil {
 		panic(err)
 	}
 	return
 }
 
-// It is like DatetimeErr but return 0000-00-00 00:00:00 if conversion is
+// It is like DatetimeErr but returns 0000-00-00 00:00:00 if conversion is
 // impossible.
-func (tr Row) Datetime(nn int) (val *Datetime) {
-	val, _ = tr.DatetimeErr(nn)
-	if val == nil {
-		val = new(Datetime)
-	}
+func (tr Row) Datetime(nn int, loc *time.Location) (val time.Time) {
+	val, _ = tr.DatetimeErr(nn, loc)
 	return
 }
 
-// Get the nn-th value and return it as Time (0:00:00 if NULL). Return error
-// if conversion is impossible.
-func (tr Row) TimeErr(nn int) (val Time, err error) {
-	var tp *Time
+// Get the nn-th value and return it as time.Time in Local location
+// (zero if NULL). Returns error if conversion is impossible.
+// It can convert Date to time.Time.
+func (tr Row) LocaltimeErr(nn int) (t time.Time, err error) {
 	switch data := tr[nn].(type) {
 	case nil:
-		return
-	case Time:
-		val = data
-		return
+		// nop
+	case time.Time:
+		t = data
+	case Date:
+		t = data.Datetime(time.Local)
 	case []byte:
-		tp = StrToTime(string(data))
+		t, err = ParseDatetime(string(data), time.Local)
 	}
-	if tp == nil {
-		err = errors.New(
-			fmt.Sprintf("Can't convert `%v` to Time", tr[nn]),
-		)
-		return
-	}
-	val = *tp
 	return
 }
 
-// It is like TimeErr but panics if conversion is impossible.
-func (tr Row) MustTime(nn int) (val Time) {
-	val, err := tr.TimeErr(nn)
+// As LocaltimeErr but panics if conversion is impossible.
+func (tr Row) MustLocaltime(nn int) (val time.Time) {
+	val, err := tr.LocaltimeErr(nn)
 	if err != nil {
 		panic(err)
 	}
 	return
 }
 
-// It is like TimeErr but return 0:00:00 if conversion is impossible.
-func (tr Row) Time(nn int) (val Time) {
-	val, _ = tr.TimeErr(nn)
+// It is like LocaltimeErr but returns 0000-00-00 00:00:00 if conversion is
+// impossible.
+func (tr Row) Localtime(nn int) (val time.Time) {
+	val, _ = tr.LocaltimeErr(nn)
+	return
+}
+
+// Get the nn-th value and return it as time.Duration (0 if NULL). Return error
+// if conversion is impossible.
+func (tr Row) DurationErr(nn int) (val time.Duration, err error) {
+	switch data := tr[nn].(type) {
+	case nil:
+	case time.Duration:
+		val = data
+	case []byte:
+		val, err = ParseDuration(string(data))
+	default:
+		err = errors.New(
+			fmt.Sprintf("Can't convert `%v` to time.Duration", data),
+		)
+	}
+	return
+}
+
+// It is like DurationErr but panics if conversion is impossible.
+func (tr Row) MustDuration(nn int) (val time.Duration) {
+	val, err := tr.DurationErr(nn)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+// It is like DurationErr but return 0 if conversion is impossible.
+func (tr Row) Duration(nn int) (val time.Duration) {
+	val, _ = tr.DurationErr(nn)
 	return
 }
 
@@ -378,7 +411,7 @@ func (tr Row) Uint64Err(nn int) (val uint64, err error) {
 		if i < 0 {
 			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
 		}
-	   val = uint64(i)
+		val = uint64(i)
 	case []byte:
 		val, err = strconv.ParseUint(string(data), 10, 64)
 	default:

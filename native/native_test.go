@@ -411,7 +411,7 @@ func TestVarBinding(t *testing.T) {
 		ii  int
 		ss  string
 	)
-	ins.BindParams(&id, &str)
+	ins.Bind(&id, &str)
 
 	i1 := 1
 	s1 := "Ala"
@@ -428,7 +428,7 @@ func TestVarBinding(t *testing.T) {
 	rre.res, rre.err = ins.Run()
 	checkResult(t, &rre, cmdOK(1, true, false))
 
-	ins.BindParams(&ii, &ss)
+	ins.Bind(&ii, &ss)
 	ii = 3
 	ss = "A kot ma Ale!"
 
@@ -482,7 +482,7 @@ func TestBindStruct(t *testing.T) {
 		rre RowsResErr
 	)
 
-	ins.BindParams(&s)
+	ins.Bind(&s)
 
 	s.Id = 2
 	s.Txt = "Ala ma kota."
@@ -587,7 +587,7 @@ func TestBigBlob(t *testing.T) {
 	}{}
 
 	// Individual parameters binding
-	ins.BindParams(&id, &bb)
+	ins.Bind(&id, &bb)
 	id = 1
 	bb = big_blob
 
@@ -596,7 +596,7 @@ func TestBigBlob(t *testing.T) {
 	checkResult(t, &rre, cmdOK(1, true, false))
 
 	// Struct binding
-	ins.BindParams(&data)
+	ins.Bind(&data)
 	data.Id = 2
 	data.Bb = big_blob[0 : 32*1024*1024-31]
 
@@ -604,7 +604,7 @@ func TestBigBlob(t *testing.T) {
 	rre.res, rre.err = ins.Run()
 	checkResult(t, &rre, cmdOK(1, true, false))
 
-	sel.BindParams(&id)
+	sel.Bind(&id)
 
 	// Check first insert.
 	tmr := "Too many rows"
@@ -704,8 +704,8 @@ func TestReconnect(t *testing.T) {
 	}{}
 	var sel_id int
 
-	ins.BindParams(&params)
-	sel.BindParams(&sel_id)
+	ins.Bind(&params)
+	sel.Bind(&sel_id)
 
 	checkErr(t, my.Reconnect(), nil)
 
@@ -756,8 +756,8 @@ func TestSendLongData(t *testing.T) {
 		id  int64
 	)
 
-	ins.BindParams(&id, []byte(nil))
-	sel.BindParams(&id)
+	ins.Bind(&id, []byte(nil))
+	sel.Bind(&id)
 
 	// Prepare data
 	data := make([]byte, 4*1024*1024)

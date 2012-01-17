@@ -11,12 +11,17 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 #### v0.4.2
 
-A lot of changes in MySQL time handling:
+1. A lot of changes in MySQL time handling:
 
-1. Datetime type replaced by time.Time.
-2. Time type replaced by time.Duration.
-3. Support for time.Time type added to godrv.
-4. row.Int64/row.Uint64 methods added.
+    Datetime type replaced by time.Time.
+
+    Time type replaced by time.Duration.
+
+    Support for time.Time type added to godrv.
+
+2. row.Int64/row.Uint64 methods added.
+
+3. Rename BindParams to Bind.
 
 #### v0.4.1
 
@@ -267,25 +272,25 @@ same statement, until you no longer need binded parameters.
 
 The simplest way to bind parameters is:
 
-    stmt.BindParams(data.Id, data.Tax)
+    stmt.Bind(data.Id, data.Tax)
 
 but you can't use it in our example, becouse parameters binded this way can't
 be changed by *getData* function. You may modify bind like this:
 
-    stmt.BindParams(&data.Id, &data.Tax)
+    stmt.Bind(&data.Id, &data.Tax)
 
 and now it should work properly. But in our example there is better solution:
 
-    stmt.BindParams(data)
+    stmt.Bind(data)
 
-If *BindParams* method has one parameter, and this parameter is a struct or
+If *Bind* method has one parameter, and this parameter is a struct or
 a pointer to the struct, it treats all fields of this struct as parameters and
 bind them,
 
 This is improved part of previous example:
 
     data = new(Data)
-    stmt.BindParams(data)
+    stmt.Bind(data)
 
     for {
         err := getData(data)
@@ -308,7 +313,7 @@ This is improved part of previous example:
 
     var url string
 
-    ins.BindParams(&url, []byte(nil)) // []byte(nil) for properly type binding
+    ins.Bind(&url, []byte(nil)) // []byte(nil) for properly type binding
 
     for  {
         // Read URL from stdin
@@ -447,7 +452,7 @@ This is improved part of previous example:
     checkError(err)
 
     // But it doesn't matter
-    sel.Raw.BindParams(2)
+    sel.Raw.Bind(2)
     rows, res, err = sel.Exec()
     checkError(err)
 

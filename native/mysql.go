@@ -426,7 +426,7 @@ func (my *Conn) Prepare(sql string) (mysql.Stmt, error) {
 // can be value, pointer to value or pointer to pointer to value.
 // Values may be of the folowind types: intXX, uintXX, floatXX, bool, []byte,
 // Blob, string, Time, Date, Time, Timestamp, Raw.
-func (stmt *Stmt) BindParams(params ...interface{}) {
+func (stmt *Stmt) Bind(params ...interface{}) {
 	stmt.rebind = true
 
 	// Check for struct binding
@@ -507,7 +507,7 @@ func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
 
 	// Bind parameters if any
 	if len(params) != 0 {
-		stmt.BindParams(params...)
+		stmt.Bind(params...)
 	} else if len(stmt.params) != stmt.param_count {
 		panic(BIND_COUNT_ERROR)
 	}

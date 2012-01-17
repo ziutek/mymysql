@@ -60,7 +60,7 @@ func TestAutoConnectReconnect(t *testing.T) {
 	checkErr(t, err, nil)
 
 	// Bind insert parameters
-	ins.Raw.BindParams(1, "jeden")
+	ins.Raw.Bind(1, "jeden")
 	// Insert into table
 	_, _, err = ins.Exec()
 	checkErr(t, err, nil)
@@ -70,7 +70,7 @@ func TestAutoConnectReconnect(t *testing.T) {
 	checkErr(t, err, nil)
 
 	// Bind insert parameters
-	ins.Raw.BindParams(2, "dwa")
+	ins.Raw.Bind(2, "dwa")
 	// Insert into table
 	_, _, err = ins.Exec()
 	checkErr(t, err, nil)

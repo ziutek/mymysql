@@ -67,7 +67,7 @@ func main() {
 	var url string
 
 	fmt.Print("Bind insert parameters... ")
-	ins.BindParams(&url, []byte(nil))
+	ins.Bind(&url, []byte(nil))
 	printOK()
 
 	fmt.Println()

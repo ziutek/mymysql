@@ -57,7 +57,7 @@ func main() {
 	checkErr(err)
 
 	// Bind insert parameters
-	ins.Raw.BindParams(1, "jeden")
+	ins.Raw.Bind(1, "jeden")
 	// Insert into table
 	_, _, err = ins.Exec()
 	checkErr(err)
@@ -67,7 +67,7 @@ func main() {
 	checkErr(err)
 
 	// Bind insert parameters
-	ins.Raw.BindParams(2, "dwa")
+	ins.Raw.Bind(2, "dwa")
 	// Insert into table
 	_, _, err = ins.Exec()
 	checkErr(err)

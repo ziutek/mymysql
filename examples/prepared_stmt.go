@@ -69,7 +69,7 @@ func main() {
 	}{}
 
 	fmt.Print("Bind insert parameters... ")
-	ins.BindParams(&params)
+	ins.Bind(&params)
 	printOK()
 
 	fmt.Print("Insert into A... ")

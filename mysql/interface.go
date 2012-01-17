@@ -35,7 +35,7 @@ type Transaction interface {
 }
 
 type Stmt interface {
-	BindParams(params ...interface{})
+	Bind(params ...interface{})
 	ResetParams()
 	Run(params ...interface{}) (Result, error)
 	Delete() error

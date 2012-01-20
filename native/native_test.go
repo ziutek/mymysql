@@ -821,6 +821,78 @@ func TestSendLongData(t *testing.T) {
 	myClose(t)
 }
 
+func TestNull(t *testing.T) {
+	myConnect(t, true, 0)
+	query("drop table if exists N")
+	checkResult(t,
+		query("create table N (i int not null, n int)"),
+		cmdOK(0, false, true),
+	)
+	ins, err := my.Prepare("insert N values (?, ?)")
+	checkErr(t, err, nil)
+
+	var (
+		p   struct{ I, N *int }
+		rre RowsResErr
+	)
+	ins.Bind(&p)
+
+	p.I = new(int)
+	p.N = new(int)
+
+	*p.I = 0
+	*p.N = 1
+	rre.res, rre.err = ins.Run()
+	checkResult(t, &rre, cmdOK(1, true, false))
+	*p.I = 1
+	p.N = nil
+	rre.res, rre.err = ins.Run()
+	checkResult(t, &rre, cmdOK(1, true, false))
+
+	checkResult(t, query("insert N values (2, 1)"), cmdOK(1, false, true))
+	checkResult(t, query("insert N values (3, NULL)"), cmdOK(1, false, true))
+
+	rows, res, err := my.Query("select * from N")
+	checkErr(t, err, nil)
+	if len(rows) != 4 {
+		t.Fatal("str: len(rows) != 4")
+	}
+	i := res.Map("i")
+	n := res.Map("n")
+	for k, row := range rows {
+		switch {
+		case row[i] == nil || row.Int(i) != k:
+		case k % 2 == 1 && row[n] != nil:
+		case k % 2 == 0 && (row[n] == nil || row.Int(n) != 1):
+		default:
+			continue
+		}
+		t.Fatalf("str row: %d = (%s, %s)", k, row[i], row[n])
+	}
+
+	sel, err := my.Prepare("select * from N")
+	checkErr(t, err, nil)
+	rows, res, err = sel.Exec()
+	checkErr(t, err, nil)
+	if len(rows) != 4 {
+		t.Fatal("bin: len(rows) != 4")
+	}
+	i = res.Map("i")
+	n = res.Map("n")
+	for k, row := range rows {
+		switch {
+		case row[i] == nil || row.Int(i) != k:
+		case k % 2 == 1 && row[n] != nil:
+		case k % 2 == 0 && (row[n] == nil || row.Int(n) != 1):
+		default:
+			continue
+		}
+		t.Fatalf("bin row: %d = (%v, %v)", k, row[i], row[n])
+	}
+
+	checkResult(t, query("drop table N"), cmdOK(0, false, true))
+}
+
 func TestMultipleResults(t *testing.T) {
 	myConnect(t, true, 0)
 	query("drop table M") // Drop test table if exists

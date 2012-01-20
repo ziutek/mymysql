@@ -485,7 +485,7 @@ All three above examples return value received in row 0 column 1. If you prefer
 to use the column names, you can use *res.Map* which maps result field names to
 corresponding indexes:
 
-    name := res.Map["name"]
+    name := res.Map("name")
     fmt.Print(rows[0].Str(name))
 
 In case of prepared statements, the type mapping is slightly more complicated.
@@ -498,7 +498,7 @@ mapped for MySQL protocol types as below:
        int16, uint16  -->  MYSQL_TYPE_SHORT
        int32, uint32  -->  MYSQL_TYPE_LONG
        int64, uint64  -->  MYSQL_TYPE_LONGLONG
-           int, uint  -->  integer protocol type which match size of int
+           int, uint  -->  protocol integer type which match size of int
                 bool  -->  MYSQL_TYPE_TINY
              float32  -->  MYSQL_TYPE_FLOAT
              float64  -->  MYSQL_TYPE_DOUBLE
@@ -541,8 +541,8 @@ below:
 This package can send and receive MySQL data packets that are biger than 16 MB.
 This means that you can receive response rows biger than 16 MB and can execute
 prepared statements with parameter data biger than 16 MB without using
-SendLongData method. If you want to use this feature you must set *MaxPktSize*
-field in database handler to appropriate value before connect, and change
+SendLongData method. If you want to use this feature you need to change default
+mymysql settings using *Conn.SetMaxPktSize* method and change
 *max_allowed_packet* value in MySQL server configuration.
 
 ## Thread safe engine
@@ -558,13 +558,11 @@ blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
 data to the server,  until all results and all rows  will be readed from
 the connection in first thread.
 
-Multithreading was tested on my production web application. It uses *http*
-package to serve dynamic web pages. *http* package creates one gorutine for any
-HTTP connection. Any GET request during connection causes 4-8 select queries to
-MySQL database (some of them are prepared statements). Database contains ca.
-30 tables (three largest have 82k, 73k and 3k rows). There is one persistant
-connection to MySQL server which is shared by all gorutines. Application is
-running on dual-core machine with GOMAXPROCS=2. It was tested using *siege*:
+In all my web applications I use *autorecon* interface with *thrsafe* engine.
+For any new connection, one gorutine is created. There is one persistant
+connection to MySQL server shared by all gorutines. Applications are usually
+running on dual-core machines with GOMAXPROCS=2. I use *siege* to test any
+application befor put it into production. There is example output from siege:
 
     # siege my.httpserver.pl -c25 -d0 -t 30s
     ** SIEGE 2.69

@@ -3,8 +3,8 @@ package godrv
 
 import (
 	"errors"
-	"exp/sql"
-	"exp/sql/driver"
+	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"github.com/ziutek/mymysql/mysql"
 	"github.com/ziutek/mymysql/native"

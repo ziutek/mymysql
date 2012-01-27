@@ -1,7 +1,7 @@
 package godrv
 
 import (
-	"exp/sql"
+	"database/sql"
 	"testing"
 )
 

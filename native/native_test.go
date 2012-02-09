@@ -785,9 +785,20 @@ func TestSendLongData(t *testing.T) {
 		t.Fatal("Bad result")
 	}
 
+	file, err := ioutil.TempFile("", "mymysql_test-")
+	checkErr(t, err, nil)
+	filename := file.Name()
+	defer os.Remove(filename)
+
+	buf := make([]byte, 1024)
+	for i := 0; i < 2048; i++ {
+		_, err := file.Write(buf)
+		checkErr(t, err, nil)
+	}
+	checkErr(t, file.Close(), nil)
+
 	// Send long data from io.Reader twice
-	filename := "_test/github.com/ziutek/mymysql/native.a"
-	file, err := os.Open(filename)
+	file, err = os.Open(filename)
 	checkErr(t, err, nil)
 	checkErr(t, ins.SendLongData(1, file, 128*1024), nil)
 	checkErr(t, file.Close(), nil)
@@ -862,8 +873,8 @@ func TestNull(t *testing.T) {
 	for k, row := range rows {
 		switch {
 		case row[i] == nil || row.Int(i) != k:
-		case k % 2 == 1 && row[n] != nil:
-		case k % 2 == 0 && (row[n] == nil || row.Int(n) != 1):
+		case k%2 == 1 && row[n] != nil:
+		case k%2 == 0 && (row[n] == nil || row.Int(n) != 1):
 		default:
 			continue
 		}
@@ -882,8 +893,8 @@ func TestNull(t *testing.T) {
 	for k, row := range rows {
 		switch {
 		case row[i] == nil || row.Int(i) != k:
-		case k % 2 == 1 && row[n] != nil:
-		case k % 2 == 0 && (row[n] == nil || row.Int(n) != 1):
+		case k%2 == 1 && row[n] != nil:
+		case k%2 == 0 && (row[n] == nil || row.Int(n) != 1):
 		default:
 			continue
 		}

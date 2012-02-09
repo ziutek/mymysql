@@ -2,9 +2,9 @@
 package godrv
 
 import (
-	"errors"
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"github.com/ziutek/mymysql/mysql"
 	"github.com/ziutek/mymysql/native"
@@ -164,16 +164,21 @@ func (r rowsRes) Next(dest []interface{}) error {
 	return nil
 }
 
-type drv struct {
+type Driver struct {
 	// Defaults
 	proto, laddr, raddr, user, passwd, db string
 }
 
-// Establish a connection using URI of following syntax:
+// Open new connection. The uri need to have the following syntax:
+//
+//   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
+//
+// where protocol spercific part may be empty (this means connection to
+// local server using default protocol). Currently possible forms:
 //   DBNAME/USER/PASSWD
 //   unix:SOCKPATH*DBNAME/USER/PASSWD
 //   tcp:ADDR*DBNAME/USER/PASSWD
-func (d *drv) Open(uri string) (driver.Conn, error) {
+func (d *Driver) Open(uri string) (driver.Conn, error) {
 	pd := strings.SplitN(uri, "*", 2)
 	if len(pd) == 2 {
 		// Parse protocol part of URI
@@ -204,5 +209,5 @@ func (d *drv) Open(uri string) (driver.Conn, error) {
 }
 
 func init() {
-	sql.Register("mymysql", &drv{proto: "tcp", raddr: "127.0.0.1:3306"})
+	sql.Register("mymysql", &Driver{proto: "tcp", raddr: "127.0.0.1:3306"})
 }

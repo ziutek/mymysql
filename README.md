@@ -109,28 +109,14 @@ database. This interface does not appear to be useful with local transactions.
 
 ## Installing
 
-### Using *goinstall* - preferred way:
-
 To install all subpackages of *mymysql* you need to goinstal three of them:
 
-     $ goinstall github.com/ziutek/mymysql/thrsafe
-     $ goinstall github.com/ziutek/mymysql/autorc
-     $ goinstall github.com/ziutek/mymysql/godrv
+     $ go get github.com/ziutek/mymysql/thrsafe
+     $ go get github.com/ziutek/mymysql/autorc
+     $ go get github.com/ziutek/mymysql/godrv
 
-*goinstall* automagicly select proper version of *mymysql* for your Go release.
-After this command *mymysql* is ready to use. You may find source in
-
-    $GOROOT/src/pkg/github.com/ziutek/mymysql
-
-directory.
-
-You can use `goinstall -u -a` for update all installed packages.
-
-### Using *git clone* command:
-
-    $ git clone git://github.com/ziutek/mymysql.git
-    $ cd mymysql
-    $ make install
+*go get* automagicly select proper version of *mymysql* for your Go release.
+After this command *mymysql* is ready to use.
 
 ## Testing
 
@@ -146,8 +132,8 @@ The default MySQL test server address is *127.0.0.1:3306*.
 
 Next run tests:
 
-    $ cd $GOROOT/src/pkg/github.com/ziutek/mymysql
-    $ make test
+    $ cd $GOPATH/src/github.com/ziutek/mymysql
+    $ ./all.bash test
 
 ## Examples
 
@@ -454,7 +440,47 @@ This is improved part of previous example:
     // But it doesn't matter
     sel.Raw.Bind(2)
     rows, res, err = sel.Exec()
-    checkError(err)
+	checkError(err)
+
+### Example 7 - use database/sql with mymysql driver
+
+	// Open new connection. The uri need to have the following syntax:
+	//
+    //   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
+	//
+	// where protocol spercific part may be empty (this means connection to
+	// local server using default protocol). Currently possible forms:
+	//   DBNAME/USER/PASSWD
+	//   unix:SOCKPATH*DBNAME/USER/PASSWD
+	//   tcp:ADDR*DBNAME/USER/PASSWD
+	
+	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
+	checkErr(err)
+
+	// For other information about database/sql see its own documentation.
+
+	ins, err := db.Prepare("INSERT my_table SET txt=?")
+	checkErr(err)
+
+	res, err := ins.Exec("some text")
+	checkErr(err)
+
+	id, err := res.LastInsertId()
+	checkErr(err)
+
+	checkErr(ins.Close(ins))
+
+	rows, err := db.Query("SELECT * FROM go")
+	checkErr(err)
+
+	for rows.Next() {
+		var id int
+		var txt string
+		checkErr(rows.Scan(&id, &txt))
+		// Do something with id and txt
+	}
+
+	checkErr(db.Close())
 
 More examples are in *examples* directory.
 

@@ -2,6 +2,7 @@ package native
 
 import (
 	"bufio"
+	"errors"
 	"io"
 )
 
@@ -110,7 +111,7 @@ func (pw *pktWriter) Write(buf []byte) (num int, err error) {
 	for len(buf) != 0 {
 		if pw.remain == 0 {
 			if pw.to_write == 0 {
-				err = &io.Error{"too many data for write as packet"}
+				err = errors.New("too many data for write as packet")
 				return
 			}
 			if pw.to_write >= 0xffffff {

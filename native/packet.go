@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"errors"
 )
 
 type pktReader struct {

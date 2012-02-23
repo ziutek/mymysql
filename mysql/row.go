@@ -78,22 +78,22 @@ func (tr Row) IntErr(nn int) (val int, err error) {
 		if data >= int64(_MIN_INT) && data <= int64(_MAX_INT) {
 			val = int(data)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
 		}
 	case uint32:
 		if data <= uint32(_MAX_INT) {
 			val = int(data)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
 		}
 	case uint64:
 		if data <= uint64(_MAX_INT) {
 			val = int(data)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
 		}
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
 	}
 	return
 }
@@ -138,17 +138,17 @@ func (tr Row) UintErr(nn int) (val uint, err error) {
 		if data <= uint64(_MAX_UINT) {
 			val = uint(data)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
 		}
 	case int8, int16, int32, int64:
 		v := reflect.ValueOf(data).Int()
 		if v >= 0 && v <= int64(_MAX_UINT) {
 			val = uint(v)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
 		}
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
 	}
 	return
 }
@@ -329,7 +329,7 @@ func (tr Row) BoolErr(nn int) (val bool, err error) {
 	case uint64:
 		val = (data != 0)
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
 	}
 	return
 }
@@ -361,13 +361,13 @@ func (tr Row) Int64Err(nn int) (val int64, err error) {
 	case uint64, uint32, uint16, uint8:
 		u := reflect.ValueOf(data).Uint()
 		if u > math.MaxInt64 {
-			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
 		}
 		val = int64(u)
 	case []byte:
 		val, err = strconv.ParseInt(string(data), 10, 64)
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
 	}
 	return
 }
@@ -401,13 +401,13 @@ func (tr Row) Uint64Err(nn int) (val uint64, err error) {
 	case int64, int32, int16, int8:
 		i := reflect.ValueOf(data).Int()
 		if i < 0 {
-			err = &strconv.NumError{fn, fmt.Sprint(data), os.ERANGE}
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
 		}
 		val = uint64(i)
 	case []byte:
 		val, err = strconv.ParseUint(string(data), 10, 64)
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.EINVAL}
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
 	}
 	return
 }

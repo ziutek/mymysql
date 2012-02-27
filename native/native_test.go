@@ -324,6 +324,9 @@ func TestPrepared(t *testing.T) {
 			5, "Pąk róży", parsed,
 		},
 		mysql.Row{
+			-3, "基础体温", parsed,
+		},
+		mysql.Row{
 			11, "Zero UTC datetime", time.Unix(0, 0),
 		},
 		mysql.Row{

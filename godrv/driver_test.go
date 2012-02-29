@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	Default.Register("set names utf8")
+	Register("set names utf8")
 }
 
 func checkErr(t *testing.T, err error) {

@@ -173,12 +173,6 @@ type Driver struct {
 	initCmds []string
 }
 
-// Registers initialisation commands.
-// This is workaround, see http://codereview.appspot.com/5706047
-func (d *Driver) Register(query string) {
-	d.initCmds = append(d.initCmds, query)
-}
-
 // Open new connection. The uri need to have the following syntax:
 //
 //   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
@@ -222,8 +216,14 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 }
 
 // Driver automatically registered in database/sql
-var Default = Driver{proto: "tcp", raddr: "127.0.0.1:3306"}
+var d = Driver{proto: "tcp", raddr: "127.0.0.1:3306"}
+
+// Registers initialisation commands.
+// This is workaround, see http://codereview.appspot.com/5706047
+func Register(query string) {
+	d.initCmds = append(d.initCmds, query)
+}
 
 func init() {
-	sql.Register("mymysql", &Default)
+	sql.Register("mymysql", &d)
 }

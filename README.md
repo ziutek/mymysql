@@ -111,9 +111,9 @@ database. This interface does not appear to be useful with local transactions.
 
 To install all subpackages of *mymysql* you need to goinstal three of them:
 
-     $ go get github.com/ziutek/mymysql/thrsafe
-     $ go get github.com/ziutek/mymysql/autorc
-     $ go get github.com/ziutek/mymysql/godrv
+     $ go get github.com/mikespook/mymysql/thrsafe
+     $ go get github.com/mikespook/mymysql/autorc
+     $ go get github.com/mikespook/mymysql/godrv
 
 *go get* automagicly select proper version of *mymysql* for your Go release.
 After this command *mymysql* is ready to use.
@@ -132,7 +132,7 @@ The default MySQL test server address is *127.0.0.1:3306*.
 
 Next run tests:
 
-    $ cd $GOPATH/src/github.com/ziutek/mymysql
+    $ cd $GOPATH/src/github.com/mikespook/mymysql
     $ ./all.bash test
 
 ## Examples
@@ -143,9 +143,9 @@ Next run tests:
 
     import (
         "os"
-        "github.com/ziutek/mymysql/mysql"
-        _ "github.com/ziutek/mymysql/native" // Native engine
-        // _ "github.com/ziutek/mymysql/thrsafe" // Thread safe engine
+        "github.com/mikespook/mymysql/mysql"
+        _ "github.com/mikespook/mymysql/native" // Native engine
+        // _ "github.com/mikespook/mymysql/thrsafe" // Thread safe engine
     )
 
     func main() {
@@ -363,8 +363,8 @@ This is improved part of previous example:
 ### Example 5 - transactions
 
     import (
-        "github.com/ziutek/mymysql/mysql"
-        _ "github.com/ziutek/mymysql/thrsafe" // for thread safe transactions
+        "github.com/mikespook/mymysql/mysql"
+        _ "github.com/mikespook/mymysql/thrsafe" // for thread safe transactions
 
     // [...]
 
@@ -407,8 +407,8 @@ This is improved part of previous example:
 ### Example 6 - autoreconn interface
 
     import (
-        "github.com/ziutek/mymysql/autorc"
-        _ "github.com/ziutek/mymysql/thrsafe" // You may use native engine to
+        "github.com/mikespook/mymysql/autorc"
+        _ "github.com/mikespook/mymysql/thrsafe" // You may use native engine to
     )
 
     // [...]
@@ -440,47 +440,47 @@ This is improved part of previous example:
     // But it doesn't matter
     sel.Raw.Bind(2)
     rows, res, err = sel.Exec()
-	checkError(err)
+    checkError(err)
 
 ### Example 7 - use database/sql with mymysql driver
 
-	// Open new connection. The uri need to have the following syntax:
-	//
-    //   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
-	//
-	// where protocol spercific part may be empty (this means connection to
-	// local server using default protocol). Currently possible forms:
-	//   DBNAME/USER/PASSWD
-	//   unix:SOCKPATH*DBNAME/USER/PASSWD
-	//   tcp:ADDR*DBNAME/USER/PASSWD
-	
-	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
-	checkErr(err)
+    // Open new connection. The uri need to have the following syntax:
+    //
+    //   [PROTOCOL_SPECFIIC*]DBNAME[+CHARSET]/USER/PASSWD
+    //
+    // where protocol spercific part may be empty (this means connection to
+    // local server using default protocol). Currently possible forms:
+    //   DBNAME+CHARSET/USER/PASSWD
+    //   unix:SOCKPATH*DBNAME+CHARSET/USER/PASSWD
+    //   tcp:ADDR*DBNAME+CHARSET/USER/PASSWD
+    
+    db, err := sql.Open("mymysql", "test+utf8/testuser/TestPasswd9")
+    checkErr(err)
 
-	// For other information about database/sql see its own documentation.
+    // For other information about database/sql see its own documentation.
 
-	ins, err := db.Prepare("INSERT my_table SET txt=?")
-	checkErr(err)
+    ins, err := db.Prepare("INSERT my_table SET txt=?")
+    checkErr(err)
 
-	res, err := ins.Exec("some text")
-	checkErr(err)
+    res, err := ins.Exec("some text")
+    checkErr(err)
 
-	id, err := res.LastInsertId()
-	checkErr(err)
+    id, err := res.LastInsertId()
+    checkErr(err)
 
-	checkErr(ins.Close(ins))
+    checkErr(ins.Close(ins))
 
-	rows, err := db.Query("SELECT * FROM go")
-	checkErr(err)
+    rows, err := db.Query("SELECT * FROM go")
+    checkErr(err)
 
-	for rows.Next() {
-		var id int
-		var txt string
-		checkErr(rows.Scan(&id, &txt))
-		// Do something with id and txt
-	}
+    for rows.Next() {
+    	var id int
+    	var txt string
+    	checkErr(rows.Scan(&id, &txt))
+    	// Do something with id and txt
+    }
 
-	checkErr(db.Close())
+    checkErr(db.Close())
 
 More examples are in *examples* directory.
 
@@ -601,7 +601,7 @@ application befor put it into production. There is example output from siege:
     Data transferred:               3.88 MB
     Response time:                  0.22 secs
     Transaction rate:             107.68 trans/sec
-    Throughput:	                    0.13 MB/sec
+    Throughput:                        0.13 MB/sec
     Concurrency:                   23.43
     Successful transactions:        3218
     Failed transactions:               0
@@ -622,8 +622,8 @@ Workaround: change password using result from MYSQL >= 4.1 *PASSWORD* function
 
 # Documentation
 
-[mysql](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/mysql)
-[native](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/native)
-[thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/thrsafe)
-[autorc](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/autorc)
-[godrv](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/godrv)
+[mysql](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/mysql)
+[native](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/native)
+[thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/thrsafe)
+[autorc](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/autorc)
+[godrv](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/godrv)

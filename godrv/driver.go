@@ -173,11 +173,11 @@ type Driver struct {
 
 // Open new connection. The uri need to have the following syntax:
 //
-//   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD[/CHARSET]
+//   [PROTOCOL_SPECFIIC*]DBNAME[+CHARSET]/USER/PASSWD
 //
 // where protocol spercific part may be empty (this means connection to
 // local server using default protocol). Currently possible forms:
-//   DBNAME/USER/PASSWD
+//   DBNAME+utf8/USER/PASSWD
 //   unix:SOCKPATH*DBNAME/USER/PASSWD
 //   tcp:ADDR*DBNAME/USER/PASSWD
 func (d *Driver) Open(uri string) (driver.Conn, error) {
@@ -194,20 +194,25 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 		pd = pd[1:]
 	}
 	// Parse database part of URI
-	dup := strings.SplitN(pd[0], "/", 4)
-        l := len(dup)
+	dup := strings.SplitN(pd[0], "/", 3)
         // if len(dup) is greater than 3, dup[3] means charset, dup[4:] will be discarded.
-        if l < 3 {
+        if len(dup) != 3 {
 		return nil, errors.New("Wrong database part of URI")
 	}
-	d.db = dup[0]
+        dc := strings.SplitN(dup[0], "+", 2)
+        l := len(dc)
+        if l == 2 {
+            d.db = dc[0]
+        } else {
+            d.db = dup[0]
+        }
 	d.user = dup[1]
 	d.passwd = dup[2]
 
 	// Establish the connection
 	c := conn{mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)}
-	if l >= 4 {
-            c.my.Register("SET NAMES " + dup[3])
+	if l == 2 {
+            c.my.Register("SET NAMES " + dc[1])
         }
         if err := c.my.Connect(); err != nil {
 		return nil, err

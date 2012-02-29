@@ -20,7 +20,7 @@ func checkErrId(t *testing.T, err error, rid, eid int64) {
 func TestAll(t *testing.T) {
 	data := []string{"jeden", "dwa", "中文"}
 
-	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9/utf8")
+	db, err := sql.Open("mymysql", "test+utf8/testuser/TestPasswd9")
 
 	db.Exec("DROP TABLE go")
 

@@ -206,12 +206,12 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 
 	// Establish the connection
 	c := conn{mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)}
-	if err := c.my.Connect(); err != nil {
-		return nil, err
-	}
-        if l >= 4 {
+	if l >= 4 {
             c.my.Register("SET NAMES " + dup[3])
         }
+        if err := c.my.Connect(); err != nil {
+		return nil, err
+	}
 	return &c, nil
 }
 

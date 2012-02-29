@@ -18,9 +18,9 @@ func checkErrId(t *testing.T, err error, rid, eid int64) {
 }
 
 func TestAll(t *testing.T) {
-	data := []string{"jeden", "dwa"}
+	data := []string{"jeden", "dwa", "中文"}
 
-	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
+	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9/utf8")
 
 	db.Exec("DROP TABLE go")
 
@@ -28,7 +28,7 @@ func TestAll(t *testing.T) {
 		`CREATE TABLE go (
 			id  INT PRIMARY KEY AUTO_INCREMENT,
 			txt TEXT
-		) ENGINE=InnoDB`)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8`)
 	checkErr(t, err)
 
 	ins, err := db.Prepare("INSERT go SET txt=?")
@@ -47,6 +47,11 @@ func TestAll(t *testing.T) {
 	id, err = res.LastInsertId()
 	checkErrId(t, err, id, 2)
 
+	res, err = ins.Exec(data[2])
+	checkErr(t, err)
+	id, err = res.LastInsertId()
+	checkErrId(t, err, id, 3)
+
 	checkErr(t, tx.Commit())
 
 	tx, err = db.Begin()
@@ -55,7 +60,7 @@ func TestAll(t *testing.T) {
 	res, err = tx.Exec("INSERT go SET txt=?", "trzy")
 	checkErr(t, err)
 	id, err = res.LastInsertId()
-	checkErrId(t, err, id, 3)
+	checkErrId(t, err, id, 4)
 
 	checkErr(t, tx.Rollback())
 

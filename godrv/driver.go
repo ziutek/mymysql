@@ -173,7 +173,7 @@ type Driver struct {
 
 // Open new connection. The uri need to have the following syntax:
 //
-//   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
+//   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD[/CHARSET]
 //
 // where protocol spercific part may be empty (this means connection to
 // local server using default protocol). Currently possible forms:
@@ -194,8 +194,10 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 		pd = pd[1:]
 	}
 	// Parse database part of URI
-	dup := strings.SplitN(pd[0], "/", 3)
-	if len(dup) != 3 {
+	dup := strings.SplitN(pd[0], "/", 4)
+        l := len(dup)
+        // if len(dup) is greater than 3, dup[3] means charset, dup[4:] will be discarded.
+        if l < 3 {
 		return nil, errors.New("Wrong database part of URI")
 	}
 	d.db = dup[0]
@@ -207,6 +209,9 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 	if err := c.my.Connect(); err != nil {
 		return nil, err
 	}
+        if l >= 4 {
+            c.my.Register("SET NAMES " + dup[3])
+        }
 	return &c, nil
 }
 

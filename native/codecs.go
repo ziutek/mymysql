@@ -3,7 +3,7 @@ package native
 import (
 	"bytes"
 	"crypto/sha1"
-	"mymysql/mysql"
+	"github.com/mikespook/mymysql/mysql"
 	"io"
 	"time"
 )

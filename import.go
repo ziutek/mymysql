@@ -1,9 +1,9 @@
 package mymysql
 
 import(
-    _ "mymysql/mysql"
-    _ "mymysql/native"
-    _ "mymysql/thrsafe"
-    _ "mymysql/godrv"
-    _ "mymysql/autorc"
+    _ "github.com/mikespook/mymysql/mysql"
+    _ "github.com/mikespook/mymysql/native"
+    _ "github.com/mikespook/mymysql/thrsafe"
+    _ "github.com/mikespook/mymysql/godrv"
+    _ "github.com/mikespook/mymysql/autorc"
 )

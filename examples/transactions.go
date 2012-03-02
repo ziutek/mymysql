@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"mymysql/mysql"
-	_ "mymysql/thrsafe"
-	//_ "mymysql/native"
+	"github.com/mikespook/mymysql/mysql"
+	_ "github.com/mikespook/mymysql/thrsafe"
+	//_ "github.com/mikespook/mymysql/native"
 )
 
 func printOK() {

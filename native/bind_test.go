@@ -2,7 +2,7 @@ package native
 
 import (
 	"bytes"
-	"mymysql/mysql"
+	"github.com/mikespook/mymysql/mysql"
 	"math"
 	"reflect"
 	"testing"

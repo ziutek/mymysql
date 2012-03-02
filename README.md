@@ -111,9 +111,7 @@ database. This interface does not appear to be useful with local transactions.
 
 To install all subpackages of *mymysql* you need to goinstal three of them:
 
-     $ go get github.com/mikespook/mymysql/thrsafe
-     $ go get github.com/mikespook/mymysql/autorc
-     $ go get github.com/mikespook/mymysql/godrv
+     $ go get github.com/mikespook/mymysql
 
 *go get* automagicly select proper version of *mymysql* for your Go release.
 After this command *mymysql* is ready to use.

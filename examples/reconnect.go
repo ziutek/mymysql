@@ -4,8 +4,8 @@ import (
 	"os"
 	"fmt"
 	"time"
-	"mymysql/autorc"
-	_ "mymysql/thrsafe"
+	"github.com/mikespook/mymysql/autorc"
+	_ "github.com/mikespook/mymysql/thrsafe"
 )
 
 func main() {

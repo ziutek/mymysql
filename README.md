@@ -1,13 +1,18 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.2 (2012-01-18)
+## MyMySQL v0.4.3 (2012-03-03)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.3
+
+1. Fixed issue with panic when server returns MYSQL_TYPE_NEWDECIMAL.
+2. Decimals are returned as float64 (previous they were returned as []byte).
 
 #### v0.4.2
 
@@ -551,6 +556,7 @@ below:
                          UNSIGNED BIGINT  -->  uint64
                                    FLOAT  -->  float32
                                   DOUBLE  -->  float64
+                                 DECIMAL  -->  float64
                      TIMESTAMP, DATETIME  -->  time.Time
                                     DATE  -->  mysql.Date
                                     TIME  -->  time.Duration
@@ -558,7 +564,7 @@ below:
         CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte
      TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
     BLOB, TINYBLOB, MEDIUMBLOB, LONGBLOB  -->  []byte
-                            DECIMAL, BIT  -->  []byte
+                                     BIT  -->  []byte
                                SET, ENUM  -->  []byte
                                     NULL  -->  nil
 

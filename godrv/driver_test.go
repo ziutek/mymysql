@@ -25,6 +25,8 @@ func TestAll(t *testing.T) {
 	data := []string{"jeden", "dwa"}
 
 	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
+	checkErr(t, err)
+	defer db.Close()
 
 	db.Exec("DROP TABLE go")
 
@@ -75,5 +77,12 @@ func TestAll(t *testing.T) {
 		if data[id-1] != txt {
 			t.Fatalf("txt[%d] == '%s' != '%s'", id, txt, data[id-1])
 		}
+	}
+
+	sql := "select sum(41) as test"
+	rows, err = db.Query(sql)
+	checkErr(t, err)
+	if !rows.Next() {
+		t.Fatal(sql, " : len(rows) == 0")
 	}
 }

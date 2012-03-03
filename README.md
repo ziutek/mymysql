@@ -533,7 +533,6 @@ mapped for MySQL protocol types as below:
                 bool  -->  MYSQL_TYPE_TINY
              float32  -->  MYSQL_TYPE_FLOAT
              float64  -->  MYSQL_TYPE_DOUBLE
-                
            time.Time  -->  MYSQL_TYPE_DATETIME
      mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
           mysql.Date  -->  MYSQL_TYPE_DATE

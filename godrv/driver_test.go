@@ -80,9 +80,17 @@ func TestAll(t *testing.T) {
 	}
 
 	sql := "select sum(41) as test"
-	rows, err = db.Query(sql)
-	checkErr(t, err)
-	if !rows.Next() {
-		t.Fatal(sql, " : len(rows) == 0")
+	row := db.QueryRow(sql)
+	var vi int64
+	checkErr(t, row.Scan(&vi))
+	if vi != 41 {
+		t.Fatal(sql)
+	}
+	sql = "select sum(4123232323232) as test"
+	row = db.QueryRow(sql)
+	var vf float64
+	checkErr(t, row.Scan(&vf))
+	if vf != 4123232323232 {
+		t.Fatal(sql)
 	}
 }

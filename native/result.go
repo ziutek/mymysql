@@ -4,6 +4,7 @@ import (
 	"github.com/mikespook/mymysql/mysql"
 	"log"
 	"math"
+	"strconv"
 )
 
 type Result struct {
@@ -299,7 +300,15 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 		case MYSQL_TYPE_DOUBLE:
 			row[ii] = math.Float64frombits(readU64(pr))
 
-		case MYSQL_TYPE_STRING, MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_DECIMAL,
+		case MYSQL_TYPE_DECIMAL, MYSQL_TYPE_NEWDECIMAL:
+			dec := string(readBin(pr))
+			var err error
+			row[ii], err = strconv.ParseFloat(dec, 64)
+			if err != nil {
+				panic("MySQL server returned wrong decimal value: " + dec)
+			}
+
+		case MYSQL_TYPE_STRING, MYSQL_TYPE_VAR_STRING,
 			MYSQL_TYPE_VARCHAR, MYSQL_TYPE_BIT, MYSQL_TYPE_BLOB,
 			MYSQL_TYPE_TINY_BLOB, MYSQL_TYPE_MEDIUM_BLOB,
 			MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET, MYSQL_TYPE_ENUM:
@@ -314,8 +323,7 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 		case MYSQL_TYPE_TIME:
 			row[ii] = readDuration(pr)
 
-		// TODO:
-		// MYSQL_TYPE_NEWDATE, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_GEOMETRY      
+		// TODO: MYSQL_TYPE_NEWDATE, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_GEOMETRY
 
 		default:
 			panic(UNK_MYSQL_TYPE_ERROR)

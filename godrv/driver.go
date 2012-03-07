@@ -169,6 +169,8 @@ func (r rowsRes) Next(dest []driver.Value) error {
 type Driver struct {
 	// Defaults
 	proto, laddr, raddr, user, passwd, db string
+
+	initCmds []string
 }
 
 // Open new connection. The uri need to have the following syntax:
@@ -212,14 +214,26 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 	// Establish the connection
 	c := conn{mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)}
 	if l == 2 {
-            c.my.Register("SET NAMES " + dc[1])
+            Register("SET NAMES " + dc[1])
         }
-        if err := c.my.Connect(); err != nil {
+	for _, q := range d.initCmds {
+		c.my.Register(q) // Register initialisation commands
+	}
+	if err := c.my.Connect(); err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
+// Driver automatically registered in database/sql
+var d = Driver{proto: "tcp", raddr: "127.0.0.1:3306"}
+
+// Registers initialisation commands.
+// This is workaround, see http://codereview.appspot.com/5706047
+func Register(query string) {
+	d.initCmds = append(d.initCmds, query)
+}
+
 func init() {
-	sql.Register("mymysql", &Driver{proto: "tcp", raddr: "127.0.0.1:3306"})
+	sql.Register("mymysql", &d)
 }

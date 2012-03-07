@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+func init() {
+	Register("set names utf8")
+}
+
 func checkErr(t *testing.T, err error) {
 	if err != nil {
 		t.Fatalf("Error: %v", err)
@@ -21,6 +25,8 @@ func TestAll(t *testing.T) {
 	data := []string{"jeden", "dwa", "中文"}
 
 	db, err := sql.Open("mymysql", "test+utf8/testuser/TestPasswd9")
+	checkErr(t, err)
+	defer db.Close()
 
 	db.Exec("DROP TABLE go")
 
@@ -76,5 +82,20 @@ func TestAll(t *testing.T) {
 		if data[id-1] != txt {
 			t.Fatalf("txt[%d] == '%s' != '%s'", id, txt, data[id-1])
 		}
+	}
+
+	sql := "select sum(41) as test"
+	row := db.QueryRow(sql)
+	var vi int64
+	checkErr(t, row.Scan(&vi))
+	if vi != 41 {
+		t.Fatal(sql)
+	}
+	sql = "select sum(4123232323232) as test"
+	row = db.QueryRow(sql)
+	var vf float64
+	checkErr(t, row.Scan(&vf))
+	if vf != 4123232323232 {
+		t.Fatal(sql)
 	}
 }

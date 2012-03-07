@@ -555,7 +555,7 @@ func TestDate(t *testing.T) {
 		}
 	}
 
-	//checkResult(t, query("drop table D"), cmdOK(0, false, true))
+	checkResult(t, query("drop table D"), cmdOK(0, false, true))
 	myClose(t)
 }
 
@@ -951,6 +951,29 @@ func TestMultipleResults(t *testing.T) {
 	}
 
 	checkResult(t, query("drop table M"), cmdOK(0, false, true))
+	myClose(t)
+}
+
+func TestDecimal(t *testing.T) {
+	myConnect(t, true, 0)
+
+	query("drop table if exists D")
+	checkResult(t,
+		query("create table D (d decimal(4,2))"),
+		cmdOK(0, false, true),
+	)
+
+	checkResult(t, query("insert D values (10.01)"), cmdOK(1, false, true))
+	sql := "select * from D"
+	sel, err := my.Prepare(sql)
+	checkErr(t, err, nil)
+	rows, res, err := sel.Exec()
+	checkErr(t, err, nil)
+	if len(rows) != 1 || rows[0][res.Map("d")].(float64) != 10.01 {
+		t.Fatal(sql)
+	}
+
+	checkResult(t, query("drop table D"), cmdOK(0, false, true))
 	myClose(t)
 }
 

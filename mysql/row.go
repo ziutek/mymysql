@@ -100,7 +100,7 @@ func (tr Row) IntErr(nn int) (val int, err error) {
 
 // Get the nn-th value and return it as int (0 if NULL). Panic if conversion is
 // impossible.
-func (tr Row) MustInt(nn int) (val int) {
+func (tr Row) Int(nn int) (val int) {
 	val, err := tr.IntErr(nn)
 	if err != nil {
 		panic(err)
@@ -110,7 +110,7 @@ func (tr Row) MustInt(nn int) (val int) {
 
 // Get the nn-th value and return it as int. Return 0 if value is NULL or
 // conversion is impossible.
-func (tr Row) Int(nn int) (val int) {
+func (tr Row) ForceInt(nn int) (val int) {
 	val, _ = tr.IntErr(nn)
 	return
 }
@@ -155,7 +155,7 @@ func (tr Row) UintErr(nn int) (val uint, err error) {
 
 // Get the nn-th value and return it as uint (0 if NULL). Panic if conversion is
 // impossible.
-func (tr Row) MustUint(nn int) (val uint) {
+func (tr Row) Uint(nn int) (val uint) {
 	val, err := tr.UintErr(nn)
 	if err != nil {
 		panic(err)
@@ -165,7 +165,7 @@ func (tr Row) MustUint(nn int) (val uint) {
 
 // Get the nn-th value and return it as uint. Return 0 if value is NULL or
 // conversion is impossible.
-func (tr Row) Uint(nn int) (val uint) {
+func (tr Row) ForceUint(nn int) (val uint) {
 	val, _ = tr.UintErr(nn)
 	return
 }
@@ -185,7 +185,7 @@ func (tr Row) DateErr(nn int) (val Date, err error) {
 }
 
 // It is like DateErr but panics if conversion is impossible.
-func (tr Row) MustDate(nn int) (val Date) {
+func (tr Row) Date(nn int) (val Date) {
 	val, err := tr.DateErr(nn)
 	if err != nil {
 		panic(err)
@@ -194,7 +194,7 @@ func (tr Row) MustDate(nn int) (val Date) {
 }
 
 // It is like DateErr but return 0000-00-00 if conversion is impossible.
-func (tr Row) Date(nn int) (val Date) {
+func (tr Row) ForceDate(nn int) (val Date) {
 	val, _ = tr.DateErr(nn)
 	return
 }
@@ -225,7 +225,7 @@ func (tr Row) TimeErr(nn int, loc *time.Location) (t time.Time, err error) {
 }
 
 // As TimeErr but panics if conversion is impossible.
-func (tr Row) MustTime(nn int, loc *time.Location) (val time.Time) {
+func (tr Row) Time(nn int, loc *time.Location) (val time.Time) {
 	val, err := tr.TimeErr(nn, loc)
 	if err != nil {
 		panic(err)
@@ -235,7 +235,7 @@ func (tr Row) MustTime(nn int, loc *time.Location) (val time.Time) {
 
 // It is like TimeErr but returns 0000-00-00 00:00:00 if conversion is
 // impossible.
-func (tr Row) Time(nn int, loc *time.Location) (val time.Time) {
+func (tr Row) ForceTime(nn int, loc *time.Location) (val time.Time) {
 	val, _ = tr.TimeErr(nn, loc)
 	return
 }
@@ -258,7 +258,7 @@ func (tr Row) LocaltimeErr(nn int) (t time.Time, err error) {
 }
 
 // As LocaltimeErr but panics if conversion is impossible.
-func (tr Row) MustLocaltime(nn int) (val time.Time) {
+func (tr Row) Localtime(nn int) (val time.Time) {
 	val, err := tr.LocaltimeErr(nn)
 	if err != nil {
 		panic(err)
@@ -268,7 +268,7 @@ func (tr Row) MustLocaltime(nn int) (val time.Time) {
 
 // It is like LocaltimeErr but returns 0000-00-00 00:00:00 if conversion is
 // impossible.
-func (tr Row) Localtime(nn int) (val time.Time) {
+func (tr Row) ForceLocaltime(nn int) (val time.Time) {
 	val, _ = tr.LocaltimeErr(nn)
 	return
 }
@@ -291,7 +291,7 @@ func (tr Row) DurationErr(nn int) (val time.Duration, err error) {
 }
 
 // It is like DurationErr but panics if conversion is impossible.
-func (tr Row) MustDuration(nn int) (val time.Duration) {
+func (tr Row) Duration(nn int) (val time.Duration) {
 	val, err := tr.DurationErr(nn)
 	if err != nil {
 		panic(err)
@@ -300,7 +300,7 @@ func (tr Row) MustDuration(nn int) (val time.Duration) {
 }
 
 // It is like DurationErr but return 0 if conversion is impossible.
-func (tr Row) Duration(nn int) (val time.Duration) {
+func (tr Row) ForceDuration(nn int) (val time.Duration) {
 	val, _ = tr.DurationErr(nn)
 	return
 }
@@ -335,7 +335,7 @@ func (tr Row) BoolErr(nn int) (val bool, err error) {
 }
 
 // It is like BoolErr but panics if conversion is impossible.
-func (tr Row) MustBool(nn int) (val bool) {
+func (tr Row) Bool(nn int) (val bool) {
 	val, err := tr.BoolErr(nn)
 	if err != nil {
 		panic(err)
@@ -344,7 +344,7 @@ func (tr Row) MustBool(nn int) (val bool) {
 }
 
 // It is like BoolErr but return false if conversion is impossible.
-func (tr Row) Bool(nn int) (val bool) {
+func (tr Row) ForceBool(nn int) (val bool) {
 	val, _ = tr.BoolErr(nn)
 	return
 }
@@ -374,7 +374,7 @@ func (tr Row) Int64Err(nn int) (val int64, err error) {
 
 // Get the nn-th value and return it as int64 (0 if NULL).
 // Panic if conversion is impossible.
-func (tr Row) MustInt64(nn int) (val int64) {
+func (tr Row) Int64(nn int) (val int64) {
 	val, err := tr.Int64Err(nn)
 	if err != nil {
 		panic(err)
@@ -384,7 +384,7 @@ func (tr Row) MustInt64(nn int) (val int64) {
 
 // Get the nn-th value and return it as int64. Return 0 if value is NULL or
 // conversion is impossible.
-func (tr Row) Int64(nn int) (val int64) {
+func (tr Row) ForceInt64(nn int) (val int64) {
 	val, _ = tr.Int64Err(nn)
 	return
 }
@@ -414,7 +414,7 @@ func (tr Row) Uint64Err(nn int) (val uint64, err error) {
 
 // Get the nn-th value and return it as uint64 (0 if NULL).
 // Panic if conversion is impossible.
-func (tr Row) MustUint64(nn int) (val uint64) {
+func (tr Row) Uint64(nn int) (val uint64) {
 	val, err := tr.Uint64Err(nn)
 	if err != nil {
 		panic(err)
@@ -424,7 +424,7 @@ func (tr Row) MustUint64(nn int) (val uint64) {
 
 // Get the nn-th value and return it as uint64. Return 0 if value is NULL or
 // conversion is impossible.
-func (tr Row) Uint64(nn int) (val uint64) {
+func (tr Row) ForceUint64(nn int) (val uint64) {
 	val, _ = tr.Uint64Err(nn)
 	return
 }

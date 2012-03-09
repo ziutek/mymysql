@@ -362,8 +362,9 @@ func (tr Row) Int64Err(nn int) (val int64, err error) {
 		u := reflect.ValueOf(data).Uint()
 		if u > math.MaxInt64 {
 			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+		} else {
+			val = int64(u)
 		}
-		val = int64(u)
 	case []byte:
 		val, err = strconv.ParseInt(string(data), 10, 64)
 	default:
@@ -402,8 +403,9 @@ func (tr Row) Uint64Err(nn int) (val uint64, err error) {
 		i := reflect.ValueOf(data).Int()
 		if i < 0 {
 			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+		} else {
+			val = uint64(i)
 		}
-		val = uint64(i)
 	case []byte:
 		val, err = strconv.ParseUint(string(data), 10, 64)
 	default:
@@ -426,5 +428,53 @@ func (tr Row) Uint64(nn int) (val uint64) {
 // conversion is impossible.
 func (tr Row) ForceUint64(nn int) (val uint64) {
 	val, _ = tr.Uint64Err(nn)
+	return
+}
+
+// Get the nn-th value and return it as float64 (0 if NULL). Return error if
+// conversion is impossible.
+func (tr Row) FloatErr(nn int) (val float64, err error) {
+	fn := "FloatErr"
+	switch data := tr[nn].(type) {
+	case nil:
+		// nop
+	case float64, float32:
+		val = reflect.ValueOf(data).Float()
+	case int64, int32, int16, int8:
+		i := reflect.ValueOf(data).Int()
+		if i >= 2<<53 || i <= -(2<<53) {
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+		} else {
+			val = float64(i)
+		}
+	case uint64, uint32, uint16, uint8:
+		u := reflect.ValueOf(data).Uint()
+		if u >= 2<<53 {
+			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+		} else {
+			val = float64(u)
+		}
+	case []byte:
+		val, err = strconv.ParseFloat(string(data), 64)
+	default:
+		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
+	}
+	return
+}
+
+// Get the nn-th value and return it as float64 (0 if NULL).
+// Panic if conversion is impossible.
+func (tr Row) Float(nn int) (val float64) {
+	val, err := tr.FloatErr(nn)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+// Get the nn-th value and return it as float64. Return 0 if value is NULL or
+// if conversion is impossible.
+func (tr Row) ForceFloat(nn int) (val float64) {
+	val, _ = tr.FloatErr(nn)
 	return
 }

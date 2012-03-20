@@ -1,13 +1,18 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.3 (2012-03-03)
+## MyMySQL v0.4.4 (2012-03-09)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.4
+
+1. Row.Int, Row.Uint, Row.Int64, ... methods now panic in case of error.
+2. New Row.Float method.
 
 #### v0.4.3
 
@@ -618,10 +623,15 @@ application befor put it into production. There is example output from siege:
 
 ## Known bugs
 
-Old passwords don't work: you obtain *UNK_RESULT_PKT_ERROR* if you try connect
+1. Old passwords don't work: you obtain *UNK_RESULT_PKT_ERROR* if you try connect
 to MySQL server as user which have old password format in *user* table.
 Workaround: change password using result from MYSQL >= 4.1 *PASSWORD* function
 (you can generate the old password format back using *OLD_PASSWORD* function).
+
+2. There is MySQL "bug" in the *SUM* function. If you use prepared statements
+*SUM* returns *DECIMAL* value, even if you sum integer column. mymysql returns
+decimals as *float64* so cast result from sum to integer (or use *Row.Int*)
+causes panic.
 
 # Documentation
 

@@ -58,7 +58,6 @@ const _MIN_INT = -_MAX_INT - 1
 // Get the nn-th value and return it as int (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) IntErr(nn int) (val int, err error) {
-	fn := "IntErr"
 	switch data := tr[nn].(type) {
 	case nil:
 		// nop
@@ -78,29 +77,29 @@ func (tr Row) IntErr(nn int) (val int, err error) {
 		if data >= int64(_MIN_INT) && data <= int64(_MAX_INT) {
 			val = int(data)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+			err = strconv.ErrRange
 		}
 	case uint32:
 		if data <= uint32(_MAX_INT) {
 			val = int(data)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+			err = strconv.ErrRange
 		}
 	case uint64:
 		if data <= uint64(_MAX_INT) {
 			val = int(data)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+			err = strconv.ErrRange
 		}
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
+		err = os.ErrInvalid
 	}
 	return
 }
 
 // Get the nn-th value and return it as int (0 if NULL). Panic if conversion is
 // impossible.
-func (tr Row) MustInt(nn int) (val int) {
+func (tr Row) Int(nn int) (val int) {
 	val, err := tr.IntErr(nn)
 	if err != nil {
 		panic(err)
@@ -110,7 +109,7 @@ func (tr Row) MustInt(nn int) (val int) {
 
 // Get the nn-th value and return it as int. Return 0 if value is NULL or
 // conversion is impossible.
-func (tr Row) Int(nn int) (val int) {
+func (tr Row) ForceInt(nn int) (val int) {
 	val, _ = tr.IntErr(nn)
 	return
 }
@@ -120,7 +119,6 @@ const _MAX_UINT = ^uint(0)
 // Get the nn-th value and return it as uint (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) UintErr(nn int) (val uint, err error) {
-	fn := "UintErr"
 	switch data := tr[nn].(type) {
 	case nil:
 		// nop
@@ -138,24 +136,24 @@ func (tr Row) UintErr(nn int) (val uint, err error) {
 		if data <= uint64(_MAX_UINT) {
 			val = uint(data)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+			err = strconv.ErrRange
 		}
 	case int8, int16, int32, int64:
 		v := reflect.ValueOf(data).Int()
 		if v >= 0 && v <= int64(_MAX_UINT) {
 			val = uint(v)
 		} else {
-			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+			err = strconv.ErrRange
 		}
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
+		err = os.ErrInvalid
 	}
 	return
 }
 
 // Get the nn-th value and return it as uint (0 if NULL). Panic if conversion is
 // impossible.
-func (tr Row) MustUint(nn int) (val uint) {
+func (tr Row) Uint(nn int) (val uint) {
 	val, err := tr.UintErr(nn)
 	if err != nil {
 		panic(err)
@@ -165,7 +163,7 @@ func (tr Row) MustUint(nn int) (val uint) {
 
 // Get the nn-th value and return it as uint. Return 0 if value is NULL or
 // conversion is impossible.
-func (tr Row) Uint(nn int) (val uint) {
+func (tr Row) ForceUint(nn int) (val uint) {
 	val, _ = tr.UintErr(nn)
 	return
 }
@@ -185,7 +183,7 @@ func (tr Row) DateErr(nn int) (val Date, err error) {
 }
 
 // It is like DateErr but panics if conversion is impossible.
-func (tr Row) MustDate(nn int) (val Date) {
+func (tr Row) Date(nn int) (val Date) {
 	val, err := tr.DateErr(nn)
 	if err != nil {
 		panic(err)
@@ -194,7 +192,7 @@ func (tr Row) MustDate(nn int) (val Date) {
 }
 
 // It is like DateErr but return 0000-00-00 if conversion is impossible.
-func (tr Row) Date(nn int) (val Date) {
+func (tr Row) ForceDate(nn int) (val Date) {
 	val, _ = tr.DateErr(nn)
 	return
 }
@@ -225,7 +223,7 @@ func (tr Row) TimeErr(nn int, loc *time.Location) (t time.Time, err error) {
 }
 
 // As TimeErr but panics if conversion is impossible.
-func (tr Row) MustTime(nn int, loc *time.Location) (val time.Time) {
+func (tr Row) Time(nn int, loc *time.Location) (val time.Time) {
 	val, err := tr.TimeErr(nn, loc)
 	if err != nil {
 		panic(err)
@@ -235,7 +233,7 @@ func (tr Row) MustTime(nn int, loc *time.Location) (val time.Time) {
 
 // It is like TimeErr but returns 0000-00-00 00:00:00 if conversion is
 // impossible.
-func (tr Row) Time(nn int, loc *time.Location) (val time.Time) {
+func (tr Row) ForceTime(nn int, loc *time.Location) (val time.Time) {
 	val, _ = tr.TimeErr(nn, loc)
 	return
 }
@@ -258,7 +256,7 @@ func (tr Row) LocaltimeErr(nn int) (t time.Time, err error) {
 }
 
 // As LocaltimeErr but panics if conversion is impossible.
-func (tr Row) MustLocaltime(nn int) (val time.Time) {
+func (tr Row) Localtime(nn int) (val time.Time) {
 	val, err := tr.LocaltimeErr(nn)
 	if err != nil {
 		panic(err)
@@ -268,7 +266,7 @@ func (tr Row) MustLocaltime(nn int) (val time.Time) {
 
 // It is like LocaltimeErr but returns 0000-00-00 00:00:00 if conversion is
 // impossible.
-func (tr Row) Localtime(nn int) (val time.Time) {
+func (tr Row) ForceLocaltime(nn int) (val time.Time) {
 	val, _ = tr.LocaltimeErr(nn)
 	return
 }
@@ -291,7 +289,7 @@ func (tr Row) DurationErr(nn int) (val time.Duration, err error) {
 }
 
 // It is like DurationErr but panics if conversion is impossible.
-func (tr Row) MustDuration(nn int) (val time.Duration) {
+func (tr Row) Duration(nn int) (val time.Duration) {
 	val, err := tr.DurationErr(nn)
 	if err != nil {
 		panic(err)
@@ -300,7 +298,7 @@ func (tr Row) MustDuration(nn int) (val time.Duration) {
 }
 
 // It is like DurationErr but return 0 if conversion is impossible.
-func (tr Row) Duration(nn int) (val time.Duration) {
+func (tr Row) ForceDuration(nn int) (val time.Duration) {
 	val, _ = tr.DurationErr(nn)
 	return
 }
@@ -308,7 +306,6 @@ func (tr Row) Duration(nn int) (val time.Duration) {
 // Get the nn-th value and return it as bool. Return error
 // if conversion is impossible.
 func (tr Row) BoolErr(nn int) (val bool, err error) {
-	fn := "BoolErr"
 	switch data := tr[nn].(type) {
 	case nil:
 		// nop
@@ -329,13 +326,13 @@ func (tr Row) BoolErr(nn int) (val bool, err error) {
 	case uint64:
 		val = (data != 0)
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
+		err = os.ErrInvalid
 	}
 	return
 }
 
 // It is like BoolErr but panics if conversion is impossible.
-func (tr Row) MustBool(nn int) (val bool) {
+func (tr Row) Bool(nn int) (val bool) {
 	val, err := tr.BoolErr(nn)
 	if err != nil {
 		panic(err)
@@ -344,7 +341,7 @@ func (tr Row) MustBool(nn int) (val bool) {
 }
 
 // It is like BoolErr but return false if conversion is impossible.
-func (tr Row) Bool(nn int) (val bool) {
+func (tr Row) ForceBool(nn int) (val bool) {
 	val, _ = tr.BoolErr(nn)
 	return
 }
@@ -352,7 +349,6 @@ func (tr Row) Bool(nn int) (val bool) {
 // Get the nn-th value and return it as int64 (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) Int64Err(nn int) (val int64, err error) {
-	fn := "Int64Err"
 	switch data := tr[nn].(type) {
 	case nil:
 		// nop
@@ -361,20 +357,21 @@ func (tr Row) Int64Err(nn int) (val int64, err error) {
 	case uint64, uint32, uint16, uint8:
 		u := reflect.ValueOf(data).Uint()
 		if u > math.MaxInt64 {
-			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+			err = strconv.ErrRange
+		} else {
+			val = int64(u)
 		}
-		val = int64(u)
 	case []byte:
 		val, err = strconv.ParseInt(string(data), 10, 64)
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
+		err = os.ErrInvalid
 	}
 	return
 }
 
 // Get the nn-th value and return it as int64 (0 if NULL).
 // Panic if conversion is impossible.
-func (tr Row) MustInt64(nn int) (val int64) {
+func (tr Row) Int64(nn int) (val int64) {
 	val, err := tr.Int64Err(nn)
 	if err != nil {
 		panic(err)
@@ -384,7 +381,7 @@ func (tr Row) MustInt64(nn int) (val int64) {
 
 // Get the nn-th value and return it as int64. Return 0 if value is NULL or
 // conversion is impossible.
-func (tr Row) Int64(nn int) (val int64) {
+func (tr Row) ForceInt64(nn int) (val int64) {
 	val, _ = tr.Int64Err(nn)
 	return
 }
@@ -392,7 +389,6 @@ func (tr Row) Int64(nn int) (val int64) {
 // Get the nn-th value and return it as uint64 (0 if NULL). Return error if
 // conversion is impossible.
 func (tr Row) Uint64Err(nn int) (val uint64, err error) {
-	fn := "Uint64Err"
 	switch data := tr[nn].(type) {
 	case nil:
 		// nop
@@ -401,20 +397,21 @@ func (tr Row) Uint64Err(nn int) (val uint64, err error) {
 	case int64, int32, int16, int8:
 		i := reflect.ValueOf(data).Int()
 		if i < 0 {
-			err = &strconv.NumError{fn, fmt.Sprint(data), strconv.ErrRange}
+			err = strconv.ErrRange
+		} else {
+			val = uint64(i)
 		}
-		val = uint64(i)
 	case []byte:
 		val, err = strconv.ParseUint(string(data), 10, 64)
 	default:
-		err = &strconv.NumError{fn, fmt.Sprint(data), os.ErrInvalid}
+		err = os.ErrInvalid
 	}
 	return
 }
 
 // Get the nn-th value and return it as uint64 (0 if NULL).
 // Panic if conversion is impossible.
-func (tr Row) MustUint64(nn int) (val uint64) {
+func (tr Row) Uint64(nn int) (val uint64) {
 	val, err := tr.Uint64Err(nn)
 	if err != nil {
 		panic(err)
@@ -424,7 +421,54 @@ func (tr Row) MustUint64(nn int) (val uint64) {
 
 // Get the nn-th value and return it as uint64. Return 0 if value is NULL or
 // conversion is impossible.
-func (tr Row) Uint64(nn int) (val uint64) {
+func (tr Row) ForceUint64(nn int) (val uint64) {
 	val, _ = tr.Uint64Err(nn)
+	return
+}
+
+// Get the nn-th value and return it as float64 (0 if NULL). Return error if
+// conversion is impossible.
+func (tr Row) FloatErr(nn int) (val float64, err error) {
+	switch data := tr[nn].(type) {
+	case nil:
+		// nop
+	case float64, float32:
+		val = reflect.ValueOf(data).Float()
+	case int64, int32, int16, int8:
+		i := reflect.ValueOf(data).Int()
+		if i >= 2<<53 || i <= -(2<<53) {
+			err = strconv.ErrRange
+		} else {
+			val = float64(i)
+		}
+	case uint64, uint32, uint16, uint8:
+		u := reflect.ValueOf(data).Uint()
+		if u >= 2<<53 {
+			err = strconv.ErrRange
+		} else {
+			val = float64(u)
+		}
+	case []byte:
+		val, err = strconv.ParseFloat(string(data), 64)
+	default:
+		err = os.ErrInvalid
+	}
+	return
+}
+
+// Get the nn-th value and return it as float64 (0 if NULL).
+// Panic if conversion is impossible.
+func (tr Row) Float(nn int) (val float64) {
+	val, err := tr.FloatErr(nn)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+// Get the nn-th value and return it as float64. Return 0 if value is NULL or
+// if conversion is impossible.
+func (tr Row) ForceFloat(nn int) (val float64) {
+	val, _ = tr.FloatErr(nn)
 	return
 }

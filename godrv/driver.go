@@ -24,7 +24,7 @@ type conn struct {
 func errFilter(err error) error {
 	if err == io.ErrUnexpectedEOF {
 		return driver.ErrBadConn
-	} else if _, ok := err.(*net.OpError); ok {
+	} else if e, ok := err.(net.Error); ok && e.Temporary() {
 		return driver.ErrBadConn
 	}
 	return err

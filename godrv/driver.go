@@ -10,6 +10,7 @@ import (
 	"github.com/mikespook/mymysql/native"
 	"io"
 	"math"
+	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -20,10 +21,19 @@ type conn struct {
 	my mysql.Conn
 }
 
+func errFilter(err error) error {
+	if err == io.ErrUnexpectedEOF {
+		return driver.ErrBadConn
+	} else if e, ok := err.(net.Error); ok && e.Temporary() {
+		return driver.ErrBadConn
+	}
+	return err
+}
+
 func (c conn) Prepare(query string) (driver.Stmt, error) {
 	st, err := c.my.Prepare(query)
 	if err != nil {
-		return nil, err
+		return nil, errFilter(err)
 	}
 	return stmt{st}, nil
 }
@@ -31,13 +41,13 @@ func (c conn) Prepare(query string) (driver.Stmt, error) {
 func (c conn) Close() error {
 	err := c.my.Close()
 	c.my = nil
-	return err
+	return errFilter(err)
 }
 
 func (c conn) Begin() (driver.Tx, error) {
 	t, err := c.my.Begin()
 	if err != nil {
-		return tx{nil}, err
+		return tx{nil}, errFilter(err)
 	}
 	return tx{t}, nil
 }
@@ -61,7 +71,7 @@ type stmt struct {
 func (s stmt) Close() error {
 	err := s.my.Delete()
 	s.my = nil
-	return err
+	return errFilter(err)
 }
 
 func (s stmt) NumInput() int {
@@ -72,7 +82,7 @@ func (s stmt) run(args []driver.Value) (rowsRes, error) {
 	a := (*[]interface{})(unsafe.Pointer(&args))
 	res, err := s.my.Run(*a...)
 	if err != nil {
-		return rowsRes{nil}, err
+		return rowsRes{nil}, errFilter(err)
 	}
 	return rowsRes{res}, nil
 }
@@ -110,7 +120,7 @@ func (r rowsRes) Close() error {
 	err := r.my.End()
 	r.my = nil
 	if err != native.READ_AFTER_EOR_ERROR {
-		return err
+		return errFilter(err)
 	}
 	return nil
 }
@@ -119,7 +129,7 @@ func (r rowsRes) Close() error {
 func (r rowsRes) Next(dest []driver.Value) error {
 	row, err := r.my.GetRow()
 	if err != nil {
-		return err
+		return errFilter(err)
 	}
 	if row == nil {
 		return io.EOF
@@ -220,7 +230,7 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 		c.my.Register(q) // Register initialisation commands
 	}
 	if err := c.my.Connect(); err != nil {
-		return nil, err
+		return nil, errFilter(err)
 	}
 	return &c, nil
 }

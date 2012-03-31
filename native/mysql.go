@@ -39,6 +39,7 @@ type Conn struct {
 	unreaded_reply bool
 
 	init_cmds []string         // MySQL commands/queries executed after connect
+        init_funcs []mysql.RegFunc
 	stmt_map  map[uint32]*Stmt // For reprepare during reconnect
 
 	// Current status of MySQL server connection
@@ -161,6 +162,10 @@ func (my *Conn) connect() (err error) {
 			}
 		}
 	}
+
+        for _, f := range my.init_funcs {
+            f(my)
+        }
 
 	return
 }
@@ -657,9 +662,16 @@ func (my *Conn) ThreadId() uint32 {
 
 // Register MySQL command/query to be executed immediately after connecting to
 // the server. You may register multiple commands. They will be executed in
-// the order of registration. Yhis method is mainly useful for reconnect.
+// the order of registration. This method is mainly useful for reconnect.
 func (my *Conn) Register(sql string) {
 	my.init_cmds = append(my.init_cmds, sql)
+}
+
+// Register a function to be executed immediately after connecting to
+// the server. You may register multiple functions. They will be executed in
+// the order of registration. This method is mainly useful for reconnect.
+func (my *Conn) RegisterFunc(f mysql.RegFunc) {
+        my.init_funcs = append(my.init_funcs, f)
 }
 
 // See mysql.Query

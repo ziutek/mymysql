@@ -231,12 +231,14 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
                 return nil, ErrMaxIdle
             }
             RegisterFunc(func(my mysql.Conn){
-                for my.IsConnected() {
-                    time.Sleep(time.Duration(t) * time.Second)
-                    if err := my.Ping(); err != nil {
-                        break
+                go func() {
+                    for my.IsConnected() {
+                        time.Sleep(time.Duration(t) * time.Second)
+                        if err := my.Ping(); err != nil {
+                            break
+                        }
                     }
-                }
+                }()
             })
         }
 	for _, q := range d.initCmds {

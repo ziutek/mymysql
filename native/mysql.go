@@ -162,7 +162,7 @@ func (my *Conn) connect() (err error) {
 			}
 		}
 	}
-
+        // Execute all registered functions
         for _, f := range my.init_funcs {
             f(my)
         }

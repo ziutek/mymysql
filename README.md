@@ -1,13 +1,17 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.4 (2012-03-09)
+## MyMySQL v0.4.5 (2012-03-31)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.5
+1. New dsn string format.
+2. New RegisterFunc method.
 
 #### v0.4.4
 
@@ -454,15 +458,24 @@ This is improved part of previous example:
 
     // Open new connection. The uri need to have the following syntax:
     //
-    //   [PROTOCOL_SPECFIIC*]DBNAME[+CHARSET]/USER/PASSWD
+    //   [tcp://addr/]dbname/user/password[?params]
+    //   [unix://sockpath/]dbname/user/password[?params]
+    // Params need to have the following syntax:
+    //
+    //   key1=val1&key2=val2
+    //
+    // Key need to have the following value:
+    //
+    //   charset - used by 'set names'
+    //   keepalive - send a PING to mysql server after every keepalive seconds.
     //
     // where protocol spercific part may be empty (this means connection to
     // local server using default protocol). Currently possible forms:
-    //   DBNAME+CHARSET/USER/PASSWD
-    //   unix:SOCKPATH*DBNAME+CHARSET/USER/PASSWD
-    //   tcp:ADDR*DBNAME+CHARSET/USER/PASSWD
-    
-    db, err := sql.Open("mymysql", "test+utf8/testuser/TestPasswd9")
+    //   DBNAME/USER/PASSWD?charset=utf8
+    //   unix://SOCKPATH/DBNAME/USER/PASSWD
+    //   tcp://ADDR/DBNAME/USER/PASSWD?maxidle=3600
+
+    db, err := sql.Open("mymysql", "test/testuser/TestPasswd9?charset=utf8")
     checkErr(err)
 
     // For other information about database/sql see its own documentation.

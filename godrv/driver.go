@@ -15,6 +15,12 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+        "strconv"
+)
+
+var (
+    ErrDSN = errors.New("Wrong URI")
+    ErrMaxIdle = errors.New("Wrong max idle value")
 )
 
 type conn struct {
@@ -181,58 +187,117 @@ type Driver struct {
 	proto, laddr, raddr, user, passwd, db string
 
 	initCmds []string
+        initFuncs []mysql.RegFunc
 }
 
 // Open new connection. The uri need to have the following syntax:
 //
-//   [PROTOCOL_SPECFIIC*]DBNAME[+CHARSET]/USER/PASSWD
+//   [tcp://addr/]dbname/user/password[?params]
+//   [unix://sockpath/]dbname/user/password[?params]
+// Params need to have the following syntax:
+//
+//   key1=val1&key2=val2
+//
+// Key need to have the following value:
+//
+//   charset - used by 'set names'
+//   keepalive - send a PING to mysql server after every keepalive seconds.
 //
 // where protocol spercific part may be empty (this means connection to
 // local server using default protocol). Currently possible forms:
-//   DBNAME+utf8/USER/PASSWD
-//   unix:SOCKPATH*DBNAME/USER/PASSWD
-//   tcp:ADDR*DBNAME/USER/PASSWD
+//   DBNAME/USER/PASSWD?charset=utf8
+//   unix://SOCKPATH/DBNAME/USER/PASSWD
+//   tcp://ADDR/DBNAME/USER/PASSWD?maxidle=3600
 func (d *Driver) Open(uri string) (driver.Conn, error) {
-	pd := strings.SplitN(uri, "*", 2)
-	if len(pd) == 2 {
-		// Parse protocol part of URI
-		p := strings.SplitN(pd[0], ":", 2)
-		if len(p) != 2 {
-			return nil, errors.New("Wrong protocol part of URI")
-		}
-		d.proto = p[0]
-		d.raddr = p[1]
-		// Remove protocol part
-		pd = pd[1:]
-	}
-	// Parse database part of URI
-	dup := strings.SplitN(pd[0], "/", 3)
-        // if len(dup) is greater than 3, dup[3] means charset, dup[4:] will be discarded.
-        if len(dup) != 3 {
-		return nil, errors.New("Wrong database part of URI")
-	}
-        dc := strings.SplitN(dup[0], "+", 2)
-        l := len(dc)
-        if l == 2 {
-            d.db = dc[0]
-        } else {
-            d.db = dup[0]
+        proto, addr, dbname, user, passwd, params, err := parseDSN(uri)
+	if err != nil {
+	    return nil, err
         }
-	d.user = dup[1]
-	d.passwd = dup[2]
+	d.proto = proto
+        d.raddr = addr
+        d.user = user
+	d.passwd = passwd
+        d.db = dbname
 
 	// Establish the connection
 	c := conn{mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)}
-	if l == 2 {
-            Register("SET NAMES " + dc[1])
+
+        if v, ok := params["charset"]; ok {
+            Register("SET NAMES " + v)
+        }
+        if v, ok := params["keepalive"]; ok {
+            t, err := strconv.Atoi(v)
+            if err != nil {
+                return nil, ErrMaxIdle
+            }
+            RegisterFunc(func(my mysql.Conn){
+                go func() {
+                    for my.IsConnected() {
+                        time.Sleep(time.Duration(t) * time.Second)
+                        if err := my.Ping(); err != nil {
+                            break
+                        }
+                    }
+                }()
+            })
         }
 	for _, q := range d.initCmds {
 		c.my.Register(q) // Register initialisation commands
 	}
+        for _, f := range d.initFuncs {
+                c.my.RegisterFunc(f)
+        }
 	if err := c.my.Connect(); err != nil {
 		return nil, errFilter(err)
 	}
 	return &c, nil
+}
+
+func parseDSN(uri string) (proto, addr, dbname, user, passwd string, params map[string]string, err error) {
+    proto = "tcp"; addr = "127.0.0.1:3306"
+    //   [tcp:addr/]dbname/user/password[?params]
+    s := strings.SplitN(uri, "?", 2)
+    // dsn and params
+    if len(s) == 2 {
+        uri = s[0]
+        params = parseParams(s[1])
+    }
+    s = strings.SplitN(uri, "://", 2)
+    if len(s) == 2 {
+        proto = s[0]
+        uri = s[1]
+    }
+    s = strings.SplitN(uri, "/", 4)
+    switch(len(s)) {
+    case 3:
+        dbname = s[0]
+        user = s[1]
+        passwd = s[2]
+    // protocol has been specifieded.
+    case 4 :
+        addr = s[0]
+        dbname = s[1]
+        user = s[2]
+        passwd = s[3]
+    //
+    default:
+        err = ErrDSN
+        return
+   }
+   return
+}
+
+func parseParams(str string) (params map[string]string) {
+    params = make(map[string]string, 2)
+    s := strings.Split(str, "&")
+    for _, v := range s {
+        p := strings.SplitN(v, "=", 2)
+        if len(p) != 2 {
+            continue
+        }
+        params[p[0]] = p[1]
+    }
+    return params
 }
 
 // Driver automatically registered in database/sql
@@ -243,6 +308,12 @@ var d = Driver{proto: "tcp", raddr: "127.0.0.1:3306"}
 func Register(query string) {
 	d.initCmds = append(d.initCmds, query)
 }
+
+// Registers initialisation functions.
+func RegisterFunc(f mysql.RegFunc) {
+	d.initFuncs = append(d.initFuncs, f)
+}
+
 
 func init() {
 	sql.Register("mymysql", &d)

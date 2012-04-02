@@ -273,7 +273,7 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 				row[ii] = int16(readU16(pr))
 			}
 
-		case MYSQL_TYPE_LONG:
+		case MYSQL_TYPE_LONG, MYSQL_TYPE_INT24:
 			if unsigned {
 				row[ii] = readU32(pr)
 			} else {
@@ -285,13 +285,6 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 				row[ii] = readU64(pr)
 			} else {
 				row[ii] = int64(readU64(pr))
-			}
-
-		case MYSQL_TYPE_INT24:
-			if unsigned {
-				row[ii] = readU24(pr)
-			} else {
-				row[ii] = int32(readU24(pr))
 			}
 
 		case MYSQL_TYPE_FLOAT:

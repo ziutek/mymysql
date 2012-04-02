@@ -138,7 +138,7 @@ const (
 	OUT_VARBINARY = MYSQL_TYPE_BLOB   // Blob
 
 	// Client receive only, mymysql representation for receive
-	IN_MEDIUMINT  = MYSQL_TYPE_INT24       // int32
+	IN_MEDIUMINT  = MYSQL_TYPE_LONG        // int32
 	IN_YEAR       = MYSQL_TYPE_SHORT       // int16
 	IN_BINARY     = MYSQL_TYPE_STRING      // []byte
 	IN_VARCHAR    = MYSQL_TYPE_VAR_STRING  // []byte

@@ -977,6 +977,54 @@ func TestDecimal(t *testing.T) {
 	myClose(t)
 }
 
+func TestMediumInt(t *testing.T) {
+	myConnect(t, true, 0)
+	query("DROP TABLE mi")
+	checkResult(t,
+		query(
+			`CREATE TABLE mi (
+				id INT PRIMARY KEY AUTO_INCREMENT,
+				m MEDIUMINT
+			)`,
+		),
+		cmdOK(0, false, true),
+	)
+
+	const n = 9
+
+	for i := 0; i < n; i++ {
+		res, err := my.Start("INSERT mi VALUES (0, %d)", i)
+		checkErr(t, err, nil)
+		if res.InsertId() != uint64(i+1) {
+			t.Fatalf("Wrong insert id: %d, expected: %d", res.InsertId(), i+1)
+		}
+	}
+
+	sel, err := my.Prepare("SELECT * FROM mi")
+	checkErr(t, err, nil)
+
+	res, err := sel.Run()
+	checkErr(t, err, nil)
+
+	i := 0
+	for {
+		row, err := res.GetRow()
+		checkErr(t, err, nil)
+		if row == nil {
+			break
+		}
+		id, m := row.Int(0), row.Int(1)
+		if id != i+1 || m != i {
+			t.Fatalf("i=%d id=%d m=%d", i, id, m)
+		}
+		i++
+	}
+	if i != n {
+		t.Fatalf("%d rows read, %d expected", i, n)
+	}
+
+}
+
 // Benchamrks
 
 func check(err error) {

@@ -79,6 +79,7 @@ func TestAll(t *testing.T) {
 			t.Fatalf("txt[%d] == '%s' != '%s'", id, txt, data[id-1])
 		}
 	}
+	checkErr(t, rows.Err())
 
 	sql := "select sum(41) as test"
 	row := db.QueryRow(sql)
@@ -111,18 +112,25 @@ func TestMediumInt(t *testing.T) {
 		)`)
 	checkErr(t, err)
 
-	for i := 0; i < 9; i++ {
+	const n = 9
+
+	for i := 0; i < n; i++ {
 		_, err = db.Exec("INSERT mi VALUES (0, ?)", i)
 	}
 
 	rows, err := db.Query("SELECT * FROM mi")
 	checkErr(t, err)
 
-	for i := 0; rows.Next(); i++ {
+	var i int
+	for i = 0; rows.Next(); i++ {
 		var id, m int
 		checkErr(t, rows.Scan(&id, &m))
 		if id != i+1 || m != i {
 			t.Fatalf("i=%d id=%d m=%d", i, id, m)
 		}
+	}
+	checkErr(t, rows.Err())
+	if i != n {
+		t.Fatalf("%d rows read, %d expected", i, n)
 	}
 }

@@ -26,11 +26,9 @@ New autorc.Conn.PrepareOnce method.
 
 1. A lot of changes in MySQL time handling:
 
-Datetime type replaced by time.Time.
-
-Time type replaced by time.Duration.
-
-Support for time.Time type added to godrv.
+- Datetime type replaced by time.Time.
+- Time type replaced by time.Duration.
+- Support for time.Time type added to godrv.
 
 2. row.Int64/row.Uint64 methods added.
 
@@ -44,18 +42,15 @@ BindParams supports Go bool type.
 
 1. Modular design:
 
-MySQL wire protocol handling moved to *mymysql/native*
-
-Thread safe wrapper of *native* engine in separate *mymysql/thrsafe*
-
-*mymysql/mysql* package contains definitions of interfaces to engines and
+- MySQL wire protocol handling moved to *mymysql/native*
+- Thread safe wrapper of *native* engine in separate *mymysql/thrsafe*
+- *mymysql/mysql* package contains definitions of interfaces to engines and
 common (engine-independent) functions.
-
-Automatic reconnect interface moved to *mymysql/autorc*.
+- Automatic reconnect interface moved to *mymysql/autorc*.
 
 2. *mysql.New* and other functions returns mostly interface types. So all
 previously exported members were converted to methods (with except *mysql.Row*
-		and *mysql.Field* - they deffinition didn't changed).
+and *mysql.Field* - they deffinition didn't changed).
 
 3. Transactions added. If you use *mymysql/thrsafe" engine transactions are
 full thread safe.
@@ -157,12 +152,12 @@ If you do not want to load the entire result into memory you may use
 	// Print all rows
 	for {
 		row, err := res.GetRow()
-			checkError(err)
+		checkError(err)
 
-			if row == nil {
-				// No more rows
-				break
-			}
+		if row == nil {
+			// No more rows
+			break
+		}
 
 		// Print all cols
 		for _, col := range row {
@@ -185,7 +180,7 @@ You can use *Run* or *Exec* method for prepared statements:
 
 	type Data struct {
 		Id  int
-			Tax *float32 // nil means NULL
+		Tax *float32 // nil means NULL
 	}
 
 	data = new(Data)
@@ -325,7 +320,7 @@ This is improved part of previous example:
 	)
 	// [...]
 
-	// Statements prepared before transaction begin
+	// Statement prepared before transaction begin
 	ins, err := db.Prepare("insert A values (?, ?)")
 	checkError(err)
 
@@ -366,7 +361,7 @@ This is improved part of previous example:
 	import (
 		"github.com/ziutek/mymysql/autorc"
 		_ "github.com/ziutek/mymysql/thrsafe" // You may use native engine to
-   )
+	)
 
 	// [...]
 
@@ -411,8 +406,8 @@ This is improved part of previous example:
 	//   unix:SOCKPATH*DBNAME/USER/PASSWD
 	//   tcp:ADDR*DBNAME/USER/PASSWD
 
-	// Register initialisation commands (workaround, see
-	// http://codereview.appspot.com/5706047)
+	// Register initialisation commands
+	// (workaround, see http://codereview.appspot.com/5706047)
 	godrv.Register("SET NAMES utf8")
 	godrv.Register("CREATE TABLE IF NOT EXISTS my_table ( ... )")
 
@@ -438,9 +433,9 @@ This is improved part of previous example:
 
 	for rows.Next() {
 		var id int
-			var txt string
-			checkErr(rows.Scan(&id, &txt))
-			// Do something with id and txt
+		var txt string
+		checkErr(rows.Scan(&id, &txt))
+		// Do something with id and txt
 	}
 
 	checkErr(db.Close())
@@ -466,7 +461,7 @@ or usnig *Str* helper method:
 
 	fmt.Print(rows[0].Str(1))
 
-There are other helper methods, for data conversion like *Int* or *Uint*:
+There are other helper methods for data conversion like *Int* or *Uint*:
 
 	fmt.Print(rows[0].Int(1))
 

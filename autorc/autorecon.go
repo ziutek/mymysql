@@ -97,25 +97,35 @@ type Stmt struct {
 	con *Conn
 }
 
-// Automatic connect/reconnect/repeat version of Prepare
-func (c *Conn) Prepare(sql string) (*Stmt, error) {
+// Prepares statement if it wasn't prepared before
+func (c *Conn) PrepareOnce(s *Stmt, sql string) error {
+	if s.Raw != nil {
+		return nil
+	}
 	if err := c.connectIfNotConnected(); err != nil {
-		return nil, err
+		return err
 	}
 	nn := 0
 	for {
-		var (
-			err error
-			s   mysql.Stmt
-		)
-		if s, err = c.Raw.Prepare(sql); err == nil {
-			return &Stmt{s, c}, nil
+		var err error
+		if s.Raw, err = c.Raw.Prepare(sql); err == nil {
+			s.con = c
+			return nil
 		}
 		if c.reconnectIfNetErr(&nn, &err); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	panic(nil)
+}
+
+// Automatic connect/reconnect/repeat version of Prepare
+func (c *Conn) Prepare(sql string) (*Stmt, error) {
+	var s Stmt
+	if err := c.PrepareOnce(&s, sql); err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 
 // Automatic connect/reconnect/repeat version of Exec

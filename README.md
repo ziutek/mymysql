@@ -1,17 +1,18 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.5 (2012-03-31)
+## MyMySQL v0.4.5 (2012-04-04)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
-
 #### v0.4.5
-1. New dsn string format.
-2. New RegisterFunc method.
+
+1. New autorc.Conn.PrepareOnce method.
+2. New dsn string format.
+3. New RegisterFunc method.
 
 #### v0.4.4
 
@@ -27,11 +28,11 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 1. A lot of changes in MySQL time handling:
 
-    Datetime type replaced by time.Time.
+Datetime type replaced by time.Time.
 
-    Time type replaced by time.Duration.
+Time type replaced by time.Duration.
 
-    Support for time.Time type added to godrv.
+Support for time.Time type added to godrv.
 
 2. row.Int64/row.Uint64 methods added.
 
@@ -45,18 +46,18 @@ BindParams supports Go bool type.
 
 1. Modular design:
 
-    MySQL wire protocol handling moved to *mymysql/native*
+MySQL wire protocol handling moved to *mymysql/native*
 
-    Thread safe wrapper of *native* engine in separate *mymysql/thrsafe*
+Thread safe wrapper of *native* engine in separate *mymysql/thrsafe*
 
-    *mymysql/mysql* package contains definitions of interfaces to engines and
-    common (engine-independent) functions.
+*mymysql/mysql* package contains definitions of interfaces to engines and
+common (engine-independent) functions.
 
-    Automatic reconnect interface moved to *mymysql/autorc*.
+Automatic reconnect interface moved to *mymysql/autorc*.
 
 2. *mysql.New* and other functions returns mostly interface types. So all
 previously exported members were converted to methods (with except *mysql.Row*
-and *mysql.Field* - they deffinition didn't changed).
+        and *mysql.Field* - they deffinition didn't changed).
 
 3. Transactions added. If you use *mymysql/thrsafe" engine transactions are
 full thread safe.
@@ -94,38 +95,39 @@ older Go release use mymysql v0.3.3
 
 1. *Datetime* and *Date* types added.
 2. *Run*, *Exec* and *ExecAC* accept parameters, *Start*, *Query*,
-*QueryAC* no longer accept prepared statement as first argument.
+    *QueryAC* no longer accept prepared statement as first argument.
 
 #### v0.3.2
 
 1. *Register* method was added. It allows to register commands which will be
-executed immediately after connect. It is mainly useful with
-*Reconnect* method and autoreconn interface.
+    executed immediately after connect. It is mainly useful with
+    *Reconnect* method and autoreconn interface.
 2. Multi statements / multi results were added.
 3. Types *ENUM* and *SET* were added for prepared statements results.
 
 #### v0.3.1
 
 1. There is one change in v0.3, which doesn't preserve backwards compatibility
-with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
-method was added. It is similar in result to *Query* method.
+    with v0.2: the name of *Execute* method was changed to *Run*. A new *Exec*
+    method was added. It is similar in result to *Query* method.
 2. *Reconnect* method was added. After reconnect it re-prepare all prepared
-statements, related to database handler that was reconnected.
+    statements, related to database handler that was reconnected.
 3. Autoreconn interface was added. It allows not worry about making the
-connection, and not wory about re-establish connection after network error or
-MySQL server restart. It is certainly safe to use it with *select* queries and
-to prepare statements. You must be careful with *insert* queries. I'm not sure
-whether the server performs an insert: immediately after receive query or after successfull sending OK packet. Even if it is the second option, server may not
-immediately notice the network failure, becouse of network buffers in kernel.
-Therefore query repetitions may cause additional unnecessary inserts into
-database. This interface does not appear to be useful with local transactions.
+    connection, and not wory about re-establish connection after network error or
+    MySQL server restart. It is certainly safe to use it with *select* queries and
+    to prepare statements. You must be careful with *insert* queries. I'm not sure
+    whether the server performs an insert: immediately after receive query or after 
+    successfull sending OK packet. Even if it is the second option, server may not
+    immediately notice the network failure, becouse of network buffers in kernel.
+    Therefore query repetitions may cause additional unnecessary inserts into
+    database. This interface does not appear to be useful with local transactions.
 
 
 ## Installing
 
 To install all subpackages of *mymysql* you need to goinstal three of them:
 
-     $ go get github.com/mikespook/mymysql
+> $ go get github.com/mikespook/mymysql
 
 *go get* automagicly select proper version of *mymysql* for your Go release.
 After this command *mymysql* is ready to use.
@@ -134,9 +136,9 @@ After this command *mymysql* is ready to use.
 
 For testing you need test database and test user:
 
-    mysql> create database test;
-    mysql> grant all privileges on test.* to testuser@localhost;
-    mysql> set password for testuser@localhost = password("TestPasswd9")
+> mysql> create database test;
+> mysql> grant all privileges on test.* to testuser@localhost;
+> mysql> set password for testuser@localhost = password("TestPasswd9")
 
 Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is equal or greater than 34M (needed to test long packets).
 
@@ -144,8 +146,8 @@ The default MySQL test server address is *127.0.0.1:3306*.
 
 Next run tests:
 
-    $ cd $GOPATH/src/github.com/mikespook/mymysql
-    $ ./all.bash test
+> $ cd $GOPATH/src/github.com/mikespook/mymysql
+> $ ./all.bash test
 
 ## Examples
 
@@ -155,9 +157,9 @@ Next run tests:
 
     import (
         "os"
-        "github.com/mikespook/mymysql/mysql"
-        _ "github.com/mikespook/mymysql/native" // Native engine
-        // _ "github.com/mikespook/mymysql/thrsafe" // Thread safe engine
+        "github.com/ziutek/mymysql/mysql"
+        _ "github.com/ziutek/mymysql/native" // Native engine
+        // _ "github.com/ziutek/mymysql/thrsafe" // Thread safe engine
     )
 
     func main() {
@@ -165,35 +167,35 @@ Next run tests:
 
         err := db.Connect()
         if err != nil {
-            panic(err)
+  panic(err)
         }
 
         rows, res, err := db.Query("select * from X where id > %d", 20)
         if err != nil {
-            panic(err)
+  panic(err)
         }
 
         for _, row := range rows {
-            for _, col := range row {
-                if col == nil {
-                    // col has NULL value
-                } else {
-                    // Do something with text in col (type []byte)
-                }
-            }
-            // You can get specific value from a row
-            val1 := row[1].([]byte)
+  for _, col := range row {
+      if col == nil {
+          // col has NULL value
+      } else {
+          // Do something with text in col (type []byte)
+      }
+  }
+  // You can get specific value from a row
+  val1 := row[1].([]byte)
 
-            // You can use it directly if conversion isn't needed
-            os.Stdout.Write(val1)
+  // You can use it directly if conversion isn't needed
+  os.Stdout.Write(val1)
 
-            // You can get converted value
-            number := row.Int(0)      // Zero value
-            str    := row.Str(1)      // First value
-            bignum := row.MustUint(2) // Second value
+  // You can get converted value
+  number := row.Int(0)      // Zero value
+  str    := row.Str(1)      // First value
+  bignum := row.MustUint(2) // Second value
 
-            // You may get value by column name
-            val2 := row[res.Map("FirstColumn")].([]byte)
+  // You may get value by column name
+  val2 := row[res.Map("FirstColumn")].([]byte)
         }
     }
 
@@ -215,18 +217,18 @@ If you do not want to load the entire result into memory you may use
         checkError(err)
 
         if row == nil {
-            // No more rows
-            break
+  // No more rows
+  break
         }
 
         // Print all cols
         for _, col := range row {
-            if col == nil {
-                fmt.Print("<NULL>")
-            } else {
-                os.Stdout.Write(col.([]byte))
-            }
-            fmt.Print(" ")
+  if col == nil {
+      fmt.Print("<NULL>")
+  } else {
+      os.Stdout.Write(col.([]byte))
+  }
+  fmt.Print(" ")
         }
         fmt.Println()
     }
@@ -248,7 +250,7 @@ You can use *Run* or *Exec* method for prepared statements:
     for {
         err := getData(data)
         if err == endOfData {
-            break       
+  break       
         }
         checkError(err)
 
@@ -293,7 +295,7 @@ This is improved part of previous example:
     for {
         err := getData(data)
         if err == endOfData {
-            break       
+  break       
         }
         checkError(err)
 
@@ -304,10 +306,10 @@ This is improved part of previous example:
 ### Example 3 - using SendLongData in conjunction with http.Get
 
     _, err = db.Start("CREATE TABLE web (url VARCHAR(80), content LONGBLOB)")
-    checkError(err)
+checkError(err)
 
     ins, err := db.Prepare("INSERT INTO web VALUES (?, ?)")
-    checkError(err)
+checkError(err)
 
     var url string
 
@@ -318,8 +320,8 @@ This is improved part of previous example:
         url = ""
         fmt.Scanln(&url)
         if len(url) == 0 {
-            // Stop reading if URL is blank line
-            break
+  // Stop reading if URL is blank line
+  break
         }
 
         // Make connection
@@ -339,15 +341,15 @@ This is improved part of previous example:
 ### Example 4 - multi statement / multi result
 
     res, err := db.Start("select id from M; select name from M")
-    checkError(err)
+checkError(err)
 
     // Get result from first select
     for {
         row, err := res.GetRow()
         checkError(err)
         if row == nil {
-            // End of first result
-            break
+  // End of first result
+  break
         }
 
         // Do something with with the data
@@ -364,8 +366,8 @@ This is improved part of previous example:
         row, err := res.GetRow()
         checkError(err)
         if row == nil {
-            // End of second result
-            break
+  // End of second result
+  break
         }
 
         // Do something with with the data
@@ -375,9 +377,9 @@ This is improved part of previous example:
 ### Example 5 - transactions
 
     import (
-        "github.com/mikespook/mymysql/mysql"
-        _ "github.com/mikespook/mymysql/thrsafe" // for thread safe transactions
-
+        "github.com/ziutek/mymysql/mysql"
+        _ "github.com/ziutek/mymysql/thrsafe" // for thread safe transactions
+    )
     // [...]
 
     // Statements prepared before transaction begin
@@ -390,7 +392,7 @@ This is improved part of previous example:
 
     // Now db is locked, so any method that uses db and sends commands to
     // MySQL server will be blocked until Commit or Rollback will be called.
-    
+
     // Commands in transaction are thread safe to
     go func() {
         _, err = tr.Start("insert A values (1, 'jeden')")
@@ -404,14 +406,14 @@ This is improved part of previous example:
     // to transaction before use it.
     _, err = tr.Do(ins).Run(3, "trzy")
     checkError(err)
-    
+
     // For a greater number of calls
     ti := tr.Do(ins)
     _, err = ti.Run(4, "cztery")
     checkError(err)
     _, err = ti.Run(5, "pięć")
     checkError(err)
-    
+
     // At end you can Commit or Rollback. tr is invalidated and any use of it
     // after Commit/Rollback causes panic.
     tr.Commit()
@@ -419,8 +421,8 @@ This is improved part of previous example:
 ### Example 6 - autoreconn interface
 
     import (
-        "github.com/mikespook/mymysql/autorc"
-        _ "github.com/mikespook/mymysql/thrsafe" // You may use native engine to
+        "github.com/ziutek/mymysql/autorc"
+        _ "github.com/ziutek/mymysql/thrsafe" // You may use native engine to
     )
 
     // [...]
@@ -495,10 +497,10 @@ This is improved part of previous example:
     checkErr(err)
 
     for rows.Next() {
-    	var id int
-    	var txt string
-    	checkErr(rows.Scan(&id, &txt))
-    	// Do something with id and txt
+        var id int
+        var txt string
+        checkErr(rows.Scan(&id, &txt))
+        // Do something with id and txt
     }
 
     checkErr(db.Close())
@@ -539,49 +541,49 @@ In case of prepared statements, the type mapping is slightly more complicated.
 For parameters sended from the client to the server, Go/mymysql types are
 mapped for MySQL protocol types as below:
 
-              string  -->  MYSQL_TYPE_STRING
-              []byte  -->  MYSQL_TYPE_VAR_STRING
-         int8, uint8  -->  MYSQL_TYPE_TINY
-       int16, uint16  -->  MYSQL_TYPE_SHORT
-       int32, uint32  -->  MYSQL_TYPE_LONG
-       int64, uint64  -->  MYSQL_TYPE_LONGLONG
-           int, uint  -->  protocol integer type which match size of int
-                bool  -->  MYSQL_TYPE_TINY
-             float32  -->  MYSQL_TYPE_FLOAT
-             float64  -->  MYSQL_TYPE_DOUBLE
-           time.Time  -->  MYSQL_TYPE_DATETIME
-     mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
-          mysql.Date  -->  MYSQL_TYPE_DATE
-       time.Duration  -->  MYSQL_TYPE_TIME
-          mysql.Blob  -->  MYSQL_TYPE_BLOB
-                 nil  -->  MYSQL_TYPE_NULL
+    string  -->  MYSQL_TYPE_STRING
+    []byte  -->  MYSQL_TYPE_VAR_STRING
+    int8, uint8  -->  MYSQL_TYPE_TINY
+    int16, uint16  -->  MYSQL_TYPE_SHORT
+    int32, uint32  -->  MYSQL_TYPE_LONG
+    int64, uint64  -->  MYSQL_TYPE_LONGLONG
+    int, uint  -->  protocol integer type which match size of int
+    bool  -->  MYSQL_TYPE_TINY
+    float32  -->  MYSQL_TYPE_FLOAT
+    float64  -->  MYSQL_TYPE_DOUBLE
+    time.Time  -->  MYSQL_TYPE_DATETIME
+    mysql.Timestamp  -->  MYSQL_TYPE_TIMESTAMP
+    mysql.Date  -->  MYSQL_TYPE_DATE
+    time.Duration  -->  MYSQL_TYPE_TIME
+    mysql.Blob  -->  MYSQL_TYPE_BLOB
+    nil  -->  MYSQL_TYPE_NULL
 
-The MySQL server maps/converts them to a particular MySQL storage type.
+    The MySQL server maps/converts them to a particular MySQL storage type.
 
-For received results MySQL storage types are mapped to Go/mymysql types as
-below:
+    For received results MySQL storage types are mapped to Go/mymysql types as
+    below:
 
-                                 TINYINT  -->  int8
-                        UNSIGNED TINYINT  -->  uint8
-                                SMALLINT  -->  int16
-                       UNSIGNED SMALLINT  -->  uint16
-                          MEDIUMINT, INT  -->  int32
-        UNSIGNED MEDIUMINT, UNSIGNED INT  -->  uint32
-                                  BIGINT  -->  int64
-                         UNSIGNED BIGINT  -->  uint64
-                                   FLOAT  -->  float32
-                                  DOUBLE  -->  float64
-                                 DECIMAL  -->  float64
-                     TIMESTAMP, DATETIME  -->  time.Time
-                                    DATE  -->  mysql.Date
-                                    TIME  -->  time.Duration
-                                    YEAR  -->  int16
-        CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte
-     TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
+    TINYINT  -->  int8
+    UNSIGNED TINYINT  -->  uint8
+    SMALLINT  -->  int16
+    UNSIGNED SMALLINT  -->  uint16
+    MEDIUMINT, INT  -->  int32
+    UNSIGNED MEDIUMINT, UNSIGNED INT  -->  uint32
+    BIGINT  -->  int64
+    UNSIGNED BIGINT  -->  uint64
+    FLOAT  -->  float32
+    DOUBLE  -->  float64
+    DECIMAL  -->  float64
+    TIMESTAMP, DATETIME  -->  time.Time
+    DATE  -->  mysql.Date
+    TIME  -->  time.Duration
+    YEAR  -->  int16
+    CHAR, VARCHAR, BINARY, VARBINARY  -->  []byte
+    TEXT, TINYTEXT, MEDIUMTEXT, LONGTEX  -->  []byte
     BLOB, TINYBLOB, MEDIUMBLOB, LONGBLOB  -->  []byte
-                                     BIT  -->  []byte
-                               SET, ENUM  -->  []byte
-                                    NULL  -->  nil
+    BIT  -->  []byte
+    SET, ENUM  -->  []byte
+    NULL  -->  nil
 
 ## Big packets
 
@@ -611,21 +613,22 @@ connection to MySQL server shared by all gorutines. Applications are usually
 running on dual-core machines with GOMAXPROCS=2. I use *siege* to test any
 application befor put it into production. There is example output from siege:
 
-    # siege my.httpserver.pl -c25 -d0 -t 30s
-    ** SIEGE 2.69
-    ** Preparing 25 concurrent users for battle.
+# siege my.httpserver.pl -c25 -d0 -t 30s
+** SIEGE 2.69
+** Preparing 25 concurrent users for battle.
+          
     The server is now under siege...
     Lifting the server siege..      done.
     Transactions:                   3212 hits
-    Availability:                 100.00 %
-    Elapsed time:                  29.83 secs
+    Availability:                   100.00 %
+    Elapsed time:                   29.83 secs
     Data transferred:               3.88 MB
     Response time:                  0.22 secs
-    Transaction rate:             107.68 trans/sec
-    Throughput:                        0.13 MB/sec
-    Concurrency:                   23.43
+    Transaction rate:               107.68 trans/sec
+    Throughput:                     0.13 MB/sec
+    Concurrency:                    23.43
     Successful transactions:        3218
-    Failed transactions:               0
+    Failed transactions:            0
     Longest transaction:            9.28
     Shortest transaction:           0.01
 
@@ -642,9 +645,9 @@ Workaround: change password using result from MYSQL >= 4.1 *PASSWORD* function
 (you can generate the old password format back using *OLD_PASSWORD* function).
 
 2. There is MySQL "bug" in the *SUM* function. If you use prepared statements
-*SUM* returns *DECIMAL* value, even if you sum integer column. mymysql returns
-decimals as *float64* so cast result from sum to integer (or use *Row.Int*)
-causes panic.
+    *SUM* returns *DECIMAL* value, even if you sum integer column. mymysql returns
+    decimals as *float64* so cast result from sum to integer (or use *Row.Int*)
+    causes panic.
 
 # Documentation
 

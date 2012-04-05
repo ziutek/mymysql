@@ -191,15 +191,13 @@ type Driver struct {
 }
 
 // Open new connection. The uri need to have the following syntax:
-//
 //   [tcp://addr/]dbname/user/password[?params]
 //   [unix://sockpath/]dbname/user/password[?params]
+// 
 // Params need to have the following syntax:
-//
 //   key1=val1&key2=val2
 //
 // Key need to have the following value:
-//
 //   charset - used by 'set names'
 //   keepalive - send a PING to mysql server after every keepalive seconds.
 //
@@ -208,6 +206,11 @@ type Driver struct {
 //   DBNAME/USER/PASSWD?charset=utf8
 //   unix://SOCKPATH/DBNAME/USER/PASSWD
 //   tcp://ADDR/DBNAME/USER/PASSWD?maxidle=3600
+//
+// If a password contains the slashes (/), use a star (*) to repleace it.
+// If a password contains the star (*), use double stars (**) to repleace it.
+//   pass/wd => pass*wd
+//   pass*wd => pass**wd
 func (d *Driver) Open(uri string) (driver.Conn, error) {
         proto, addr, dbname, user, passwd, params, err := parseDSN(uri)
 	if err != nil {
@@ -255,7 +258,7 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 
 func parseDSN(uri string) (proto, addr, dbname, user, passwd string, params map[string]string, err error) {
     proto = "tcp"; addr = "127.0.0.1:3306"
-    //   [tcp:addr/]dbname/user/password[?params]
+    // [tcp:addr/]dbname/user/password[?params]
     s := strings.SplitN(uri, "?", 2)
     // dsn and params
     if len(s) == 2 {
@@ -263,16 +266,33 @@ func parseDSN(uri string) (proto, addr, dbname, user, passwd string, params map[
         params = parseParams(s[1])
     }
     s = strings.SplitN(uri, "://", 2)
-    if len(s) == 2 {
+    hasProto := (len(s) == 2)
+    if hasProto {
         proto = s[0]
         uri = s[1]
     }
     s = strings.SplitN(uri, "/", 4)
     switch(len(s)) {
-    case 3:
+    case 1:
+        dbname = s[0]
+    case 2:
         dbname = s[0]
         user = s[1]
-        passwd = s[2]
+    case 3:
+        if hasProto {
+            if strings.Contains(s[0], ":") {
+                addr = s[0]
+            } else {
+                addr = s[0] + ":3306"
+            }
+            dbname = s[1]
+            user = s[2]
+        } else {
+            dbname = s[0]
+            user = s[1]
+            passwd = strings.Replace(s[2], "*", "/", -1)
+            passwd = strings.Replace(passwd, "//", "*", -1)
+        }
     // protocol has been specifieded.
     case 4 :
         if strings.Contains(s[0], ":") {
@@ -282,7 +302,8 @@ func parseDSN(uri string) (proto, addr, dbname, user, passwd string, params map[
         }
         dbname = s[1]
         user = s[2]
-        passwd = s[3]
+        passwd = strings.Replace(s[3], "*", "/", -1)
+        passwd = strings.Replace(passwd, "//", "*", -1)
     //
     default:
         err = ErrDSN

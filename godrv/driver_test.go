@@ -29,6 +29,9 @@ var (
         "tcp://127.0.0.1/db/user/passwd?charset=utf8",
         "tcp://127.0.0.1:3307/db/user/passwd?charset=utf8&keepalive=3600",
         "db/user",
+        "tcp://127.0.0.1/db/user?charset=utf8",
+        "db/user/pass*wd",
+        "db/user/pass**wd",
     }
 
     dsnr []string = []string{
@@ -36,7 +39,10 @@ var (
         "tcp://127.0.0.1:3306/db/user/passwd",
         "tcp://127.0.0.1:3306/db/user/passwd",
         "tcp://127.0.0.1:3307/db/user/passwd",
-        "",
+        "tcp://127.0.0.1:3306/db/user/",
+        "tcp://127.0.0.1:3306/db/user/",
+        "tcp://127.0.0.1:3306/db/user/pass/wd",
+        "tcp://127.0.0.1:3306/db/user/pass*wd",
     }
 
     p []string = []string{
@@ -45,6 +51,10 @@ var (
         "charset",
         "charset keepalive",
         "",
+        "charset",
+        "",
+        "",
+        "",
     }
 
     e []error = []error{
@@ -52,7 +62,10 @@ var (
         nil,
         nil,
         nil,
-        ErrDSN,
+        nil,
+        nil,
+        nil,
+        nil,
     }
 )
 

@@ -275,7 +275,11 @@ func parseDSN(uri string) (proto, addr, dbname, user, passwd string, params map[
         passwd = s[2]
     // protocol has been specifieded.
     case 4 :
-        addr = s[0]
+        if strings.Contains(s[0], ":") {
+            addr = s[0]
+        } else {
+            addr = s[0] + ":3306"
+        }
         dbname = s[1]
         user = s[2]
         passwd = s[3]

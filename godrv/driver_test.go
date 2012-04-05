@@ -33,8 +33,8 @@ var (
 
     dsnr []string = []string{
         "tcp://127.0.0.1:3306/db/user/passwd",
-        "tcp://127.0.0.1/db/user/passwd",
-        "tcp://127.0.0.1/db/user/passwd",
+        "tcp://127.0.0.1:3306/db/user/passwd",
+        "tcp://127.0.0.1:3306/db/user/passwd",
         "tcp://127.0.0.1:3307/db/user/passwd",
         "",
     }

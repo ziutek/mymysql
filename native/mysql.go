@@ -462,6 +462,7 @@ func (stmt *Stmt) Bind(params ...interface{}) {
 			for ii := 0; ii < stmt.param_count; ii++ {
 				stmt.params[ii] = bindValue(pval.Field(ii))
 			}
+			stmt.binded = true
 			return
 		}
 
@@ -487,6 +488,7 @@ func (stmt *Stmt) Bind(params ...interface{}) {
 		}
 		stmt.params[ii] = bindValue(pval)
 	}
+	stmt.binded = true
 }
 
 // Resets the previous parameter binding
@@ -513,7 +515,7 @@ func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
 	// Bind parameters if any
 	if len(params) != 0 {
 		stmt.Bind(params...)
-	} else if len(stmt.params) != stmt.param_count {
+	} else if stmt.param_count != 0 && !stmt.binded {
 		panic(BIND_COUNT_ERROR)
 	}
 

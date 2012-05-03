@@ -450,6 +450,9 @@ func lenDate(d mysql.Date) int {
 // Borrowed from GoMySQL
 // SHA1(SHA1(SHA1(password)), scramble) XOR SHA1(password)
 func (my *Conn) encryptedPasswd() (out []byte) {
+	if my.passwd == "" {
+		return nil
+	}
 	// Convert password to byte array
 	passbytes := []byte(my.passwd)
 	// stage1_hash = SHA1(password)

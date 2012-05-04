@@ -32,6 +32,7 @@ var (
         "tcp://127.0.0.1/db/user?charset=utf8",
         "db/user/pass*wd",
         "db/user/pass**wd",
+        "db/user/",
     }
 
     dsnr []string = []string{
@@ -43,6 +44,7 @@ var (
         "tcp://127.0.0.1:3306/db/user/",
         "tcp://127.0.0.1:3306/db/user/pass/wd",
         "tcp://127.0.0.1:3306/db/user/pass*wd",
+        "tcp://127.0.0.1:3306/db/user/",
     }
 
     p []string = []string{
@@ -55,9 +57,11 @@ var (
         "",
         "",
         "",
+        "",
     }
 
     e []error = []error{
+        nil,
         nil,
         nil,
         nil,

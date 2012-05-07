@@ -130,13 +130,47 @@ func (c *Conn) Prepare(sql string) (*Stmt, error) {
 
 // Automatic connect/reconnect/repeat version of Exec
 func (s *Stmt) Exec(params ...interface{}) (rows []mysql.Row, res mysql.Result, err error) {
-
 	if err = s.con.connectIfNotConnected(); err != nil {
 		return
 	}
 	nn := 0
 	for {
 		if rows, res, err = s.Raw.Exec(params...); err == nil {
+			return
+		}
+		if s.con.reconnectIfNetErr(&nn, &err); err != nil {
+			return
+		}
+	}
+	panic(nil)
+}
+
+// Automatic connect/reconnect/repeat version of Start
+func (c *Conn) Start(sql string, params ...interface{}) (res mysql.Result, err error) {
+	if err = c.connectIfNotConnected(); err != nil {
+		return
+	}
+	nn := 0
+	for {
+		if res, err = c.Raw.Start(sql, params...); err == nil {
+			return
+		}
+		if c.reconnectIfNetErr(&nn, &err); err != nil {
+			return
+		}
+	}
+	panic(nil)
+}
+
+// Automatic connect/reconnect/repeat version of Run
+func (s *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
+	if err = s.con.connectIfNotConnected(); err != nil {
+		return
+	}
+
+	nn := 0
+	for {
+		if res, err = s.Raw.Run(params...); err == nil {
 			return
 		}
 		if s.con.reconnectIfNetErr(&nn, &err); err != nil {

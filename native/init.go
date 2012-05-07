@@ -36,7 +36,6 @@ func (my *Conn) auth() {
 	if my.Debug {
 		log.Printf("[%2d <-] Authentication packet", my.seq)
 	}
-	pay_len := 4 + 4 + 1 + 23 + len(my.user) + 1 + 1
 	flags := uint32(
 		_CLIENT_PROTOCOL_41 |
 			_CLIENT_LONG_PASSWORD |
@@ -45,26 +44,19 @@ func (my *Conn) auth() {
 			_CLIENT_MULTI_RESULTS |
 			_CLIENT_TRANSACTIONS,
 	)
-	encr_passwd := my.encryptedPasswd()
-	if encr_passwd != nil {
-		pay_len += len(my.info.scramble)
-	}
+	encr_passwd := encryptedPasswd(my.passwd, my.info.scramble)
+	pay_len := 4 + 4 + 1 + 23 + len(my.user) + 1 + 1 + len(encr_passwd)
 	if len(my.dbname) > 0 {
 		pay_len += len(my.dbname) + 1
 		flags |= _CLIENT_CONNECT_WITH_DB
 	}
-
 	pw := my.newPktWriter(pay_len)
 	writeU32(pw, flags)
 	writeU32(pw, uint32(my.max_pkt_size))
 	writeByte(pw, my.info.lang) // Charset number
 	write(pw, make([]byte, 23)) // Filler
 	writeNTS(pw, my.user)       // Username
-	if encr_passwd == nil {
-		writeNTB(pw, nil)
-	} else {
-		writeBin(pw, encr_passwd)   // Encrypted password
-	}
+	writeBin(pw, encr_passwd)   // Encrypted password
 	if len(my.dbname) > 0 {
 		writeNTS(pw, my.dbname)
 	}

@@ -8,8 +8,9 @@ import (
 )
 
 type Result struct {
-	my     *Conn
-	binary bool // Binary result expected
+	my          *Conn
+	status_only bool // true if result doesn't contain result set
+	binary      bool // Binary result expected
 
 	field_count int
 	fields      []*mysql.Field // Fields table
@@ -32,6 +33,12 @@ type Result struct {
 	eor_returned bool
 }
 
+// Returns true if this is status result that includes no result set
+func (res *Result) StatusOnly() bool {
+	return res.status_only
+}
+
+// Returns a table containing descriptions of the columns
 func (res *Result) Fields() []*mysql.Field {
 	return res.fields
 }
@@ -117,6 +124,7 @@ func (my *Conn) getOkPacket(pr *pktReader) (res *Result) {
 		log.Printf("[%2d ->] OK packet:", my.seq-1)
 	}
 	res = new(Result)
+	res.status_only = true
 	res.my = my
 	// First byte was readed by getResult
 	res.affected_rows = readLCB(pr)

@@ -123,8 +123,17 @@ func checkResult(t *testing.T, res, exp *RowsResErr) {
 }
 
 func cmdOK(affected uint64, binary, eor bool) *RowsResErr {
-	return &RowsResErr{res: &Result{my: my.(*Conn), binary: binary, status: 0x2,
-		message: []byte{}, affected_rows: affected, eor_returned: eor}}
+	return &RowsResErr{
+		res: &Result{
+			my:            my.(*Conn),
+			binary:        binary,
+			status_only:   true,
+			status:        0x2,
+			message:       []byte{},
+			affected_rows: affected,
+			eor_returned:  eor,
+		},
+	}
 }
 
 func selectOK(rows []mysql.Row, binary bool) (exp *RowsResErr) {
@@ -1022,7 +1031,60 @@ func TestMediumInt(t *testing.T) {
 	if i != n {
 		t.Fatalf("%d rows read, %d expected", i, n)
 	}
+	checkResult(t, query("drop table mi"), cmdOK(0, false, true))
+}
 
+func TestStoredProcedures(t *testing.T) {
+	myConnect(t, true, 0)
+	query("DROP PROCEDURE pr")
+	query("DROP TABLE p")
+	checkResult(t,
+		query(
+			`CREATE TABLE p (
+				id INT PRIMARY KEY AUTO_INCREMENT,
+				txt VARCHAR(8)	
+			)`,
+		),
+		cmdOK(0, false, true),
+	)
+	_, err := my.Start(
+		`CREATE PROCEDURE pr (IN i INT)
+		BEGIN
+			INSERT p VALUES (0, "aaa");
+			SELECT * FROM p;
+			SELECT i * id FROM p;
+		END`,
+	)
+	checkErr(t, err, nil)
+
+	res, err := my.Start("CALL pr(3)")
+	checkErr(t, err, nil)
+
+	rows, err := res.GetRows()
+	checkErr(t, err, nil)
+	if len(rows) != 1 || len(rows[0]) != 2 || rows[0].Int(0) != 1 || rows[0].Str(1) != "aaa" {
+		t.Fatalf("Bad result set: %+v", rows)
+	}
+
+	res, err = res.NextResult()
+	checkErr(t, err, nil)
+
+	rows, err = res.GetRows()
+	checkErr(t, err, nil)
+	if len(rows) != 1 || len(rows[0]) != 1 || rows[0].Int(0) != 3 {
+		t.Fatalf("Bad result set: %+v", rows)
+	}
+
+	res, err = res.NextResult()
+	checkErr(t, err, nil)
+	if !res.StatusOnly() {
+		t.Fatalf("Result includes resultset at end of procedure: %+v", res)
+	}
+
+	_, err = my.Start("DROP PROCEDURE pr")
+	checkErr(t, err, nil)
+
+	checkResult(t, query("DROP TABLE p"), cmdOK(0, false, true))
 }
 
 // Benchamrks

@@ -1,13 +1,18 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.5 (2012-04-04)
+## MyMySQL v0.4.6 (2012-05-07)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.6
+
+StatusOnly method added to mysql.Result.
+
 #### v0.4.5
 
 New autorc.Conn.PrepareOnce method.
@@ -439,6 +444,34 @@ This is improved part of previous example:
 	}
 
 	checkErr(db.Close())
+
+### Example 8 - use stored procedures
+
+	import (
+		"github.com/ziutek/mymysql/mysql"
+		_ "github.com/ziutek/mymysql/thrsafe" // or native
+	)
+
+	// [...]
+
+	res, err := my.Start("CALL MyProcedure(1, 2, 3)")
+	checkErr(err)
+
+	// If we don't known how many result sets will procedure return (procedure
+	// contains selects in loops), we have to read all results up to the result
+	// that doesn't include result set (status only result).
+	for !res.StatusOnty() {
+		rows, err := res.GetRows()
+		checkErr(err)
+
+		useRows(rows)		
+
+		res, err := res.NextResult()
+		checkErr(err)
+		if res == nil {
+			panic("nil result from procedure")
+		}
+	}
 
 Additional examples are in *examples* directory.
 

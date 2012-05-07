@@ -51,7 +51,9 @@ type Stmt interface {
 }
 
 type Result interface {
+	StatusOnly() bool
 	GetRow() (Row, error)
+
 	MoreResults() bool
 	NextResult() (Result, error)
 

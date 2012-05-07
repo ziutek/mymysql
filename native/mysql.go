@@ -266,10 +266,7 @@ func (my *Conn) getResponse() (res *Result) {
 	if !ok {
 		panic(BAD_RESULT_ERROR)
 	}
-	if res.field_count != 0 {
-		// This query can return rows (this isn't OK result)
-		my.unreaded_reply = true
-	}
+	my.unreaded_reply = !res.StatusOnly()
 	return
 }
 
@@ -316,6 +313,8 @@ func (res *Result) getRow() (row mysql.Row, err error) {
 	return
 }
 
+// Returns true if more results exixts. You don't have to call it before
+// NextResult method (NextResult returns nil if there is no more results).
 func (res *Result) MoreResults() bool {
 	return res.status&_SERVER_MORE_RESULTS_EXISTS != 0
 }
@@ -350,8 +349,12 @@ func (res *Result) nextResult() (next *Result, err error) {
 	return
 }
 
-// This function is used when last query was the multi result query.
-// Return the next result or nil if no more resuts exists.
+// This function is used when last query was the multi result query or
+// procedure call. Returns the next result or nil if no more resuts exists.
+//
+// Statements within the procedure may produce unknown number of result sets.
+// The final result from the procedure is a status result that includes no
+// result set (Result.StatusOnly() == true) .
 func (res *Result) NextResult() (mysql.Result, error) {
 	res, err := res.nextResult()
 	return res, err

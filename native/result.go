@@ -274,7 +274,7 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 				row[ii] = int8(readByte(pr))
 			}
 
-		case MYSQL_TYPE_SHORT:
+		case MYSQL_TYPE_SHORT, MYSQL_TYPE_YEAR:
 			if unsigned {
 				row[ii] = readU16(pr)
 			} else {
@@ -309,13 +309,13 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 				panic("MySQL server returned wrong decimal value: " + dec)
 			}
 
-		case MYSQL_TYPE_STRING, MYSQL_TYPE_VAR_STRING,
-			MYSQL_TYPE_VARCHAR, MYSQL_TYPE_BIT, MYSQL_TYPE_BLOB,
-			MYSQL_TYPE_TINY_BLOB, MYSQL_TYPE_MEDIUM_BLOB,
-			MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET, MYSQL_TYPE_ENUM:
+		case MYSQL_TYPE_STRING, MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_VARCHAR,
+			MYSQL_TYPE_BIT, MYSQL_TYPE_BLOB, MYSQL_TYPE_TINY_BLOB,
+			MYSQL_TYPE_MEDIUM_BLOB, MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET,
+			MYSQL_TYPE_ENUM, MYSQL_TYPE_GEOMETRY:
 			row[ii] = readBin(pr)
 
-		case MYSQL_TYPE_DATE:
+		case MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE:
 			row[ii] = readDate(pr)
 
 		case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
@@ -323,8 +323,6 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result) mysql.Row {
 
 		case MYSQL_TYPE_TIME:
 			row[ii] = readDuration(pr)
-
-		// TODO: MYSQL_TYPE_NEWDATE, MYSQL_TYPE_NEWDECIMAL, MYSQL_TYPE_GEOMETRY
 
 		default:
 			panic(UNK_MYSQL_TYPE_ERROR)

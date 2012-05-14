@@ -482,9 +482,9 @@ This is improved part of previous example:
 	res, err := my.Start("CALL MyProcedure(1, 2, 3)")
 	checkErr(err)
 
-	// If we don't known how many result sets will procedure return (procedure
-	// contains selects in loops), we have to read all results up to the result
-	// that doesn't include result set (status only result).
+	// Procedure can return more than one result set so we have to read all
+	// results up to the result that doesn't include result set (status only
+	// result).
 	for !res.StatusOnly() {
 		rows, err := res.GetRows()
 		checkErr(err)

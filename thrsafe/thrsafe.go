@@ -8,6 +8,7 @@ import (
 	//"log"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native"
+	"io"
 )
 
 type Conn struct {
@@ -84,23 +85,23 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 		c.unlock()
 		return nil, err
 	}
-	if len(res.Fields()) == 0 {
+	if res.StatusOnly() {
 		c.unlock()
 	}
 	return &Result{Result: res, conn: c}, err
 }
 
-func (res *Result) GetRow() (mysql.Row, error) {
-	//log.Println("GetRow")
-	if len(res.Result.Fields()) == 0 {
-		// There is no fields in result (OK result)
-		return nil, nil
-	}
-	row, err := res.Result.GetRow()
-	if err != nil || row == nil && !res.MoreResults() {
+func (res *Result) ScanRow(row mysql.Row) error {
+	//log.Println("ScanRow")
+	err := res.Result.ScanRow(row)
+	if err != nil && (err != io.EOF || !res.StatusOnly() && !res.MoreResults()) {
 		res.conn.unlock()
 	}
-	return row, err
+	return err
+}
+
+func (res *Result) GetRow() (mysql.Row, error) {
+	return mysql.GetRow(res)
 }
 
 func (res *Result) NextResult() (mysql.Result, error) {
@@ -138,7 +139,7 @@ func (stmt *Stmt) Run(params ...interface{}) (mysql.Result, error) {
 		stmt.conn.unlock()
 		return nil, err
 	}
-	if len(res.Fields()) == 0 {
+	if res.StatusOnly() {
 		stmt.conn.unlock()
 	}
 	return &Result{Result: res, conn: stmt.conn}, nil

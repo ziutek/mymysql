@@ -39,6 +39,7 @@ func (my *Conn) auth() {
 	flags := uint32(
 		_CLIENT_PROTOCOL_41 |
 			_CLIENT_LONG_PASSWORD |
+			_CLIENT_LONG_FLAG |
 			_CLIENT_SECURE_CONN |
 			_CLIENT_MULTI_STATEMENTS |
 			_CLIENT_MULTI_RESULTS |

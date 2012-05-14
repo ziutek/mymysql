@@ -52,6 +52,7 @@ type Stmt interface {
 
 type Result interface {
 	StatusOnly() bool
+	ScanRow(Row) error
 	GetRow() (Row, error)
 
 	MoreResults() bool
@@ -64,6 +65,7 @@ type Result interface {
 	InsertId() uint64
 	WarnCount() int
 
+	MakeRow() Row
 	GetRows() ([]Row, error)
 	End() error
 }

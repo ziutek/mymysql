@@ -184,7 +184,7 @@ If you do not want to load the entire result into memory you may use
 
 GetRow method allocates a new chunk of memory for every received row. If your
 query returns hundreds of rows you should rather choose ScanRow method to avoid
-unnecessary:
+unnecessary allocations:
 
 	// Print all rows
 	row := res.MakeRow()
@@ -485,7 +485,7 @@ This is improved part of previous example:
 	// If we don't known how many result sets will procedure return (procedure
 	// contains selects in loops), we have to read all results up to the result
 	// that doesn't include result set (status only result).
-	for !res.StatusOnty() {
+	for !res.StatusOnly() {
 		rows, err := res.GetRows()
 		checkErr(err)
 

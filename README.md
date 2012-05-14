@@ -13,7 +13,7 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because
 it doesn't allocate memory for every row received from server. *godrv*
-Value.Next method now uses new ScanRow.
+Value.Next method now uses new ScanRow method.
 
 #### v0.4.6
 
@@ -182,8 +182,9 @@ If you do not want to load the entire result into memory you may use
 		fmt.Println()
 	}
 
-GetRow method allocates new chunk of memory for every received row. If you reads
-hundreds of rows you should rather choose ScanRow method:
+GetRow method allocates a new chunk of memory for every received row. If your
+query returns hundreds of rows you should rather choose ScanRow method to avoid
+unnecessary:
 
 	// Print all rows
 	row := res.MakeRow()

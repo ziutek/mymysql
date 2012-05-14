@@ -1,13 +1,19 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.6 (2012-05-07)
+## MyMySQL v0.4.7 (2012-05-14)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.7
+
+ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because
+it doesn't allocate memory for every row received from server. *godrv*
+Value.Next method now uses new ScanRow.
 
 #### v0.4.6
 
@@ -175,6 +181,24 @@ If you do not want to load the entire result into memory you may use
 		}
 		fmt.Println()
 	}
+
+GetRow method allocates new chunk of memory for every received row. If you reads
+hundreds of rows you should rather choose ScanRow method:
+
+	// Print all rows
+	row := res.MakeRow()
+	for {
+		err := res.ScanRow(row)
+		if err == io.EOF {
+			// No more rows
+			break
+		}
+		checkError(err)
+
+		// Print all cols
+		// [...]
+	}
+
 
 ### Example 2 - prepared statements
 

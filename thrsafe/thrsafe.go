@@ -28,11 +28,11 @@ type Conn struct {
 func (c *Conn) lock() {
 	//log.Println(c, ":: lock @", c.mutex)
 	c.mutex.Lock()
-	c.lastUsed = time.Now()
 }
 
 func (c *Conn) unlock() {
 	//log.Println(c, ":: unlock @", c.mutex)
+	c.lastUsed = time.Now()
 	c.mutex.Unlock()
 }
 

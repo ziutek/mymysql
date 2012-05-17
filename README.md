@@ -411,7 +411,7 @@ This is improved part of previous example:
     // local server using default protocol). Currently possible forms:
     //   DBNAME/USER/PASSWD?charset=utf8
     //   unix://SOCKPATH/DBNAME/USER/PASSWD
-    //   tcp://ADDR/DBNAME/USER/PASSWD?maxidle=3600
+    //   tcp://ADDR/DBNAME/USER/PASSWD?keepalive=3600
 
 	// Register initialisation commands
 	// (workaround, see http://codereview.appspot.com/5706047)

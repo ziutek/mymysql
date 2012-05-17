@@ -130,7 +130,7 @@ func (my *Conn) connect() (err error) {
 	// Initialisation
 	my.init()
 	my.auth()
-	my.getResult(nil)
+	my.getResult(nil, nil)
 
 	// Execute all registered commands
 	for _, cmd := range my.init_cmds {
@@ -139,18 +139,15 @@ func (my *Conn) connect() (err error) {
 		// Get command response
 		res := my.getResponse()
 
-		if res.field_count == 0 {
+		if res.StatusOnly() {
 			// No fields in result (OK result)
 			continue
 		}
 		// Read and discard all result rows
-		var row mysql.Row
+		row := res.MakeRow()
 		for {
-			row, err = res.getRow()
-			if err != nil {
-				return
-			}
-			if row == nil {
+			err = res.getRow(row)
+			if err == io.EOF {
 				res, err = res.nextResult()
 				if err != nil {
 					return
@@ -159,6 +156,10 @@ func (my *Conn) connect() (err error) {
 					// No more rows and results from this cmd
 					break
 				}
+				row = res.MakeRow()
+			}
+			if err != nil {
+				return
 			}
 		}
 	}
@@ -259,7 +260,7 @@ func (my *Conn) Use(dbname string) (err error) {
 	// Send command
 	my.sendCmd(_COM_INIT_DB, dbname)
 	// Get server response
-	my.getResult(nil)
+	my.getResult(nil, nil)
 	// Save new database name if no errors
 	my.dbname = dbname
 
@@ -267,14 +268,11 @@ func (my *Conn) Use(dbname string) (err error) {
 }
 
 func (my *Conn) getResponse() (res *Result) {
-	res, ok := my.getResult(nil).(*Result)
-	if !ok {
+	res = my.getResult(nil, nil)
+	if res == nil {
 		panic(BAD_RESULT_ERROR)
 	}
-	if res.field_count != 0 {
-		// This query can return rows (this isn't OK result)
-		my.unreaded_reply = true
-	}
+	my.unreaded_reply = !res.StatusOnly()
 	return
 }
 
@@ -304,47 +302,50 @@ func (my *Conn) Start(sql string, params ...interface{}) (res mysql.Result, err 
 	return
 }
 
-func (res *Result) getRow() (row mysql.Row, err error) {
+func (res *Result) getRow(row mysql.Row) (err error) {
 	defer catchError(&err)
 
-	switch result := res.my.getResult(res).(type) {
-	case mysql.Row:
-		// Row of data
-		row = result
-
-	case *Result:
-		// EOF result
-
-	default:
-		err = BAD_RESULT_ERROR
+	if res.my.getResult(res, row) != nil {
+		return io.EOF
 	}
-	return
+	return nil
 }
 
+// Returns true if more results exixts. You don't have to call it before
+// NextResult method (NextResult returns nil if there is no more results).
 func (res *Result) MoreResults() bool {
 	return res.status&_SERVER_MORE_RESULTS_EXISTS != 0
 }
 
-// Get the data row from server. This method reads one row of result directly
-// from network connection (without rows buffering on client side).
-func (res *Result) GetRow() (row mysql.Row, err error) {
-	if res.eor_returned {
-		err = READ_AFTER_EOR_ERROR
-		return
+// Get the data row from server. This method reads one row of result set
+// directly from network connection (without rows buffering on client side).
+// Returns io.EOF if there is no more rows in current result set.
+func (res *Result) ScanRow(row mysql.Row) error {
+	if row == nil {
+		return ROW_LENGTH_ERROR
 	}
-	if res.field_count == 0 {
+	if res.eor_returned {
+		return READ_AFTER_EOR_ERROR
+	}
+	if res.StatusOnly() {
 		// There is no fields in result (OK result)
 		res.eor_returned = true
-		return
+		return io.EOF
 	}
-	row, err = res.getRow()
-	if err == nil && row == nil {
+	err := res.getRow(row)
+	if err == io.EOF {
 		res.eor_returned = true
 		if !res.MoreResults() {
 			res.my.unreaded_reply = false
 		}
 	}
-	return
+	return err
+}
+
+// Like ScanRow but allocates memory for every row.
+// Returns nil row insted of io.EOF error.
+func (res *Result) GetRow() (mysql.Row, error) {
+	return mysql.GetRow(res)
 }
 
 func (res *Result) nextResult() (next *Result, err error) {
@@ -355,8 +356,12 @@ func (res *Result) nextResult() (next *Result, err error) {
 	return
 }
 
-// This function is used when last query was the multi result query.
-// Return the next result or nil if no more resuts exists.
+// This function is used when last query was the multi result query or
+// procedure call. Returns the next result or nil if no more resuts exists.
+//
+// Statements within the procedure may produce unknown number of result sets.
+// The final result from the procedure is a status result that includes no
+// result set (Result.StatusOnly() == true) .
 func (res *Result) NextResult() (mysql.Result, error) {
 	res, err := res.nextResult()
 	return res, err
@@ -376,7 +381,7 @@ func (my *Conn) Ping() (err error) {
 	// Send command
 	my.sendCmd(_COM_PING)
 	// Get server response
-	my.getResult(nil)
+	my.getResult(nil, nil)
 
 	return
 }
@@ -572,7 +577,7 @@ func (stmt *Stmt) Reset() (err error) {
 	// Send command
 	stmt.my.sendCmd(_COM_STMT_RESET, stmt.id)
 	// Get result
-	stmt.my.getResult(nil)
+	stmt.my.getResult(nil, nil)
 	return
 }
 

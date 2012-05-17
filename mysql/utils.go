@@ -1,5 +1,9 @@
 package mysql
 
+import (
+	"io"
+)
+
 // This call Start and next call GetRow as long as it reads all rows from the
 // result. Next it returns all readed rows as the slice of rows.
 func Query(c Conn, sql string, params ...interface{}) (rows []Row, res Result, err error) {
@@ -21,6 +25,21 @@ func Exec(s Stmt, params ...interface{}) (rows []Row, res Result, err error) {
 	rows, err = GetRows(res)
 	return
 }
+
+// Calls r.MakeRow and next r.ScanRow. Doesn't return io.EOF error (returns nil
+// row insted).
+func GetRow(r Result) (Row, error) {
+	row := r.MakeRow()
+	err := r.ScanRow(row)
+	if err == io.EOF {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return row, nil
+}
+
 
 // Read all unreaded rows and discard them. This function is useful if you
 // don't want to use the remaining rows. It has an impact only on current

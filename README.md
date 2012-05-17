@@ -1,13 +1,24 @@
 Sorry for my poor English. If you can help in improving English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.5 (2012-04-04)
+## MyMySQL v0.4.7 (2012-05-14)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.7
+
+ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because
+it doesn't allocate memory for every row received from server. *godrv*
+Value.Next method now uses new ScanRow method.
+
+#### v0.4.6
+
+StatusOnly method added to mysql.Result.
+
 #### v0.4.5
 
 1. New autorc.Conn.PrepareOnce method.
@@ -168,6 +179,25 @@ If you do not want to load the entire result into memory you may use
 		}
 		fmt.Println()
 	}
+
+GetRow method allocates a new chunk of memory for every received row. If your
+query returns hundreds of rows you should rather choose ScanRow method to avoid
+unnecessary allocations:
+
+	// Print all rows
+	row := res.MakeRow()
+	for {
+		err := res.ScanRow(row)
+		if err == io.EOF {
+			// No more rows
+			break
+		}
+		checkError(err)
+
+		// Print all cols
+		// [...]
+	}
+
 
 ### Example 2 - prepared statements
 
@@ -446,6 +476,34 @@ This is improved part of previous example:
 	}
 
 	checkErr(db.Close())
+
+### Example 8 - use stored procedures
+
+	import (
+		"github.com/ziutek/mymysql/mysql"
+		_ "github.com/ziutek/mymysql/thrsafe" // or native
+	)
+
+	// [...]
+
+	res, err := my.Start("CALL MyProcedure(1, 2, 3)")
+	checkErr(err)
+
+	// Procedure can return more than one result set so we have to read all
+	// results up to the result that doesn't include result set (status only
+	// result).
+	for !res.StatusOnly() {
+		rows, err := res.GetRows()
+		checkErr(err)
+
+		useRows(rows)		
+
+		res, err := res.NextResult()
+		checkErr(err)
+		if res == nil {
+			panic("nil result from procedure")
+		}
+	}
 
 Additional examples are in *examples* directory.
 

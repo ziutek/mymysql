@@ -19,7 +19,7 @@ var (
 	UNREADED_REPLY_ERROR  = errors.New("reply is not completely read")
 	BIND_COUNT_ERROR      = errors.New("wrong number of values for bind")
 	BIND_UNK_TYPE         = errors.New("unknown value type for bind")
-	RESULT_COUNT_ERROR    = errors.New("wrong number of result columns")
+	ROW_LENGTH_ERROR      = errors.New("wrong length of row slice")
 	BAD_COMMAND_ERROR     = errors.New("comand isn't text SQL nor *Stmt")
 	WRONG_DATE_LEN_ERROR  = errors.New("wrong datetime/timestamp length")
 	WRONG_TIME_LEN_ERROR  = errors.New("wrong time length")

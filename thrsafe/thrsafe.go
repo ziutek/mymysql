@@ -1,6 +1,11 @@
 // Thread safe engine for MyMySQL
-
-// See documentation of mymysql/native for details/
+//
+// In contrast to native engine:
+// - one connection can be used by multiple gorutines,
+// - if connection is idle pings are sent to the server (once per minute) to
+//   avoid timeout.
+//
+// See documentation of mymysql/native for details
 package thrsafe
 
 import (
@@ -9,11 +14,15 @@ import (
 	"github.com/mikespook/mymysql/mysql"
 	_ "github.com/mikespook/mymysql/native"
 	"io"
+	"time"
 )
 
 type Conn struct {
 	mysql.Conn
 	mutex *sync.Mutex
+
+	stopPinger chan struct{}
+	lastUsed   time.Time
 }
 
 func (c *Conn) lock() {
@@ -23,6 +32,7 @@ func (c *Conn) lock() {
 
 func (c *Conn) unlock() {
 	//log.Println(c, ":: unlock @", c.mutex)
+	c.lastUsed = time.Now()
 	c.mutex.Unlock()
 }
 
@@ -43,8 +53,31 @@ type Transaction struct {
 
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &Conn{
-		Conn:  orgNew(proto, laddr, raddr, user, passwd, db...),
-		mutex: new(sync.Mutex),
+		Conn:       orgNew(proto, laddr, raddr, user, passwd, db...),
+		mutex:      new(sync.Mutex),
+	}
+}
+
+func (c *Conn) pinger() {
+	c.stopPinger = make(chan struct{})
+	defer func() { c.stopPinger = nil }()
+
+	const to = 60 * time.Second
+	sleep := to
+	for {
+		timer := time.After(sleep)
+		select {
+		case <-c.stopPinger:
+			return
+		case t := <-timer:
+			sleep := to - t.Sub(c.lastUsed)
+			if sleep <= 0 {
+				if c.Ping() != nil {
+					return
+				}
+				sleep = to
+			}
+		}
 	}
 }
 
@@ -52,11 +85,13 @@ func (c *Conn) Connect() error {
 	//log.Println("Connect")
 	c.lock()
 	defer c.unlock()
+	go c.pinger()
 	return c.Conn.Connect()
 }
 
 func (c *Conn) Close() error {
 	//log.Println("Close")
+	close(c.stopPinger) // Stop pinger before lock connection
 	c.lock()
 	defer c.unlock()
 	return c.Conn.Close()
@@ -66,6 +101,9 @@ func (c *Conn) Reconnect() error {
 	//log.Println("Reconnect")
 	c.lock()
 	defer c.unlock()
+	if c.stopPinger == nil {
+		go c.pinger()
+	}
 	return c.Conn.Reconnect()
 }
 
@@ -184,11 +222,13 @@ func (res *Result) GetRows() ([]mysql.Row, error) {
 
 // Begins a new transaction. No any other thread can send command on this
 // connection until Commit or Rollback will be called.
+// Periodical pinging the server is disabled during transaction.
+
 func (c *Conn) Begin() (mysql.Transaction, error) {
 	//log.Println("Begin")
 	c.lock()
 	tr := Transaction{
-		&Conn{c.Conn, new(sync.Mutex)},
+		&Conn{Conn: c.Conn, mutex: new(sync.Mutex)},
 		c,
 	}
 	_, err := c.Conn.Start("START TRANSACTION")

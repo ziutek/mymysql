@@ -13,7 +13,7 @@ import (
 func IsNetErr(err error) bool {
 	if err == io.ErrUnexpectedEOF {
 		return true
-	} else if e, ok := err.(net.Error); ok && e.Temporary() {
+	} else if _, ok := err.(net.Error); ok {
 		return true
 	}
 	return false

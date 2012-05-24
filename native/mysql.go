@@ -100,6 +100,7 @@ func (my *Conn) connect() (err error) {
 			}
 		}
 		if my.net_conn, err = net.DialTCP(my.proto, la, ra); err != nil {
+			my.net_conn = nil
 			return
 		}
 
@@ -116,6 +117,7 @@ func (my *Conn) connect() (err error) {
 			}
 		}
 		if my.net_conn, err = net.DialUnix(my.proto, la, ra); err != nil {
+			my.net_conn = nil
 			return
 		}
 

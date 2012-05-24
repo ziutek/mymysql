@@ -117,7 +117,12 @@ func checkErrWarnRows(t *testing.T, res, exp *RowsResErr) {
 
 func checkResult(t *testing.T, res, exp *RowsResErr) {
 	checkErrWarnRows(t, res, exp)
-	if !reflect.DeepEqual(res.res, exp.res) {
+	r, e := res.res.(*Result), exp.res.(*Result)
+	if r.my != e.my || r.binary != e.binary || r.status_only != e.status_only ||
+		r.status&0xdf != e.status || !bytes.Equal(r.message, e.message) ||
+		r.affected_rows != e.affected_rows ||
+		r.eor_returned != e.eor_returned ||
+		!reflect.DeepEqual(res.rows, exp.rows) || res.err != exp.err {
 		t.Fatalf("Bad result:\nres=%+v\nexp=%+v", res.res, exp.res)
 	}
 }

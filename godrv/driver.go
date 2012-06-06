@@ -234,5 +234,6 @@ func Register(query string) {
 }
 
 func init() {
+	Register("SET NAMES utf8")
 	sql.Register("mymysql", &d)
 }

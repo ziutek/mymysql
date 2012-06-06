@@ -438,7 +438,7 @@ This is improved part of previous example:
 
 	// Register initialisation commands
 	// (workaround, see http://codereview.appspot.com/5706047)
-	godrv.Register("SET NAMES utf8")
+	godrv.Register("SET NAMES latin2") // Overrides default utf8
 	godrv.Register("CREATE TABLE IF NOT EXISTS my_table ( ... )")
 
 	// Create a connection handler

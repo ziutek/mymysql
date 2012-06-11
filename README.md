@@ -1,4 +1,4 @@
-Sorry for my poor English. If you can help in improving English in this
+Sorry for my poor English. If you can help with improving the English in this
 documentation, please contact me.
 
 ## MyMySQL v0.4.7 (2012-05-14)
@@ -12,8 +12,8 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 #### v0.4.7
 
 ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because
-it doesn't allocate memory for every row received from server. *godrv*
-Value.Next method now uses new ScanRow method.
+it doesn't allocate memory for every row received from the server. *godrv*
+Value.Next method now uses the new ScanRow method.
 
 #### v0.4.6
 
@@ -30,12 +30,12 @@ New autorc.Conn.PrepareOnce method.
 
 #### v0.4.3
 
-1. Fixed issue with panic when server returns MYSQL_TYPE_NEWDECIMAL.
-2. Decimals are returned as float64 (previous they were returned as []byte).
+1. Fixed issue with panic when the server returns MYSQL_TYPE_NEWDECIMAL.
+2. Decimals are returned as float64 (previously they were returned as []byte).
 
 #### v0.4.2
 
-1. A lot of changes in MySQL time handling:
+1. A lot of changes with MySQL time handling:
 
 - Datetime type replaced by time.Time.
 - Time type replaced by time.Duration.
@@ -61,10 +61,10 @@ common (engine-independent) functions.
 
 2. *mysql.New* and other functions returns mostly interface types. So all
 previously exported members were converted to methods (with except *mysql.Row*
-and *mysql.Field* - they deffinition didn't changed).
+and *mysql.Field* - their definition didn't changed).
 
 3. Transactions added. If you use *mymysql/thrsafe" engine transactions are
-full thread safe.
+fully thread safe.
 
 4. Driver for *exp/sql*.
 
@@ -76,20 +76,20 @@ To install all subpackages of *mymysql* you need to goinstal three of them:
 	$ go get github.com/ziutek/mymysql/autorc
 	$ go get github.com/ziutek/mymysql/godrv
 
-*go get* automagicly select proper version of *mymysql* for your Go release.
-After this command *mymysql* is ready to use.
+*go get* automagically selects the proper version of *mymysql* for your Go 
+release. After this command *mymysql* is ready to use.
 
 ## Testing
 
-For testing you need test database and test user:
+For testing you will need to create the test database and a test user:
 
 	mysql> create database test;
 	mysql> grant all privileges on test.* to testuser@localhost;
 	mysql> set password for testuser@localhost = password("TestPasswd9")
 
-Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is equal or greater than 34M (needed to test long packets).
+Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is equal or greater than 34M (In order to test long packets).
 
-The default MySQL test server address is *127.0.0.1:3306*.
+The default MySQL server address is *127.0.0.1:3306*.
 
 Next run tests:
 
@@ -183,7 +183,7 @@ If you do not want to load the entire result into memory you may use
 	}
 
 GetRow method allocates a new chunk of memory for every received row. If your
-query returns hundreds of rows you should rather choose ScanRow method to avoid
+query returns hundreds of rows you should opt for the ScanRow method to avoid
 unnecessary allocations:
 
 	// Print all rows
@@ -226,24 +226,24 @@ You can use *Run* or *Exec* method for prepared statements:
 		checkError(err)
 	}
 
-*getData* is your function which retrieves data from somewhere and set *Id* and
+*getData* is the function which retrieves data from somewhere and set *Id* and
 *Tax* fields of the Data struct. In the case of *Tax* field *getData* may
-assign pointer to retieved variable or nil if NULL should be stored in
+assign a pointer the retrieved variable or nil if NULL should be stored in
 database.
 
-If you pass parameters to *Run* or *Exec* method, data are rebinded on every
-method call. It isn't efficient if statement is executed more than once. You
-can bind parameters and use *Run* or *Exec* method without parameters, to avoid
+If you pass parameters to *Run* or *Exec* method, the data is rebound on every
+method call. This isn't efficient if the statement will be executed more than once. 
+You can bind parameters and use *Run* or *Exec* method without parameters, to avoid
 these unnecessary rebinds. Warning! If you use *Bind* in multithreaded
-application, you should be sure that no other thread will use *Bind* for the
-same statement, until you no longer need binded parameters.
+applications, you should ensure that no other thread will use *Bind* for the
+same statement, until you no longer need bound parameters.
 
 The simplest way to bind parameters is:
 
 	stmt.Bind(data.Id, data.Tax)
 
-but you can't use it in our example, becouse parameters binded this way can't
-be changed by *getData* function. You may modify bind like this:
+but you can't use it in our example, because parameters bound this way can't
+be changed by *getData* function. You may modify bindings like this:
 
 	stmt.Bind(&data.Id, &data.Tax)
 
@@ -253,9 +253,9 @@ and now it should work properly. But in our example there is better solution:
 
 If *Bind* method has one parameter, and this parameter is a struct or
 a pointer to the struct, it treats all fields of this struct as parameters and
-bind them,
+binds them.
 
-This is improved part of previous example:
+This is the improved code of the previous example:
 
 	data = new(Data)
 	stmt.Bind(data)
@@ -350,7 +350,7 @@ This is improved part of previous example:
 	)
 	// [...]
 
-	// Statement prepared before transaction begin
+	// Statement prepared before transaction begins
 	ins, err := db.Prepare("insert A values (?, ?)")
 	checkError(err)
 
@@ -359,7 +359,7 @@ This is improved part of previous example:
 	checkError(err)
 
 	// Now db is locked, so any method that uses db and sends commands to
-	// MySQL server will be blocked until Commit or Rollback will be called.
+	// MySQL server will be blocked until Commit or Rollback is called.
 
 	// Commands in transaction are thread safe to
 	go func() {
@@ -369,28 +369,28 @@ This is improved part of previous example:
 	_, err = tr.Start("insert A values (2, 'dwa')")
 	checkError(err)
 
-	// You can't use statements prepared before transaction in usual way,
-	// because connection is locked by Begin method. You must bind statement
-	// to transaction before use it.
-	_, err = tr.Do(ins).Run(3, "trzy")
+	// You can't use statements prepared before transaction in the usual way,
+	// because the connection is locked by the Begin method. You must bind the statement
+	// to the transaction before using it.
+	_, err = tr.Do(ins).Run(3, "three")
 	checkError(err)
 
 	// For a greater number of calls
 	ti := tr.Do(ins)
-	_, err = ti.Run(4, "cztery")
+	_, err = ti.Run(4, "four")
 	checkError(err)
-	_, err = ti.Run(5, "pięć")
+	_, err = ti.Run(5, "five")
 	checkError(err)
 
-	// At end you can Commit or Rollback. tr is invalidated and any use of it
-	// after Commit/Rollback causes panic.
+	// At the end you can Commit or Rollback. tr is invalidated and using it
+	// after Commit/Rollback will cause a panic.
 	tr.Commit()
 
 ### Example 6 - autoreconn interface
 
 	import (
 		"github.com/ziutek/mymysql/autorc"
-		_ "github.com/ziutek/mymysql/thrsafe" // You may use native engine to
+		_ "github.com/ziutek/mymysql/thrsafe" // You may also use the native engine
 	)
 
 	// [...]
@@ -415,7 +415,7 @@ This is improved part of previous example:
 	sel, err := db.Prepare("SELECT name FROM R where id > ?")
 	checkError(err)
 
-	// We can destroy our connection on server side
+	// We can destroy our connection server side
 	_, _, err = db.Query("kill %d", db.Raw.ThreadId())
 	checkError(err)
 
@@ -430,7 +430,7 @@ This is improved part of previous example:
 	//
 	//   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
 	//
-	// where protocol spercific part may be empty (this means connection to
+	// where protocol specific part may be empty (this means connection to
 	// local server using default protocol). Currently possible forms:
 	//   DBNAME/USER/PASSWD
 	//   unix:SOCKPATH*DBNAME/USER/PASSWD
@@ -445,7 +445,7 @@ This is improved part of previous example:
 	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
 	checkErr(err)
 
-	// For other information about database/sql see its own documentation.
+	// For other information about database/sql see its documentation.
 
 	ins, err := db.Prepare("INSERT my_table SET txt=?")
 	checkErr(err)
@@ -503,19 +503,19 @@ Additional examples are in *examples* directory.
 ## Type mapping
 
 In the case of classic text queries, all variables that are sent to the MySQL
-server are embded in text query. Thus you allways convert them to a string and
-send embded in SQL query:
+server are embedded in the text query. Thus you always convert them to a string and
+send them embedded in an SQL query:
 
 	rows, res, err := db.Query("select * from X where id > %d", id)
 
 After text query you always receive a text result. Mysql text result
 corresponds to *[]byte* type in mymysql. It isn't *string* type due to
-avoidance of unnecessary type conversions. You can allways convert *[]byte* to
+avoidance of unnecessary type conversions. You can always convert *[]byte* to
 *string* yourself:
 
 	fmt.Print(string(rows[0][1].([]byte)))
 
-or usnig *Str* helper method:
+or using *Str* helper method:
 
 	fmt.Print(rows[0].Str(1))
 
@@ -531,7 +531,7 @@ corresponding indexes:
 	fmt.Print(rows[0].Str(name))
 
 In case of prepared statements, the type mapping is slightly more complicated.
-For parameters sended from the client to the server, Go/mymysql types are
+For parameters sent from the client to the server, Go/mymysql types are
 mapped for MySQL protocol types as below:
 
 	         string  -->  MYSQL_TYPE_STRING
@@ -582,10 +582,10 @@ below:
 
 This package can send and receive MySQL data packets that are biger than 16 MB.
 This means that you can receive response rows biger than 16 MB and can execute
-prepared statements with parameter data biger than 16 MB without using
-SendLongData method. If you want to use this feature you need to change default
-mymysql settings using *Conn.SetMaxPktSize* method and change
-*max_allowed_packet* value in MySQL server configuration.
+prepared statements with parameter data bigger than 16 MB without using
+SendLongData method. If you want to use this feature you need to change the default
+mymysql setting using the *Conn.SetMaxPktSize* method and change
+*max_allowed_packet* value in your MySQL server configuration.
 
 ## Thread safe engine
 
@@ -601,7 +601,7 @@ blocked if they call *Query*, *Start*, *Exec*, *Run* or other method which send
 data to the server,  until all results and all rows  will be readed from
 the connection in first thread.
 
-In most of my web applications I use *autorecon* interface with *thrsafe* engine.
+In most of my web applications I use the *autorecon* interface with *thrsafe* engine.
 For any new connection, one gorutine is created. There is one persistant
 connection to MySQL server shared by all gorutines. Applications are usually
 running on dual-core machines with GOMAXPROCS=2. I use *siege* to test any

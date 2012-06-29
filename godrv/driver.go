@@ -340,5 +340,6 @@ func RegisterFunc(f mysql.RegFunc) {
 
 
 func init() {
+	Register("SET NAMES utf8")
 	sql.Register("mymysql", &d)
 }

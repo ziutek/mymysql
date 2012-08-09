@@ -92,6 +92,9 @@ loop:
 			res = my.getResSetHeadPacket(pr)
 			// Read next packet
 			goto loop
+		case pkt0 == 254:
+			// EOF packet (without body)
+			return nil
 		}
 	} else {
 		switch {

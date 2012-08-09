@@ -2,6 +2,7 @@ package native
 
 import (
 	"crypto/sha1"
+	"math"
 )
 
 // Borrowed from GoMySQL
@@ -33,8 +34,41 @@ func encryptedPasswd(password string, scramble []byte) (out []byte) {
 	return
 }
 
-// libmysql/password.c hash_password function translated to Go
-func hash_password(password []byte) (result [2]uint32) {
+// Old password handling based on translating to Go some functions from
+// libmysql
+
+// The main idea is that no password are sent between client & server on
+// connection and that no password are saved in mysql in a decodable form.
+//
+// On connection a random string is generated and sent to the client.
+// The client generates a new string with a random generator inited with
+// the hash values from the password and the sent string.
+// This 'check' string is sent to the server where it is compared with
+// a string generated from the stored hash_value of the password and the
+// random string.
+
+// libmysql/my_rnd.c
+type myRnd struct {
+	seed1, seed2 uint32
+}
+
+const myRndMaxVal = 0x3FFFFFFF
+
+func newMyRnd(seed1, seed2 uint32) *myRnd {
+	r := new(myRnd)
+	r.seed1 = seed1 % myRndMaxVal
+	r.seed2 = seed2 % myRndMaxVal
+	return r
+}
+
+func (r *myRnd) Float64() float64 {
+	r.seed1 = (r.seed1*3 + r.seed2) % myRndMaxVal
+	r.seed2 = (r.seed1 + r.seed2 + 33) % myRndMaxVal
+	return float64(r.seed1) / myRndMaxVal
+}
+
+// libmysql/password.c
+func pwHash(password []byte) (result [2]uint32) {
 	var nr, add, nr2, tmp uint32
 	nr, add, nr2 = 1345345333, 7, 0x12345671
 
@@ -54,9 +88,21 @@ func hash_password(password []byte) (result [2]uint32) {
 	return
 }
 
-func encryptedOldPassword(password string, scramble []byte) (out []byte) {
+func encryptedOldPassword(password string, scramble []byte) []byte {
 	if len(password) == 0 {
-		return
+		return nil
 	}
-	return
+	scramble = scramble[:8]
+	hashPw := pwHash([]byte(password))
+	hashSc := pwHash(scramble)
+	r := newMyRnd(hashPw[0]^hashSc[0], hashPw[1]^hashSc[1])
+	var out [8]byte
+	for i := range out {
+		out[i] = byte(math.Floor(r.Float64()*31) + 64)
+	}
+	extra := byte(math.Floor(r.Float64() * 31))
+	for i := range out {
+		out[i] ^= extra
+	}
+	return out[:]
 }

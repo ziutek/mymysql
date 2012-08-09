@@ -28,4 +28,6 @@ var (
 	UNK_DATA_TYPE_ERROR   = errors.New("unknown data source type")
 	SMALL_PKT_SIZE_ERROR  = errors.New("specified packet size is to small")
 	READ_AFTER_EOR_ERROR  = errors.New("previous GetRow call returned nil row")
+	OLD_PROTOCOL_ERROR    = errors.New("server does not support 4.1 protocol")
+	AUTHENTICATION_ERROR  = errors.New("authentication error")
 )

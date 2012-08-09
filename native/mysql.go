@@ -131,7 +131,15 @@ func (my *Conn) connect() (err error) {
 	// Initialisation
 	my.init()
 	my.auth()
-	my.getResult(nil, nil)
+	res := my.getResult(nil, nil)
+	if res == nil {
+		// Try old password
+		my.oldPasswd()
+		res = my.getResult(nil, nil)
+		if res == nil {
+			return AUTHENTICATION_ERROR
+		}
+	}
 
 	// Execute all registered commands
 	for _, cmd := range my.init_cmds {

@@ -23,15 +23,15 @@ func (my *Conn) init() {
 	read(pr, 13)
 	if my.info.caps&_CLIENT_PROTOCOL_41 != 0 {
 		readFull(pr, my.info.scramble[8:])
-	} else {
-		panic(OLD_PROTOCOL_ERROR)
 	}
 	pr.readAll() // Skip other information
-
 	if my.Debug {
 		log.Printf(tab8s+"ProtVer=%d, ServVer=\"%s\" Status=0x%x",
 			my.info.prot_ver, my.info.serv_ver, my.status,
 		)
+	}
+	if my.info.caps&_CLIENT_PROTOCOL_41 == 0 {
+		panic(OLD_PROTOCOL_ERROR)
 	}
 }
 

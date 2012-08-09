@@ -632,12 +632,7 @@ application befor put it into production. There is example output from siege:
 
 ## Known bugs
 
-1. Old passwords don't work: you obtain *UNK_RESULT_PKT_ERROR* if you try connect
-to MySQL server as user which have old password format in *user* table.
-Workaround: change password using result from MYSQL >= 4.1 *PASSWORD* function
-(you can generate the old password format back using *OLD_PASSWORD* function).
-
-2. There is MySQL "bug" in the *SUM* function. If you use prepared statements
+1. There is MySQL "bug" in the *SUM* function. If you use prepared statements
 *SUM* returns *DECIMAL* value, even if you sum integer column. mymysql returns
 decimals as *float64* so cast result from sum to integer (or use *Row.Int*)
 causes panic.

@@ -10,7 +10,7 @@ package thrsafe
 
 import (
 	"sync"
-	//"log"
+	//	"log"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native"
 	"io"
@@ -21,8 +21,9 @@ type Conn struct {
 	mysql.Conn
 	mutex *sync.Mutex
 
-	stopPinger chan struct{}
-	lastUsed   time.Time
+	stopPinger     chan struct{}
+	lastUsed       time.Time
+	multiResultSet bool
 }
 
 func (c *Conn) lock() {
@@ -53,8 +54,8 @@ type Transaction struct {
 
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &Conn{
-		Conn:       orgNew(proto, laddr, raddr, user, passwd, db...),
-		mutex:      new(sync.Mutex),
+		Conn:  orgNew(proto, laddr, raddr, user, passwd, db...),
+		mutex: new(sync.Mutex),
 	}
 }
 
@@ -123,7 +124,8 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 		c.unlock()
 		return nil, err
 	}
-	if res.StatusOnly() {
+	c.multiResultSet = res.MoreResults()
+	if res.StatusOnly() && !res.MoreResults() {
 		c.unlock()
 	}
 	return &Result{Result: res, conn: c}, err
@@ -132,7 +134,7 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 func (res *Result) ScanRow(row mysql.Row) error {
 	//log.Println("ScanRow")
 	err := res.Result.ScanRow(row)
-	if err != nil && (err != io.EOF || !res.StatusOnly() && !res.MoreResults()) {
+	if err != nil && (err != io.EOF || !res.MoreResults() && (!res.conn.multiResultSet && !res.StatusOnly() || res.conn.multiResultSet)) {
 		res.conn.unlock()
 	}
 	return err

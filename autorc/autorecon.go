@@ -92,6 +92,40 @@ func (c *Conn) Query(sql string, params ...interface{}) (rows []mysql.Row, res m
 	panic(nil)
 }
 
+func (c *Conn) QueryFirst(sql string, params ...interface{}) (row mysql.Row, res mysql.Result, err error) {
+
+	if err = c.connectIfNotConnected(); err != nil {
+		return
+	}
+	nn := 0
+	for {
+		if row, res, err = c.Raw.QueryFirst(sql, params...); err == nil {
+			return
+		}
+		if c.reconnectIfNetErr(&nn, &err); err != nil {
+			return
+		}
+	}
+	panic(nil)
+}
+
+func (c *Conn) QueryLast(sql string, params ...interface{}) (row mysql.Row, res mysql.Result, err error) {
+
+	if err = c.connectIfNotConnected(); err != nil {
+		return
+	}
+	nn := 0
+	for {
+		if row, res, err = c.Raw.QueryLast(sql, params...); err == nil {
+			return
+		}
+		if c.reconnectIfNetErr(&nn, &err); err != nil {
+			return
+		}
+	}
+	panic(nil)
+}
+
 type Stmt struct {
 	Raw mysql.Stmt
 	con *Conn
@@ -137,6 +171,40 @@ func (s *Stmt) Exec(params ...interface{}) (rows []mysql.Row, res mysql.Result, 
 	nn := 0
 	for {
 		if rows, res, err = s.Raw.Exec(params...); err == nil {
+			return
+		}
+		if s.con.reconnectIfNetErr(&nn, &err); err != nil {
+			return
+		}
+	}
+	panic(nil)
+}
+
+func (s *Stmt) ExecFirst(params ...interface{}) (row mysql.Row, res mysql.Result, err error) {
+
+	if err = s.con.connectIfNotConnected(); err != nil {
+		return
+	}
+	nn := 0
+	for {
+		if row, res, err = s.Raw.ExecFirst(params...); err == nil {
+			return
+		}
+		if s.con.reconnectIfNetErr(&nn, &err); err != nil {
+			return
+		}
+	}
+	panic(nil)
+}
+
+func (s *Stmt) ExecLast(params ...interface{}) (row mysql.Row, res mysql.Result, err error) {
+
+	if err = s.con.connectIfNotConnected(); err != nil {
+		return
+	}
+	nn := 0
+	for {
+		if row, res, err = s.Raw.ExecLast(params...); err == nil {
 			return
 		}
 		if s.con.reconnectIfNetErr(&nn, &err); err != nil {

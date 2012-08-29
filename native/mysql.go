@@ -684,14 +684,44 @@ func (my *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Res
 	return mysql.Query(my, sql, params...)
 }
 
+// See mysql.QueryFirst
+func (my *Conn) QueryFirst(sql string, params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.QueryFirst(my, sql, params...)
+}
+
+// See mysql.QueryLast
+func (my *Conn) QueryLast(sql string, params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.QueryLast(my, sql, params...)
+}
+
 // See mysql.Exec
 func (stmt *Stmt) Exec(params ...interface{}) ([]mysql.Row, mysql.Result, error) {
 	return mysql.Exec(stmt, params...)
 }
 
+// See mysql.ExecFirst
+func (stmt *Stmt) ExecFirst(params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.ExecFirst(stmt, params...)
+}
+
+// See mysql.ExecLast
+func (stmt *Stmt) ExecLast(params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.ExecLast(stmt, params...)
+}
+
 // See mysql.End
 func (res *Result) End() error {
 	return mysql.End(res)
+}
+
+// See mysql.GetFirstRow
+func (res *Result) GetFirstRow() (mysql.Row, error) {
+	return mysql.GetFirstRow(res)
+}
+
+// See mysql.GetLastRow
+func (res *Result) GetLastRow() (mysql.Row, error) {
+	return mysql.GetLastRow(res)
 }
 
 // See mysql.GetRows

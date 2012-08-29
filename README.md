@@ -1,13 +1,18 @@
 Sorry for my poor English. If you can help with improving the English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.7 (2012-05-14)
+## MyMySQL v0.4.8 (2012-08-29)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.8
+
+New methods for obtain only first/last row from result set. Better
+implementation of discarding rows in End method.
 
 #### v0.4.7
 

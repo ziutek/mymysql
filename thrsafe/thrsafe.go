@@ -53,8 +53,8 @@ type Transaction struct {
 
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &Conn{
-		Conn:       orgNew(proto, laddr, raddr, user, passwd, db...),
-		mutex:      new(sync.Mutex),
+		Conn:  orgNew(proto, laddr, raddr, user, passwd, db...),
+		mutex: new(sync.Mutex),
 	}
 }
 
@@ -123,7 +123,7 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 		c.unlock()
 		return nil, err
 	}
-	if res.StatusOnly() {
+	if res.StatusOnly() && !res.MoreResults() {
 		c.unlock()
 	}
 	return &Result{Result: res, conn: c}, err
@@ -132,7 +132,12 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 func (res *Result) ScanRow(row mysql.Row) error {
 	//log.Println("ScanRow")
 	err := res.Result.ScanRow(row)
-	if err != nil && (err != io.EOF || !res.StatusOnly() && !res.MoreResults()) {
+	if err == nil {
+		// There are more rows to read
+		return nil
+	}
+	if err != io.EOF || err == io.EOF && !res.MoreResults() {
+		// Error or no more rows and no more result sets
 		res.conn.unlock()
 	}
 	return err

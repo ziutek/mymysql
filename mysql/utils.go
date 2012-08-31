@@ -1,8 +1,107 @@
 package mysql
 
 import (
+	"bufio"
+	"errors"
+	"fmt"
 	"io"
+	"os"
+	"strings"
+	"unicode"
 )
+
+func syntaxError(ln int) error {
+	return fmt.Errorf("syntax error at line: %d", ln)
+}
+
+// Creates new conneection handler using configuration in cfgFile. Returns
+// connection handler and map contains unknown options.
+//
+// Config file format(example):
+//
+//	# mymysql options (if some option isn't specified it defaults to "")
+//
+//	DbRaddr	127.0.0.1:3306
+//	# DbRaddr	/var/run/mysqld/mysqld.sock
+//	DbUser	testuser
+//	DbPass	TestPasswd9
+//	# optional: DbName	test
+//	# optional: DbEncd	utf8	
+//	# optional: DbLaddr	127.0.0.1
+//
+//	# Your options (returned in unk)
+//
+//	MyOpt	some text
+func NewFromCF(cfgFile string) (con Conn, unk map[string]string, err error) {
+	var cf *os.File
+	cf, err = os.Open(cfgFile)
+	if err != nil {
+		return
+	}
+	br := bufio.NewReader(cf)
+	um := make(map[string]string)
+	var proto, laddr, raddr, user, pass, name, encd string
+	for i := 1; ; i++ {
+		buf, isPrefix, e := br.ReadLine()
+		if e != nil {
+			if e == io.EOF {
+				break
+			}
+			err = e
+			return
+		}
+		l := string(buf)
+		if isPrefix {
+			err = fmt.Errorf("line %d is too long", i)
+			return
+		}
+		l = strings.TrimFunc(l, unicode.IsSpace)
+		if len(l) == 0 || l[0] == '#' {
+			continue
+		}
+		n := strings.IndexFunc(l, unicode.IsSpace)
+		if n == -1 {
+			err = fmt.Errorf("syntax error at line: %d", i)
+			return
+		}
+		v := l[:n]
+		l = strings.TrimLeftFunc(l[n:], unicode.IsSpace)
+		switch v {
+		case "DbLaddr":
+			laddr = l
+		case "DbRaddr":
+			raddr = l
+			proto = "tcp"
+			if strings.IndexRune(l, ':') == -1 {
+				proto = "unix"
+			}
+		case "DbUser":
+			user = l
+		case "DbPass":
+			pass = l
+		case "DbName":
+			name = l
+		case "DbEncd":
+			encd = l
+		default:
+			um[v] = l
+		}
+	}
+	if raddr == "" {
+		err = errors.New("DbDaddr option is empty")
+		return
+	}
+	unk = um
+	if name != "" {
+		con = New(proto, laddr, raddr, user, pass, name)
+	} else {
+		con = New(proto, laddr, raddr, user, pass)
+	}
+	if encd != "" {
+		con.Register(fmt.Sprintf("SET NAMES %s", encd))
+	}
+	return
+}
 
 // Calls Start and next calls GetRow as long as it reads all rows from the
 // result. Next it returns all readed rows as the slice of rows.

@@ -189,7 +189,7 @@ func (stmt *Stmt) Run(params ...interface{}) (mysql.Result, error) {
 		stmt.conn.unlock()
 		return nil, err
 	}
-	if res.StatusOnly() {
+	if res.StatusOnly() && !res.MoreResults() {
 		stmt.conn.unlock()
 	}
 	return &Result{Result: res, conn: stmt.conn}, nil

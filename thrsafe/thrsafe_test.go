@@ -62,6 +62,33 @@ func TestSS(t *testing.T) {
 	checkErr(t, err)
 }
 
+func TestSDS(t *testing.T) {
+	db := connect(t)
+
+	res, err := db.Start("SET @a=1; SELECT @a; SET @b=2")
+	checkErr(t, err)
+	if !res.StatusOnly() {
+		t.Fatalf("'SET @a' statement returns result with rows")
+	}
+
+	res, err = res.NextResult()
+	checkErr(t, err)
+	rows, err := res.GetRows()
+	checkErr(t, err)
+	if rows[0].Int(0) != 1 {
+		t.Fatalf("First query doesn't return '1'")
+	}
+
+	res, err = res.NextResult()
+	checkErr(t, err)
+	if !res.StatusOnly() {
+		t.Fatalf("'SET @b' statement returns result with rows")
+	}
+
+	err = db.Close()
+	checkErr(t, err)
+}
+
 func TestSSDDD(t *testing.T) {
 	db := connect(t)
 

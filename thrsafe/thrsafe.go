@@ -154,6 +154,9 @@ func (res *Result) NextResult() (mysql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	if next == nil {
+		return nil, nil
+	}
 	if next.StatusOnly() && !next.MoreResults() {
 		res.conn.unlock()
 	}

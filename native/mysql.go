@@ -368,6 +368,9 @@ func (res *Result) nextResult() (next *Result, err error) {
 // The final result from the procedure is a status result that includes no
 // result set (Result.StatusOnly() == true) .
 func (res *Result) NextResult() (mysql.Result, error) {
+	if !res.MoreResults() {
+		return nil, nil
+	}
 	res, err := res.nextResult()
 	return res, err
 }

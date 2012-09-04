@@ -32,18 +32,51 @@ func connect(t *testing.T) mysql.Conn {
 	return db
 }
 
-func TestMultipleResults(t *testing.T) {
+func TestS(t *testing.T) {
 	db := connect(t)
-	res, err := db.Start("SET @a=1; SET @b=2; SELECT @a; SELECT @b; SELECT 3")
+	res, err := db.Start("SET @a=1")
 	checkErr(t, err)
 	if !res.StatusOnly() {
 		t.Fatalf("'SET @a' statement returns result with rows")
 	}
+	err = db.Close()
+	checkErr(t, err)
+}
+
+func TestSS(t *testing.T) {
+	db := connect(t)
+
+	res, err := db.Start("SET @a=1; SET @b=2")
+	checkErr(t, err)
+	if !res.StatusOnly() {
+		t.Fatalf("'SET @a' statement returns result with rows")
+	}
+
 	res, err = res.NextResult()
 	checkErr(t, err)
 	if !res.StatusOnly() {
 		t.Fatalf("'SET @b' statement returns result with rows")
 	}
+
+	err = db.Close()
+	checkErr(t, err)
+}
+
+func TestSSDDD(t *testing.T) {
+	db := connect(t)
+
+	res, err := db.Start("SET @a=1; SET @b=2; SELECT @a; SELECT @b; SELECT 3")
+	checkErr(t, err)
+	if !res.StatusOnly() {
+		t.Fatalf("'SET @a' statement returns result with rows")
+	}
+
+	res, err = res.NextResult()
+	checkErr(t, err)
+	if !res.StatusOnly() {
+		t.Fatalf("'SET @b' statement returns result with rows")
+	}
+
 	res, err = res.NextResult()
 	checkErr(t, err)
 	rows, err := res.GetRows()
@@ -51,6 +84,7 @@ func TestMultipleResults(t *testing.T) {
 	if rows[0].Int(0) != 1 {
 		t.Fatalf("First query doesn't return '1'")
 	}
+
 	res, err = res.NextResult()
 	checkErr(t, err)
 	rows, err = res.GetRows()
@@ -58,6 +92,7 @@ func TestMultipleResults(t *testing.T) {
 	if rows[0].Int(0) != 2 {
 		t.Fatalf("Second query doesn't return '2'")
 	}
+
 	res, err = res.NextResult()
 	checkErr(t, err)
 	rows, err = res.GetRows()
@@ -68,4 +103,7 @@ func TestMultipleResults(t *testing.T) {
 	if res.MoreResults() {
 		t.Fatalf("There is unexpected one more result")
 	}
+
+	err = db.Close()
+	checkErr(t, err)
 }

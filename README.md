@@ -1,13 +1,17 @@
 Sorry for my poor English. If you can help with improving the English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.8 (2012-08-29)
+## MyMySQL v0.4.9 (2012-09-06)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+#### v0.4.9
+
+New method for create connection from configuration in file: *NewFromCF*.
 
 #### v0.4.8
 

@@ -33,6 +33,14 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) *Conn {
 	return &Conn{mysql.New(proto, laddr, raddr, user, passwd, db...), 7, false}
 }
 
+func NewFromCF(cfgFile string) (*Conn, map[string]string, error) {
+	raw, unk, err := mysql.NewFromCF(cfgFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &Conn{raw, 7, false}, unk, nil
+}
+
 func (c *Conn) reconnectIfNetErr(nn *int, err *error) {
 	for *err != nil && IsNetErr(*err) && *nn <= c.MaxRetries {
 		if c.Debug {

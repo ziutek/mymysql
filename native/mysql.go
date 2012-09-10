@@ -73,6 +73,20 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &my
 }
 
+// Creates new (not connected) connection using configuration from current
+// connection.
+func (my *Conn) Clone() mysql.Conn {
+	var c *Conn
+	if my.dbname == "" {
+		c = New(my.proto, my.laddr, my.raddr, my.user, my.passwd).(*Conn)
+	} else {
+		c = New(my.proto, my.laddr, my.raddr, my.user, my.passwd, my.dbname).(*Conn)
+	}
+	c.max_pkt_size = my.max_pkt_size
+	c.Debug = my.Debug
+	return c
+}
+
 // If new_size > 0 sets maximum packet size. Returns old size.
 func (my *Conn) SetMaxPktSize(new_size int) int {
 	old_size := my.max_pkt_size

@@ -17,6 +17,7 @@ type ConnCommon interface {
 type Conn interface {
 	ConnCommon
 
+	Clone() Conn
 	Connect() error
 	Close() error
 	IsConnected() bool

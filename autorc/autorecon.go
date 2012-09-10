@@ -30,7 +30,10 @@ type Conn struct {
 }
 
 func New(proto, laddr, raddr, user, passwd string, db ...string) *Conn {
-	return &Conn{mysql.New(proto, laddr, raddr, user, passwd, db...), 7, false}
+	return &Conn{
+		Raw:        mysql.New(proto, laddr, raddr, user, passwd, db...),
+		MaxRetries: 7,
+	}
 }
 
 func NewFromCF(cfgFile string) (*Conn, map[string]string, error) {
@@ -39,6 +42,14 @@ func NewFromCF(cfgFile string) (*Conn, map[string]string, error) {
 		return nil, nil, err
 	}
 	return &Conn{raw, 7, false}, unk, nil
+}
+
+func (c *Conn) Clone() *Conn {
+	return &Conn{
+		Raw:        c.Raw.Clone(),
+		MaxRetries: c.MaxRetries,
+		Debug:      c.Debug,
+	}
 }
 
 func (c *Conn) reconnectIfNetErr(nn *int, err *error) {

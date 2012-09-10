@@ -88,7 +88,7 @@ func NewFromCF(cfgFile string) (con Conn, unk map[string]string, err error) {
 		}
 	}
 	if raddr == "" {
-		err = errors.New("DbDaddr option is empty")
+		err = errors.New("DbRaddr option is empty")
 		return
 	}
 	unk = um

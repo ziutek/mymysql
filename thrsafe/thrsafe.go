@@ -57,6 +57,13 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	}
 }
 
+func (c *Conn) Clone() mysql.Conn {
+	return &Conn{
+		Conn:  c.Conn.Clone(),
+		mutex: new(sync.Mutex),
+	}
+}
+
 func (c *Conn) pinger() {
 	c.stopPinger = make(chan struct{})
 	defer func() { c.stopPinger = nil }()

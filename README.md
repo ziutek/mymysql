@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help with improving the English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.9 (2012-09-06)
+## MyMySQL v0.4.10 (2012-09-10)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
@@ -9,40 +9,29 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 ## Changelog
 
-#### v0.4.9
+v0.4.10: New *Clone* method for create connection from other connection.
+v0.4.9: New method for create connection from configuration in file: *NewFromCF*.
 
-New method for create connection from configuration in file: *NewFromCF*.
-
-#### v0.4.8
-
-New methods for obtain only first/last row from result set. Better
+v0.4.8: New methods for obtain only first/last row from result set. Better
 implementation of discarding rows in End method.
 
-#### v0.4.7
+v0.4.7: ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because it doesn't allocate memory for every row received from the server. *godrv* Value.Next method now uses the new ScanRow method.
 
-ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because
-it doesn't allocate memory for every row received from the server. *godrv*
-Value.Next method now uses the new ScanRow method.
+v0.4.6: StatusOnly method added to mysql.Result.
 
-#### v0.4.6
+v0.4.5: New autorc.Conn.PrepareOnce method.
 
-StatusOnly method added to mysql.Result.
-
-#### v0.4.5
-
-New autorc.Conn.PrepareOnce method.
-
-#### v0.4.4
+v0.4.4:
 
 1. Row.Int, Row.Uint, Row.Int64, ... methods now panic in case of error.
 2. New Row.Float method.
 
-#### v0.4.3
+v0.4.3:
 
 1. Fixed issue with panic when the server returns MYSQL_TYPE_NEWDECIMAL.
 2. Decimals are returned as float64 (previously they were returned as []byte).
 
-#### v0.4.2
+v0.4.2:
 
 1. A lot of changes with MySQL time handling:
 
@@ -54,11 +43,11 @@ New autorc.Conn.PrepareOnce method.
 
 3. Rename BindParams to Bind.
 
-#### v0.4.1
+v0.4.1:
 
 BindParams supports Go bool type. 
 
-#### v0.4
+v0.4:
 
 1. Modular design:
 

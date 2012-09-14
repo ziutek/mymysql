@@ -9,8 +9,10 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 ## Changelog
 
-v0.4.11: Add Reconnect, Register, SetMaxPktSize, Bind to autorc
+v0.4.11: Add Reconnect, Register, SetMaxPktSize, Bind to autorc.
+
 v0.4.10: New *Clone* method for create connection from other connection.
+
 v0.4.9: New method for create connection from configuration in file: *NewFromCF*.
 
 v0.4.8: New methods for obtain only first/last row from result set. Better

@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help with improving the English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.10 (2012-09-10)
+## MyMySQL v0.4.11 (2012-09-14)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
@@ -9,6 +9,7 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 ## Changelog
 
+v0.4.11: Add Reconnect, Register, SetMaxPktSize, Bind to autorc
 v0.4.10: New *Clone* method for create connection from other connection.
 v0.4.9: New method for create connection from configuration in file: *NewFromCF*.
 

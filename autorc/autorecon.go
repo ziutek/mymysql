@@ -76,6 +76,21 @@ func (c *Conn) connectIfNotConnected() (err error) {
 	return
 }
 
+func (c *Conn) Reconnect() (err error) {
+	err = c.Raw.Reconnect()
+	nn := 0
+	c.reconnectIfNetErr(&nn, &err)
+	return
+}
+
+func (c *Conn) Register(sql string) {
+	c.Raw.Register(sql)
+}
+
+func (c *Conn) SetMaxPktSize(new_size int) int {
+	return c.Raw.SetMaxPktSize(new_size)
+}
+
 // Automatic connect/reconnect/repeat version of Use
 func (c *Conn) Use(dbname string) (err error) {
 	if err = c.connectIfNotConnected(); err != nil {
@@ -179,6 +194,10 @@ func (c *Conn) Prepare(sql string) (*Stmt, error) {
 		return nil, err
 	}
 	return &s, nil
+}
+
+func (s *Stmt) Bind(params ...interface{}) {
+	s.Raw.Bind(params...)
 }
 
 // Automatic connect/reconnect/repeat version of Exec

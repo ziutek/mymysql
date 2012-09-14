@@ -397,7 +397,7 @@ This is the improved code of the previous example:
 	db := autorc.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
 	// Initilisation commands. They will be executed after each connect.
-	db.Raw.Register("set names utf8")
+	db.Register("set names utf8")
 
 	// There is no need to explicity connect to the MySQL server
 	rows, res, err := db.Query("SELECT * FROM R")
@@ -419,7 +419,7 @@ This is the improved code of the previous example:
 	checkError(err)
 
 	// But it doesn't matter
-	sel.Raw.Bind(2)
+	sel.Bind(2)
 	rows, res, err = sel.Exec()
 	checkError(err)
 

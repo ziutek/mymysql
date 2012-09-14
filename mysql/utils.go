@@ -218,7 +218,7 @@ func End(r Result) error {
 // Returns first row and discard others
 func GetFirstRow(r Result) (row Row, err error) {
 	row, err = r.GetRow()
-	if err != nil && row != nil {
+	if err == nil && row != nil {
 		err = r.End()
 	}
 	return

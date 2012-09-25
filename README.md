@@ -73,9 +73,9 @@ fully thread safe.
 
 To install all subpackages of *mymysql* you need to goinstal three of them:
 
-	$ go get github.com/ziutek/mymysql/thrsafe
-	$ go get github.com/ziutek/mymysql/autorc
-	$ go get github.com/ziutek/mymysql/godrv
+	$ go get github.com/bpowers/mymysql/thrsafe
+	$ go get github.com/bpowers/mymysql/autorc
+	$ go get github.com/bpowers/mymysql/godrv
 
 *go get* automagically selects the proper version of *mymysql* for your Go 
 release. After this command *mymysql* is ready to use.
@@ -94,7 +94,7 @@ The default MySQL server address is *127.0.0.1:3306*.
 
 Next run tests:
 
-	$ cd $GOPATH/src/github.com/ziutek/mymysql
+	$ cd $GOPATH/src/github.com/bpowers/mymysql
 	$ ./all.bash test
 
 ## Examples
@@ -105,9 +105,9 @@ Next run tests:
 
 	import (
 		"os"
-		"github.com/ziutek/mymysql/mysql"
-		_ "github.com/ziutek/mymysql/native" // Native engine
-		// _ "github.com/ziutek/mymysql/thrsafe" // Thread safe engine
+		"github.com/bpowers/mymysql/mysql"
+		_ "github.com/bpowers/mymysql/native" // Native engine
+		// _ "github.com/bpowers/mymysql/thrsafe" // Thread safe engine
 	)
 
 	func main() {
@@ -346,8 +346,8 @@ This is the improved code of the previous example:
 ### Example 5 - transactions
 
 	import (
-		"github.com/ziutek/mymysql/mysql"
-		_ "github.com/ziutek/mymysql/thrsafe" // for thread safe transactions
+		"github.com/bpowers/mymysql/mysql"
+		_ "github.com/bpowers/mymysql/thrsafe" // for thread safe transactions
 	)
 	// [...]
 
@@ -390,8 +390,8 @@ This is the improved code of the previous example:
 ### Example 6 - autoreconn interface
 
 	import (
-		"github.com/ziutek/mymysql/autorc"
-		_ "github.com/ziutek/mymysql/thrsafe" // You may also use the native engine
+		"github.com/bpowers/mymysql/autorc"
+		_ "github.com/bpowers/mymysql/thrsafe" // You may also use the native engine
 	)
 
 	// [...]
@@ -474,8 +474,8 @@ This is the improved code of the previous example:
 ### Example 8 - use stored procedures
 
 	import (
-		"github.com/ziutek/mymysql/mysql"
-		_ "github.com/ziutek/mymysql/thrsafe" // or native
+		"github.com/bpowers/mymysql/mysql"
+		_ "github.com/bpowers/mymysql/thrsafe" // or native
 	)
 
 	// [...]
@@ -640,8 +640,8 @@ causes panic.
 
 # Documentation
 
-[mysql](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/mysql)
-[native](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/native)
-[thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/thrsafe)
-[autorc](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/autorc)
-[godrv](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/godrv)
+[mysql](http://gopkgdoc.appspot.com/pkg/github.com/bpowers/mymysql/mysql)
+[native](http://gopkgdoc.appspot.com/pkg/github.com/bpowers/mymysql/native)
+[thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/bpowers/mymysql/thrsafe)
+[autorc](http://gopkgdoc.appspot.com/pkg/github.com/bpowers/mymysql/autorc)
+[godrv](http://gopkgdoc.appspot.com/pkg/github.com/bpowers/mymysql/godrv)

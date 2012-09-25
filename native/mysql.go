@@ -779,6 +779,10 @@ func (tr Transaction) Rollback() error {
 	return err
 }
 
+func (tr Transaction) IsValid() bool {
+	return tr.Conn != nil
+}
+ 
 // Binds statement to the context of transaction. For native engine this is
 // identity function.
 func (tr Transaction) Do(st mysql.Stmt) mysql.Stmt {

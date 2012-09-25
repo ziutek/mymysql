@@ -314,6 +314,10 @@ func (tr *Transaction) Rollback() error {
 	return tr.end("ROLLBACK")
 }
 
+func (tr *Transaction) IsValid() bool {
+	return tr.Conn != nil
+}
+
 func (tr *Transaction) Do(st mysql.Stmt) mysql.Stmt {
 	if s, ok := st.(*Stmt); ok && s.conn == tr.conn {
 		// Returns new statement which uses statement mutexes

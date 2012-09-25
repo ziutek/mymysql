@@ -196,6 +196,33 @@ func (c *Conn) Prepare(sql string) (*Stmt, error) {
 	return &s, nil
 }
 
+// Begin begins a transaction and calls f to complete it .
+// If f returns an error and IsNetErr(error) == true it reconnects and calls
+// f up to MaxRetries times. If error is of type *mysql.Error it tries rollback
+// the transaction.
+func (c *Conn) Begin(f func(mysql.Transaction, ...interface{}) error, args ...interface{}) error {
+	err := c.connectIfNotConnected()
+	if err != nil {
+		return err
+	}
+	nn := 0
+	for {
+		var tr mysql.Transaction
+		if tr, err = c.Raw.Begin(); err == nil {
+			if err = f(tr, args...); err == nil {
+				return nil
+			}
+		}
+		if c.reconnectIfNetErr(&nn, &err); err != nil {
+			if tr.IsValid() {
+				tr.Rollback()
+			}
+			return err
+		}
+	}
+	panic(nil)
+}
+
 func (s *Stmt) Bind(params ...interface{}) {
 	s.Raw.Bind(params...)
 }

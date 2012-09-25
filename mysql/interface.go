@@ -35,6 +35,7 @@ type Transaction interface {
 	Commit() error
 	Rollback() error
 	Do(st Stmt) Stmt
+	IsValid() bool
 }
 
 type Stmt interface {

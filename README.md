@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help with improving the English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.11 (2012-09-14)
+## MyMySQL v1.0 (2012-09-26)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
@@ -9,6 +9,9 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 ## Changelog
 
+v1.0: Transactions added to autorc, new Transaction.IsValid method. I think
+this library is mature enough to release it as v1.0
+ 
 v0.4.11: Add Reconnect, Register, SetMaxPktSize, Bind to autorc.
 
 v0.4.10: New *Clone* method for create connection from other connection.
@@ -499,6 +502,41 @@ This is the improved code of the previous example:
 		}
 	}
 
+### Example 9 - transactions using autorc
+
+	import (
+		"github.com/ziutek/mymysql/autorc"
+		_ "github.com/ziutek/mymysql/thrsafe" // You may also use the native engine
+	)
+
+	// [...]
+
+	db := autorc.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+
+	var stmt1, stmt2 autorc.Stmt
+
+	func updateDb() {
+		err := db.PrepareOnce(&stmt1, someSQL1)
+		checkDbErr(err)
+		err = db.PrepareOnce(&stmt2, someSQL2)
+		checkDbErr(err)
+
+		err = db.Begin(func(tr mysql.Transaction, args ...interface{}) error {
+			// This function will be called again if returns a recoverable error
+			s1 := tr.Do(stmt1.Raw)
+			s2 := tr.Do(stmt2.Raw)
+			if _, err := s1.Run(); err != nil {
+				return err
+			}
+			if _, err := s2.Run(); err != nil {
+				return err
+			}
+			// You have to commit or rollback before return
+			return tr.Commit()
+		})
+		checkDbErr(err)
+	}
+
 Additional examples are in *examples* directory.
 
 ## Type mapping
@@ -628,8 +666,7 @@ application befor put it into production. There is example output from siege:
 
 ## To do
 
-1. Transactions in auto reconnect interface.
-2. Complete documentation
+1. Complete documentation
 
 ## Known bugs
 

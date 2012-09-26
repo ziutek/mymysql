@@ -214,7 +214,7 @@ func (c *Conn) Begin(f func(mysql.Transaction, ...interface{}) error, args ...in
 			}
 		}
 		if c.reconnectIfNetErr(&nn, &err); err != nil {
-			if tr.IsValid() {
+			if _, ok := err.(*mysql.Error); ok && tr.IsValid() {
 				tr.Rollback()
 			}
 			return err

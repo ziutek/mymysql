@@ -52,7 +52,7 @@ func (tr Row) Str(nn int) (str string) {
 	return
 }
 
-const _MAX_INT = int(^uint(0) >> 1)
+const _MAX_INT = int32(^uint32(0) >> 1)
 const _MIN_INT = -_MAX_INT - 1
 
 // Get the nn-th value and return it as int (0 if NULL). Return error if
@@ -114,7 +114,7 @@ func (tr Row) ForceInt(nn int) (val int) {
 	return
 }
 
-const _MAX_UINT = ^uint(0)
+const _MAX_UINT = ^uint32(0)
 
 // Get the nn-th value and return it as uint (0 if NULL). Return error if
 // conversion is impossible.

@@ -23,6 +23,10 @@ implementation of discarding rows in End method.
 
 v0.4.7: ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because it doesn't allocate memory for every row received from the server. *godrv* Value.Next method now uses the new ScanRow method.
 
+1. New autorc.Conn.PrepareOnce method.
+2. New dsn string format.
+3. New RegisterFunc method.
+
 v0.4.6: StatusOnly method added to mysql.Result.
 
 v0.4.5: New autorc.Conn.PrepareOnce method.
@@ -72,13 +76,9 @@ fully thread safe.
 
 4. Driver for *exp/sql*.
 
-## Installing
-
 To install all subpackages of *mymysql* you need to goinstal three of them:
 
-	$ go get github.com/ziutek/mymysql/thrsafe
-	$ go get github.com/ziutek/mymysql/autorc
-	$ go get github.com/ziutek/mymysql/godrv
+> $ go get github.com/mikespook/mymysql
 
 *go get* automagically selects the proper version of *mymysql* for your Go 
 release. After this command *mymysql* is ready to use.
@@ -87,9 +87,9 @@ release. After this command *mymysql* is ready to use.
 
 For testing you will need to create the test database and a test user:
 
-	mysql> create database test;
-	mysql> grant all privileges on test.* to testuser@localhost;
-	mysql> set password for testuser@localhost = password("TestPasswd9")
+> mysql> create database test;
+> mysql> grant all privileges on test.* to testuser@localhost;
+> mysql> set password for testuser@localhost = password("TestPasswd9")
 
 Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is equal or greater than 34M (In order to test long packets).
 
@@ -97,8 +97,8 @@ The default MySQL server address is *127.0.0.1:3306*.
 
 Next run tests:
 
-	$ cd $GOPATH/src/github.com/ziutek/mymysql
-	$ ./all.bash test
+> $ cd $GOPATH/src/github.com/mikespook/mymysql
+> $ ./all.bash test
 
 ## Examples
 
@@ -108,9 +108,9 @@ Next run tests:
 
 	import (
 		"os"
-		"github.com/ziutek/mymysql/mysql"
-		_ "github.com/ziutek/mymysql/native" // Native engine
-		// _ "github.com/ziutek/mymysql/thrsafe" // Thread safe engine
+		"github.com/mikespook/mymysql/mysql"
+		_ "github.com/mikespook/mymysql/native" // Native engine
+		// _ "github.com/mikespook/mymysql/thrsafe" // Thread safe engine
 	)
 
 	func main() {
@@ -283,7 +283,7 @@ This is the improved code of the previous example:
 	ins, err := db.Prepare("INSERT INTO web VALUES (?, ?)")
 	checkError(err)
 
-	var url string
+        var url string
 
 	ins.Bind(&url, []byte(nil)) // []byte(nil) for properly type binding
 
@@ -349,8 +349,8 @@ This is the improved code of the previous example:
 ### Example 5 - transactions
 
 	import (
-		"github.com/ziutek/mymysql/mysql"
-		_ "github.com/ziutek/mymysql/thrsafe" // for thread safe transactions
+		"github.com/mikespook/mymysql/mysql"
+		_ "github.com/mikespook/mymysql/thrsafe" // for thread safe transactions
 	)
 	// [...]
 
@@ -393,13 +393,13 @@ This is the improved code of the previous example:
 ### Example 6 - autoreconn interface
 
 	import (
-		"github.com/ziutek/mymysql/autorc"
-		_ "github.com/ziutek/mymysql/thrsafe" // You may also use the native engine
+		"github.com/mikespook/mymysql/autorc"
+		_ "github.com/mikespook/mymysql/thrsafe" // You may use native engine to
 	)
 
-	// [...]
+        // [...]
 
-	db := autorc.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+        db := autorc.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
 	// Initilisation commands. They will be executed after each connect.
 	db.Register("set names utf8")
@@ -408,7 +408,7 @@ This is the improved code of the previous example:
 	rows, res, err := db.Query("SELECT * FROM R")
 	checkError(err)
 
-	// Now we are connected.
+        // Now we are connected.
 
 	// It does not matter if connection will be interrupted during sleep, eg
 	// due to server reboot or network down.
@@ -430,16 +430,24 @@ This is the improved code of the previous example:
 
 ### Example 7 - use database/sql with mymysql driver
 
-	// Open new connection. The uri need to have the following syntax:
-	//
-	//   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
-	//
-	// where protocol specific part may be empty (this means connection to
-	// local server using default protocol). Currently possible forms:
-	//   DBNAME/USER/PASSWD
-	//   unix:SOCKPATH*DBNAME/USER/PASSWD
-	//   tcp:ADDR*DBNAME/USER/PASSWD
-
+    // Open new connection. The uri need to have the following syntax:
+    //
+    //   [tcp://addr/]dbname/user/password[?params]
+    //   [unix://sockpath/]dbname/user/password[?params]
+    // Params need to have the following syntax:
+    //
+    //   key1=val1&key2=val2
+    //
+    // Key need to have the following value:
+    //
+    //   charset - used by 'set names'
+    //   keepalive - send a PING to mysql server after every keepalive seconds.
+    //
+    // where protocol spercific part may be empty (this means connection to
+    // local server using default protocol). Currently possible forms:
+    //   DBNAME/USER/PASSWD?charset=utf8
+    //   unix://SOCKPATH/DBNAME/USER/PASSWD
+    //   tcp://ADDR/DBNAME/USER/PASSWD?keepalive=3600
 	// Register initialisation commands
 	// (workaround, see http://codereview.appspot.com/5706047)
 	godrv.Register("SET NAMES latin2") // Overrides default utf8
@@ -677,8 +685,8 @@ causes panic.
 
 # Documentation
 
-[mysql](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/mysql)
-[native](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/native)
-[thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/thrsafe)
-[autorc](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/autorc)
-[godrv](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/godrv)
+[mysql](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/mysql)
+[native](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/native)
+[thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/thrsafe)
+[autorc](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/autorc)
+[godrv](http://gopkgdoc.appspot.com/pkg/github.com/mikespook/mymysql/godrv)

@@ -1,7 +1,7 @@
 package native
 
 import (
-	"github.com/ziutek/mymysql/mysql"
+	"github.com/mikespook/mymysql/mysql"
 	"log"
 )
 

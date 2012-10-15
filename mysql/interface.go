@@ -1,6 +1,8 @@
 // MySQL Client API written entirely in Go without any external dependences.
 package mysql
 
+type RegFunc func(my Conn)
+
 type ConnCommon interface {
 	Start(sql string, params ...interface{}) (Result, error)
 	Prepare(sql string) (Stmt, error)
@@ -24,6 +26,7 @@ type Conn interface {
 	Reconnect() error
 	Use(dbname string) error
 	Register(sql string)
+        RegisterFunc(f RegFunc)
 	SetMaxPktSize(new_size int) int
 
 	Begin() (Transaction, error)

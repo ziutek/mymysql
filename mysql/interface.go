@@ -12,11 +12,14 @@ type ConnCommon interface {
 	EscapeString(txt string) string
 
 	Query(sql string, params ...interface{}) ([]Row, Result, error)
+	QueryFirst(sql string, params ...interface{}) (Row, Result, error)
+	QueryLast(sql string, params ...interface{}) (Row, Result, error)
 }
 
 type Conn interface {
 	ConnCommon
 
+	Clone() Conn
 	Connect() error
 	Close() error
 	IsConnected() bool
@@ -35,6 +38,7 @@ type Transaction interface {
 	Commit() error
 	Rollback() error
 	Do(st Stmt) Stmt
+	IsValid() bool
 }
 
 type Stmt interface {
@@ -51,6 +55,8 @@ type Stmt interface {
 	WarnCount() int
 
 	Exec(params ...interface{}) ([]Row, Result, error)
+	ExecFirst(params ...interface{}) (Row, Result, error)
+	ExecLast(params ...interface{}) (Row, Result, error)
 }
 
 type Result interface {
@@ -71,6 +77,8 @@ type Result interface {
 	MakeRow() Row
 	GetRows() ([]Row, error)
 	End() error
+	GetFirstRow() (Row, error)
+	GetLastRow() (Row, error)
 }
 
 var New func(proto, laddr, raddr, user, passwd string, db ...string) Conn

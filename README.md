@@ -1,7 +1,7 @@
 Sorry for my poor English. If you can help with improving the English in this
 documentation, please contact me.
 
-## MyMySQL v0.4.7 (2012-05-14)
+## MyMySQL v1.0 (2012-09-26)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
@@ -9,33 +9,39 @@ the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 
 ## Changelog
 
-#### v0.4.7
+v1.0: Transactions added to autorc, new Transaction.IsValid method. I think
+this library is mature enough to release it as v1.0
+ 
+v0.4.11: Add Reconnect, Register, SetMaxPktSize, Bind to autorc.
 
-ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because
-it doesn't allocate memory for every row received from the server. *godrv*
-Value.Next method now uses the new ScanRow method.
+v0.4.10: New *Clone* method for create connection from other connection.
 
-#### v0.4.6
+v0.4.9: New method for create connection from configuration in file: *NewFromCF*.
 
-StatusOnly method added to mysql.Result.
+v0.4.8: New methods for obtain only first/last row from result set. Better
+implementation of discarding rows in End method.
 
-#### v0.4.5
+v0.4.7: ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because it doesn't allocate memory for every row received from the server. *godrv* Value.Next method now uses the new ScanRow method.
 
 1. New autorc.Conn.PrepareOnce method.
 2. New dsn string format.
 3. New RegisterFunc method.
 
-#### v0.4.4
+v0.4.6: StatusOnly method added to mysql.Result.
+
+v0.4.5: New autorc.Conn.PrepareOnce method.
+
+v0.4.4:
 
 1. Row.Int, Row.Uint, Row.Int64, ... methods now panic in case of error.
 2. New Row.Float method.
 
-#### v0.4.3
+v0.4.3:
 
 1. Fixed issue with panic when the server returns MYSQL_TYPE_NEWDECIMAL.
 2. Decimals are returned as float64 (previously they were returned as []byte).
 
-#### v0.4.2
+v0.4.2:
 
 1. A lot of changes with MySQL time handling:
 
@@ -47,11 +53,11 @@ StatusOnly method added to mysql.Result.
 
 3. Rename BindParams to Bind.
 
-#### v0.4.1
+v0.4.1:
 
 BindParams supports Go bool type. 
 
-#### v0.4
+v0.4:
 
 1. Modular design:
 
@@ -395,8 +401,8 @@ This is the improved code of the previous example:
 
         db := autorc.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
 
-        // Initilisation commands. They will be executed after each connect.
-        db.Raw.Register("set names utf8")
+	// Initilisation commands. They will be executed after each connect.
+	db.Register("set names utf8")
 
 	// There is no need to explicity connect to the MySQL server
 	rows, res, err := db.Query("SELECT * FROM R")
@@ -418,7 +424,7 @@ This is the improved code of the previous example:
 	checkError(err)
 
 	// But it doesn't matter
-	sel.Raw.Bind(2)
+	sel.Bind(2)
 	rows, res, err = sel.Exec()
 	checkError(err)
 
@@ -502,6 +508,41 @@ This is the improved code of the previous example:
 		if res == nil {
 			panic("nil result from procedure")
 		}
+	}
+
+### Example 9 - transactions using autorc
+
+	import (
+		"github.com/ziutek/mymysql/autorc"
+		_ "github.com/ziutek/mymysql/thrsafe" // You may also use the native engine
+	)
+
+	// [...]
+
+	db := autorc.New("tcp", "", "127.0.0.1:3306", user, pass, dbname)
+
+	var stmt1, stmt2 autorc.Stmt
+
+	func updateDb() {
+		err := db.PrepareOnce(&stmt1, someSQL1)
+		checkDbErr(err)
+		err = db.PrepareOnce(&stmt2, someSQL2)
+		checkDbErr(err)
+
+		err = db.Begin(func(tr mysql.Transaction, args ...interface{}) error {
+			// This function will be called again if returns a recoverable error
+			s1 := tr.Do(stmt1.Raw)
+			s2 := tr.Do(stmt2.Raw)
+			if _, err := s1.Run(); err != nil {
+				return err
+			}
+			if _, err := s2.Run(); err != nil {
+				return err
+			}
+			// You have to commit or rollback before return
+			return tr.Commit()
+		})
+		checkDbErr(err)
 	}
 
 Additional examples are in *examples* directory.
@@ -633,17 +674,11 @@ application befor put it into production. There is example output from siege:
 
 ## To do
 
-1. Transactions in auto reconnect interface.
-2. Complete documentation
+1. Complete documentation
 
 ## Known bugs
 
-1. Old passwords don't work: you obtain *UNK_RESULT_PKT_ERROR* if you try connect
-to MySQL server as user which have old password format in *user* table.
-Workaround: change password using result from MYSQL >= 4.1 *PASSWORD* function
-(you can generate the old password format back using *OLD_PASSWORD* function).
-
-2. There is MySQL "bug" in the *SUM* function. If you use prepared statements
+1. There is MySQL "bug" in the *SUM* function. If you use prepared statements
 *SUM* returns *DECIMAL* value, even if you sum integer column. mymysql returns
 decimals as *float64* so cast result from sum to integer (or use *Row.Int*)
 causes panic.

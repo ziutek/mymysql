@@ -9,11 +9,10 @@
 package thrsafe
 
 import (
-	"sync"
-	//"log"
 	"github.com/mikespook/mymysql/mysql"
 	_ "github.com/mikespook/mymysql/native"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -53,8 +52,15 @@ type Transaction struct {
 
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &Conn{
-		Conn:       orgNew(proto, laddr, raddr, user, passwd, db...),
-		mutex:      new(sync.Mutex),
+		Conn:  orgNew(proto, laddr, raddr, user, passwd, db...),
+		mutex: new(sync.Mutex),
+	}
+}
+
+func (c *Conn) Clone() mysql.Conn {
+	return &Conn{
+		Conn:  c.Conn.Clone(),
+		mutex: new(sync.Mutex),
 	}
 }
 
@@ -123,7 +129,7 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 		c.unlock()
 		return nil, err
 	}
-	if res.StatusOnly() {
+	if res.StatusOnly() && !res.MoreResults() {
 		c.unlock()
 	}
 	return &Result{Result: res, conn: c}, err
@@ -132,7 +138,14 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 func (res *Result) ScanRow(row mysql.Row) error {
 	//log.Println("ScanRow")
 	err := res.Result.ScanRow(row)
-	if err != nil && (err != io.EOF || !res.StatusOnly() && !res.MoreResults()) {
+	if err == nil {
+		// There are more rows to read
+		return nil
+	}
+	if err != io.EOF || !res.StatusOnly() && !res.MoreResults() {
+		// Error or no more rows in not empty result set and no more resutls.
+		// In case if empty result set and no more resutls Start have unlocked
+		// it before.
 		res.conn.unlock()
 	}
 	return err
@@ -147,6 +160,12 @@ func (res *Result) NextResult() (mysql.Result, error) {
 	next, err := res.Result.NextResult()
 	if err != nil {
 		return nil, err
+	}
+	if next == nil {
+		return nil, nil
+	}
+	if next.StatusOnly() && !next.MoreResults() {
+		res.conn.unlock()
 	}
 	return &Result{next, res.conn}, nil
 }
@@ -177,7 +196,7 @@ func (stmt *Stmt) Run(params ...interface{}) (mysql.Result, error) {
 		stmt.conn.unlock()
 		return nil, err
 	}
-	if res.StatusOnly() {
+	if res.StatusOnly() && !res.MoreResults() {
 		stmt.conn.unlock()
 	}
 	return &Result{Result: res, conn: stmt.conn}, nil
@@ -204,18 +223,52 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) error {
 	return stmt.Stmt.SendLongData(pnum, data, pkt_size)
 }
 
+// See mysql.Query
 func (c *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Result, error) {
 	return mysql.Query(c, sql, params...)
 }
 
+// See mysql.QueryFirst
+func (my *Conn) QueryFirst(sql string, params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.QueryFirst(my, sql, params...)
+}
+
+// See mysql.QueryLast
+func (my *Conn) QueryLast(sql string, params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.QueryLast(my, sql, params...)
+}
+
+// See mysql.Exec
 func (stmt *Stmt) Exec(params ...interface{}) ([]mysql.Row, mysql.Result, error) {
 	return mysql.Exec(stmt, params...)
 }
 
+// See mysql.ExecFirst
+func (stmt *Stmt) ExecFirst(params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.ExecFirst(stmt, params...)
+}
+
+// See mysql.ExecLast
+func (stmt *Stmt) ExecLast(params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.ExecLast(stmt, params...)
+}
+
+// See mysql.End
 func (res *Result) End() error {
 	return mysql.End(res)
 }
 
+// See mysql.GetFirstRow
+func (res *Result) GetFirstRow() (mysql.Row, error) {
+	return mysql.GetFirstRow(res)
+}
+
+// See mysql.GetLastRow
+func (res *Result) GetLastRow() (mysql.Row, error) {
+	return mysql.GetLastRow(res)
+}
+
+// See mysql.GetRows
 func (res *Result) GetRows() ([]mysql.Row, error) {
 	return mysql.GetRows(res)
 }
@@ -259,6 +312,10 @@ func (tr *Transaction) Commit() error {
 func (tr *Transaction) Rollback() error {
 	//log.Println("Rollback")
 	return tr.end("ROLLBACK")
+}
+
+func (tr *Transaction) IsValid() bool {
+	return tr.Conn != nil
 }
 
 func (tr *Transaction) Do(st mysql.Stmt) mysql.Stmt {

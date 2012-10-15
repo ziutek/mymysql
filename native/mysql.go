@@ -74,6 +74,20 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &my
 }
 
+// Creates new (not connected) connection using configuration from current
+// connection.
+func (my *Conn) Clone() mysql.Conn {
+	var c *Conn
+	if my.dbname == "" {
+		c = New(my.proto, my.laddr, my.raddr, my.user, my.passwd).(*Conn)
+	} else {
+		c = New(my.proto, my.laddr, my.raddr, my.user, my.passwd, my.dbname).(*Conn)
+	}
+	c.max_pkt_size = my.max_pkt_size
+	c.Debug = my.Debug
+	return c
+}
+
 // If new_size > 0 sets maximum packet size. Returns old size.
 func (my *Conn) SetMaxPktSize(new_size int) int {
 	old_size := my.max_pkt_size
@@ -132,7 +146,15 @@ func (my *Conn) connect() (err error) {
 	// Initialisation
 	my.init()
 	my.auth()
-	my.getResult(nil, nil)
+	res := my.getResult(nil, nil)
+	if res == nil {
+		// Try old password
+		my.oldPasswd()
+		res = my.getResult(nil, nil)
+		if res == nil {
+			return AUTHENTICATION_ERROR
+		}
+	}
 
 	// Execute all registered commands
 	for _, cmd := range my.init_cmds {
@@ -365,6 +387,9 @@ func (res *Result) nextResult() (next *Result, err error) {
 // The final result from the procedure is a status result that includes no
 // result set (Result.StatusOnly() == true) .
 func (res *Result) NextResult() (mysql.Result, error) {
+	if !res.MoreResults() {
+		return nil, nil
+	}
 	res, err := res.nextResult()
 	return res, err
 }
@@ -688,14 +713,44 @@ func (my *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Res
 	return mysql.Query(my, sql, params...)
 }
 
+// See mysql.QueryFirst
+func (my *Conn) QueryFirst(sql string, params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.QueryFirst(my, sql, params...)
+}
+
+// See mysql.QueryLast
+func (my *Conn) QueryLast(sql string, params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.QueryLast(my, sql, params...)
+}
+
 // See mysql.Exec
 func (stmt *Stmt) Exec(params ...interface{}) ([]mysql.Row, mysql.Result, error) {
 	return mysql.Exec(stmt, params...)
 }
 
+// See mysql.ExecFirst
+func (stmt *Stmt) ExecFirst(params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.ExecFirst(stmt, params...)
+}
+
+// See mysql.ExecLast
+func (stmt *Stmt) ExecLast(params ...interface{}) (mysql.Row, mysql.Result, error) {
+	return mysql.ExecLast(stmt, params...)
+}
+
 // See mysql.End
 func (res *Result) End() error {
 	return mysql.End(res)
+}
+
+// See mysql.GetFirstRow
+func (res *Result) GetFirstRow() (mysql.Row, error) {
+	return mysql.GetFirstRow(res)
+}
+
+// See mysql.GetLastRow
+func (res *Result) GetLastRow() (mysql.Row, error) {
+	return mysql.GetLastRow(res)
 }
 
 // See mysql.GetRows
@@ -736,6 +791,10 @@ func (tr Transaction) Rollback() error {
 	return err
 }
 
+func (tr Transaction) IsValid() bool {
+	return tr.Conn != nil
+}
+ 
 // Binds statement to the context of transaction. For native engine this is
 // identity function.
 func (tr Transaction) Do(st mysql.Stmt) mysql.Stmt {

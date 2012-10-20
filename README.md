@@ -89,7 +89,7 @@ For testing you will need to create the test database and a test user:
 
 	mysql> create database test;
 	mysql> grant all privileges on test.* to testuser@localhost;
-	mysql> set password for testuser@localhost = password("TestPasswd9")
+	mysql> set password for testuser@localhost = password("TestPasswd9");
 
 Make sure that MySQL *max_allowed_packet* variable in *my.cnf* is equal or greater than 34M (In order to test long packets).
 

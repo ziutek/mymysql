@@ -27,19 +27,19 @@ func TestAutoConnectReconnect(t *testing.T) {
 	c.Debug = false
 
 	// Register initialisation commands
-	c.Raw.Register("set names utf8")
+	c.Conn.Register("set names utf8")
 
 	// my is in unconnected state
 	checkErr(t, c.Use(dbname), nil)
 
 	// Disconnect
-	c.Raw.Close()
+	c.Conn.Close()
 
 	// Drop test table if exists
 	c.Query("drop table R")
 
 	// Disconnect
-	c.Raw.Close()
+	c.Conn.Close()
 
 	// Create table
 	_, _, err := c.Query(
@@ -48,7 +48,7 @@ func TestAutoConnectReconnect(t *testing.T) {
 	checkErr(t, err, nil)
 
 	// Kill the connection
-	c.Query("kill %d", c.Raw.ThreadId())
+	c.Query("kill %d", c.Conn.ThreadId())
 	// MySQL 5.5 returns "Query execution was interrupted" after kill command
 
 	// Prepare insert statement
@@ -56,25 +56,25 @@ func TestAutoConnectReconnect(t *testing.T) {
 	checkErr(t, err, nil)
 
 	// Kill the connection
-	c.Query("kill %d", c.Raw.ThreadId())
+	c.Query("kill %d", c.Conn.ThreadId())
 
 	// Bind insert parameters
-	ins.Raw.Bind(1, "jeden")
+	ins.Stmt.Bind(1, "jeden")
 	// Insert into table
 	_, _, err = ins.Exec()
 	checkErr(t, err, nil)
 
 	// Kill the connection
-	c.Query("kill %d", c.Raw.ThreadId())
+	c.Query("kill %d", c.Conn.ThreadId())
 
 	// Bind insert parameters
-	ins.Raw.Bind(2, "dwa")
+	ins.Stmt.Bind(2, "dwa")
 	// Insert into table
 	_, _, err = ins.Exec()
 	checkErr(t, err, nil)
 
 	// Kill the connection
-	c.Query("kill %d", c.Raw.ThreadId())
+	c.Query("kill %d", c.Conn.ThreadId())
 
 	// Select from table
 	rows, res, err := c.Query("select * from R")
@@ -88,12 +88,12 @@ func TestAutoConnectReconnect(t *testing.T) {
 	}
 
 	// Kill the connection
-	c.Query("kill %d", c.Raw.ThreadId())
+	c.Query("kill %d", c.Conn.ThreadId())
 
 	// Drop table
 	_, _, err = c.Query("drop table R")
 	checkErr(t, err, nil)
 
 	// Disconnect
-	c.Raw.Close()
+	c.Conn.Close()
 }

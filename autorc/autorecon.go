@@ -20,7 +20,7 @@ func IsNetErr(err error) bool {
 }
 
 type Conn struct {
-	Raw mysql.Conn
+	mysql.Conn
 	// Maximum reconnect retries.
 	// Default is 7 which means 1+2+3+4+5+6+7 = 28 seconds before return error.
 	MaxRetries int
@@ -31,7 +31,7 @@ type Conn struct {
 
 func New(proto, laddr, raddr, user, passwd string, db ...string) *Conn {
 	return &Conn{
-		Raw:        mysql.New(proto, laddr, raddr, user, passwd, db...),
+		Conn:       mysql.New(proto, laddr, raddr, user, passwd, db...),
 		MaxRetries: 7,
 	}
 }
@@ -46,7 +46,7 @@ func NewFromCF(cfgFile string) (*Conn, map[string]string, error) {
 
 func (c *Conn) Clone() *Conn {
 	return &Conn{
-		Raw:        c.Raw.Clone(),
+		Conn:       c.Conn.Clone(),
 		MaxRetries: c.MaxRetries,
 		Debug:      c.Debug,
 	}
@@ -58,7 +58,7 @@ func (c *Conn) reconnectIfNetErr(nn *int, err *error) {
 			log.Printf("Error: '%s' - reconnecting...", *err)
 		}
 		time.Sleep(1e9 * time.Duration(*nn))
-		*err = c.Raw.Reconnect()
+		*err = c.Conn.Reconnect()
 		if c.Debug && *err != nil {
 			log.Println("Can't reconnect:", *err)
 		}
@@ -67,28 +67,28 @@ func (c *Conn) reconnectIfNetErr(nn *int, err *error) {
 }
 
 func (c *Conn) connectIfNotConnected() (err error) {
-	if c.Raw.IsConnected() {
+	if c.Conn.IsConnected() {
 		return
 	}
-	err = c.Raw.Connect()
+	err = c.Conn.Connect()
 	nn := 0
 	c.reconnectIfNetErr(&nn, &err)
 	return
 }
 
 func (c *Conn) Reconnect() (err error) {
-	err = c.Raw.Reconnect()
+	err = c.Conn.Reconnect()
 	nn := 0
 	c.reconnectIfNetErr(&nn, &err)
 	return
 }
 
 func (c *Conn) Register(sql string) {
-	c.Raw.Register(sql)
+	c.Conn.Register(sql)
 }
 
 func (c *Conn) SetMaxPktSize(new_size int) int {
-	return c.Raw.SetMaxPktSize(new_size)
+	return c.Conn.SetMaxPktSize(new_size)
 }
 
 // Automatic connect/reconnect/repeat version of Use
@@ -98,7 +98,7 @@ func (c *Conn) Use(dbname string) (err error) {
 	}
 	nn := 0
 	for {
-		if err = c.Raw.Use(dbname); err == nil {
+		if err = c.Conn.Use(dbname); err == nil {
 			return
 		}
 		if c.reconnectIfNetErr(&nn, &err); err != nil {
@@ -116,7 +116,7 @@ func (c *Conn) Query(sql string, params ...interface{}) (rows []mysql.Row, res m
 	}
 	nn := 0
 	for {
-		if rows, res, err = c.Raw.Query(sql, params...); err == nil {
+		if rows, res, err = c.Conn.Query(sql, params...); err == nil {
 			return
 		}
 		if c.reconnectIfNetErr(&nn, &err); err != nil {
@@ -133,7 +133,7 @@ func (c *Conn) QueryFirst(sql string, params ...interface{}) (row mysql.Row, res
 	}
 	nn := 0
 	for {
-		if row, res, err = c.Raw.QueryFirst(sql, params...); err == nil {
+		if row, res, err = c.Conn.QueryFirst(sql, params...); err == nil {
 			return
 		}
 		if c.reconnectIfNetErr(&nn, &err); err != nil {
@@ -150,7 +150,7 @@ func (c *Conn) QueryLast(sql string, params ...interface{}) (row mysql.Row, res 
 	}
 	nn := 0
 	for {
-		if row, res, err = c.Raw.QueryLast(sql, params...); err == nil {
+		if row, res, err = c.Conn.QueryLast(sql, params...); err == nil {
 			return
 		}
 		if c.reconnectIfNetErr(&nn, &err); err != nil {
@@ -161,13 +161,13 @@ func (c *Conn) QueryLast(sql string, params ...interface{}) (row mysql.Row, res 
 }
 
 type Stmt struct {
-	Raw mysql.Stmt
+	mysql.Stmt
 	con *Conn
 }
 
 // Prepares statement if it wasn't prepared before
 func (c *Conn) PrepareOnce(s *Stmt, sql string) error {
-	if s.Raw != nil {
+	if s.Stmt != nil {
 		return nil
 	}
 	if err := c.connectIfNotConnected(); err != nil {
@@ -176,7 +176,7 @@ func (c *Conn) PrepareOnce(s *Stmt, sql string) error {
 	nn := 0
 	for {
 		var err error
-		if s.Raw, err = c.Raw.Prepare(sql); err == nil {
+		if s.Stmt, err = c.Conn.Prepare(sql); err == nil {
 			s.con = c
 			return nil
 		}
@@ -208,7 +208,7 @@ func (c *Conn) Begin(f func(mysql.Transaction, ...interface{}) error, args ...in
 	nn := 0
 	for {
 		var tr mysql.Transaction
-		if tr, err = c.Raw.Begin(); err == nil {
+		if tr, err = c.Conn.Begin(); err == nil {
 			if err = f(tr, args...); err == nil {
 				return nil
 			}
@@ -224,7 +224,7 @@ func (c *Conn) Begin(f func(mysql.Transaction, ...interface{}) error, args ...in
 }
 
 func (s *Stmt) Bind(params ...interface{}) {
-	s.Raw.Bind(params...)
+	s.Stmt.Bind(params...)
 }
 
 // Automatic connect/reconnect/repeat version of Exec
@@ -235,7 +235,7 @@ func (s *Stmt) Exec(params ...interface{}) (rows []mysql.Row, res mysql.Result, 
 	}
 	nn := 0
 	for {
-		if rows, res, err = s.Raw.Exec(params...); err == nil {
+		if rows, res, err = s.Stmt.Exec(params...); err == nil {
 			return
 		}
 		if s.con.reconnectIfNetErr(&nn, &err); err != nil {
@@ -252,7 +252,7 @@ func (s *Stmt) ExecFirst(params ...interface{}) (row mysql.Row, res mysql.Result
 	}
 	nn := 0
 	for {
-		if row, res, err = s.Raw.ExecFirst(params...); err == nil {
+		if row, res, err = s.Stmt.ExecFirst(params...); err == nil {
 			return
 		}
 		if s.con.reconnectIfNetErr(&nn, &err); err != nil {
@@ -269,7 +269,7 @@ func (s *Stmt) ExecLast(params ...interface{}) (row mysql.Row, res mysql.Result,
 	}
 	nn := 0
 	for {
-		if row, res, err = s.Raw.ExecLast(params...); err == nil {
+		if row, res, err = s.Stmt.ExecLast(params...); err == nil {
 			return
 		}
 		if s.con.reconnectIfNetErr(&nn, &err); err != nil {

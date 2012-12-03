@@ -104,12 +104,12 @@ func (my *Conn) connect() (err error) {
 	case "tcp", "tcp4", "tcp6":
 		var la, ra *net.TCPAddr
 		if my.laddr != "" {
-			if la, err = net.ResolveTCPAddr("", my.laddr); err != nil {
+			if la, err = net.ResolveTCPAddr(my.proto, my.laddr); err != nil {
 				return
 			}
 		}
 		if my.raddr != "" {
-			if ra, err = net.ResolveTCPAddr("", my.raddr); err != nil {
+			if ra, err = net.ResolveTCPAddr(my.proto, my.raddr); err != nil {
 				return
 			}
 		}
@@ -782,7 +782,7 @@ func (tr Transaction) Rollback() error {
 func (tr Transaction) IsValid() bool {
 	return tr.Conn != nil
 }
- 
+
 // Binds statement to the context of transaction. For native engine this is
 // identity function.
 func (tr Transaction) Do(st mysql.Stmt) mysql.Stmt {

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"strings"
 )
 
 type serverInfo struct {
@@ -70,7 +71,18 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	} else if len(db) > 1 {
 		panic("mymy.New: too many arguments")
 	}
+
+	// set default port if not specified for tcp.
+	if strings.Index(my.proto, "tcp") > -1 {
+		defaultPort(&my.raddr)
+	}
 	return &my
+}
+
+func defaultPort(addr *string) {
+	if _, _, err := net.SplitHostPort(*addr); err != nil {
+		*addr = net.JoinHostPort(*addr, "3306")
+	}
 }
 
 // Creates new (not connected) connection using configuration from current

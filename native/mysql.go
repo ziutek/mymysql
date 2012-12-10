@@ -103,7 +103,7 @@ func (my *Conn) connect() (err error) {
 	proto := my.proto
 	if proto == "" {
 		proto = "unix"
-		if strings.IndexRune(my.proto, ':') != -1 {
+		if strings.IndexRune(my.raddr, ':') != -1 {
 			proto = "tcp"
 		}
 	}

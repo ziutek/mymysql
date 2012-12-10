@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"strings"
 )
 
 type serverInfo struct {
@@ -99,21 +100,28 @@ func (my *Conn) SetMaxPktSize(new_size int) int {
 func (my *Conn) connect() (err error) {
 	defer catchError(&err)
 
+	proto := my.proto
+	if proto == "" {
+		proto = "unix"
+		if strings.IndexRune(my.proto, ':') != -1 {
+			proto = "tcp"
+		}
+	}
 	// Make connection
-	switch my.proto {
+	switch proto {
 	case "tcp", "tcp4", "tcp6":
 		var la, ra *net.TCPAddr
 		if my.laddr != "" {
-			if la, err = net.ResolveTCPAddr(my.proto, my.laddr); err != nil {
+			if la, err = net.ResolveTCPAddr(proto, my.laddr); err != nil {
 				return
 			}
 		}
 		if my.raddr != "" {
-			if ra, err = net.ResolveTCPAddr(my.proto, my.raddr); err != nil {
+			if ra, err = net.ResolveTCPAddr(proto, my.raddr); err != nil {
 				return
 			}
 		}
-		if my.net_conn, err = net.DialTCP(my.proto, la, ra); err != nil {
+		if my.net_conn, err = net.DialTCP(proto, la, ra); err != nil {
 			my.net_conn = nil
 			return
 		}
@@ -121,22 +129,22 @@ func (my *Conn) connect() (err error) {
 	case "unix":
 		var la, ra *net.UnixAddr
 		if my.raddr != "" {
-			if ra, err = net.ResolveUnixAddr(my.proto, my.raddr); err != nil {
+			if ra, err = net.ResolveUnixAddr(proto, my.raddr); err != nil {
 				return
 			}
 		}
 		if my.laddr != "" {
-			if la, err = net.ResolveUnixAddr(my.proto, my.laddr); err != nil {
+			if la, err = net.ResolveUnixAddr(proto, my.laddr); err != nil {
 				return
 			}
 		}
-		if my.net_conn, err = net.DialUnix(my.proto, la, ra); err != nil {
+		if my.net_conn, err = net.DialUnix(proto, la, ra); err != nil {
 			my.net_conn = nil
 			return
 		}
 
 	default:
-		err = net.UnknownNetworkError(my.proto)
+		err = net.UnknownNetworkError(proto)
 	}
 
 	my.rd = bufio.NewReader(my.net_conn)

@@ -101,6 +101,19 @@ func (my *Conn) newPktWriter(to_write int) *pktWriter {
     writeByte(wr, seq)
 }*/
 
+func (pw *pktWriter) WriteEmptyPacket() (err error) {
+	defer catchError(&err)
+
+    writeU24(pw.wr, 0)
+    writeByte(pw.wr, *pw.seq)
+    // Update sequence number
+    *pw.seq++
+
+    // Flush bufio buffers
+    err = pw.wr.Flush()
+    return
+}
+
 func (pw *pktWriter) Write(buf []byte) (num int, err error) {
 	if len(buf) == 0 {
 		return
@@ -120,6 +133,7 @@ func (pw *pktWriter) Write(buf []byte) (num int, err error) {
 				pw.remain = pw.to_write
 				pw.last = true
 			}
+
 			pw.to_write -= pw.remain
 			// Write packet header
 			writeU24(pw.wr, uint32(pw.remain))
@@ -131,7 +145,7 @@ func (pw *pktWriter) Write(buf []byte) (num int, err error) {
 		if nn > pw.remain {
 			nn = pw.remain
 		}
-		nn, err = pw.wr.Write(buf[0:nn])
+        nn, err = pw.wr.Write(buf[0:nn])
 		num += nn
 		pw.remain -= nn
 		if err != nil {

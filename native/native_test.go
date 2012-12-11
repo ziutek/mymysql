@@ -1180,3 +1180,9 @@ func BenchmarkPreparedInsertSelect(b *testing.B) {
 	check(err)
 	check(my.Close())
 }
+
+// Defaults test
+func TestDefaultPort(t *testing.T) {
+	my = New("tcp", "", "127.0.0.1", user, passwd)
+	checkErr(t, my.Connect(), nil)
+}

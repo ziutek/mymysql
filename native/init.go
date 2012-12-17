@@ -45,6 +45,7 @@ func (my *Conn) auth() {
 			_CLIENT_LONG_FLAG |
 			_CLIENT_TRANSACTIONS |
 			_CLIENT_SECURE_CONN |
+			_CLIENT_LOCAL_FILES |
 			_CLIENT_MULTI_STATEMENTS |
 			_CLIENT_MULTI_RESULTS)
 	// Reset flags not supported by server

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"os"
 )
 
 type pktReader struct {
@@ -101,6 +102,89 @@ func (my *Conn) newPktWriter(to_write int) *pktWriter {
     writeByte(wr, seq)
 }*/
 
+func (pw *pktWriter) WriteFile(file *os.File) (num int, err error) {
+	maxPacketSize := (16 * 1024 * 1024) - 1
+	buf := make([]byte, maxPacketSize)
+
+	//stat for file length
+	info, err := file.Stat()
+	if err != nil {
+		return 0, err
+	}
+
+	size := int(info.Size())
+
+	// if our payload is > than 16MB, we need to 
+	//break it up into multiple packets
+	//and only the first one needs a size
+	if size <= maxPacketSize {
+		writeU24(pw.wr, uint32(size))
+		writeByte(pw.wr, *pw.seq)
+		*pw.seq++
+
+		read, err := file.Read(buf[:size])
+		if err != nil {
+			return 0, err
+		}
+
+		written, err := pw.wr.Write(buf[:read])
+		if err != nil {
+			return 0, err
+		}
+
+		writeU24(pw.wr, 0)
+		writeByte(pw.wr, *pw.seq)
+		// Update sequence number
+		*pw.seq++
+
+		pw.wr.Flush()
+
+		return written, nil
+	}
+
+	consumed := 0
+	for {
+		read, err := file.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return 0, err
+		}
+
+		if read == 0 {
+			break
+		}
+
+		//first packet gets max size, then remaining need 0
+		if consumed == 0 {
+			writeU24(pw.wr, uint32(0xffffff))
+		} else if read == maxPacketSize {
+			writeU24(pw.wr, uint32(0xffffff))
+		} else {
+			writeU24(pw.wr, uint32(read))
+		}
+
+		writeByte(pw.wr, *pw.seq)
+		*pw.seq++
+
+		written, err := pw.wr.Write(buf[0:read])
+		if err != nil {
+			return 0, err
+		}
+		consumed += written
+		pw.wr.Flush()
+	}
+	writeU24(pw.wr, 0)
+	writeByte(pw.wr, *pw.seq)
+	// Update sequence number
+	*pw.seq++
+
+	pw.wr.Flush()
+
+	return consumed, nil
+}
+
 func (pw *pktWriter) Write(buf []byte) (num int, err error) {
 	if len(buf) == 0 {
 		return
@@ -120,6 +204,7 @@ func (pw *pktWriter) Write(buf []byte) (num int, err error) {
 				pw.remain = pw.to_write
 				pw.last = true
 			}
+
 			pw.to_write -= pw.remain
 			// Write packet header
 			writeU24(pw.wr, uint32(pw.remain))

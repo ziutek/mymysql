@@ -2,10 +2,9 @@ package native
 
 import (
 	"github.com/ziutek/mymysql/mysql"
-    "io"
 	"log"
 	"math"
-    "os"
+	"os"
 	"strconv"
 )
 
@@ -96,7 +95,7 @@ loop:
 			goto loop
 
 		case pkt0 == 251:
-            //LOCAL INFILE Data response
+			//LOCAL INFILE Data response
 			my.handleLocalDataResponse(pr)
 			goto loop
 
@@ -335,8 +334,8 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result, row mysql.Row) {
 }
 
 func (my *Conn) getLocalFilePacket(pr *pktReader) string {
-    filename := string(pr.readAll())
-    pr.checkEof()
+	filename := string(pr.readAll())
+	pr.checkEof()
 
 	return filename
 }
@@ -346,55 +345,39 @@ func (my *Conn) handleLocalDataResponse(pr *pktReader) {
 		log.Printf("[%2d ->] Local File packet", my.seq-1)
 	}
 
-    //get filename from response
-    filename := my.getLocalFilePacket(pr)
+	//get filename from response
+	filename := my.getLocalFilePacket(pr)
 	if my.Debug {
 		log.Printf(tab8s+"filename=\"%s\"", filename)
 	}
 
-    //open file
-    file, err := os.Open(filename)
-    if err != nil {
-        panic(err)
-    }
-    defer file.Close()
+	//open file
+	file, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
 
-    //stat for file length
-    info, err := file.Stat()
-    if err != nil {
-        panic(err)
-    }
-
-    size := int(info.Size())
-
-	if my.Debug {
-		log.Printf(tab8s+"File Opened.  Size=\"%d\"", size)
+	//stat for file length
+	info, err := file.Stat()
+	if err != nil {
+		panic(err)
 	}
 
-    //send file data back
-    pw := my.newPktWriter(size)
-    buf := make([]byte, (16 * 1024 * 1024) - 1)
+	size := int(info.Size())
 
-    for {
-        read, err := file.Read(buf)
-        if err != nil {
-            if err == io.EOF && read == 0 {
-                break
-            }
-            panic(err)
-        }
-        _, err = pw.Write(buf[:read])
-        if err != nil {
-            panic(err)
-        }
+	if my.Debug {
+		log.Printf(tab8s+"File Opened. Size=\"%d\"", size)
+	}
 
-        if my.Debug {
-            log.Printf("[%2d ->] Sending Local File Data", my.seq-1)
-        }
-    }
+	//send file data back
+	pw := my.newPktWriter(size)
+	written, err := pw.WriteFile(file)
+	if err != nil {
+		panic(err)
+	}
 
-    err = pw.WriteEmptyPacket()
-    if err != nil {
-        panic(err)
-    }
+	if my.Debug {
+		log.Printf(tab8s+"Sent File. Bytes Written=\"%d\"", written)
+	}
 }

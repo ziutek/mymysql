@@ -12,6 +12,7 @@ import (
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native"
 	"io"
+	"log"
 	"sync"
 	"time"
 )
@@ -142,9 +143,14 @@ func (res *Result) ScanRow(row mysql.Row) error {
 		// There are more rows to read
 		return nil
 	}
+	if err == mysql.ErrReadAfterEOR {
+		// Trying read after EOR - connection unlocked before
+		return err
+	}
 	if err != io.EOF || !res.StatusOnly() && !res.MoreResults() {
+		log.Println("Debug ***", res, err != io.EOF && err != mysql.ErrReadAfterEOR, res.StatusOnly(), res.MoreResults())
 		// Error or no more rows in not empty result set and no more resutls.
-		// In case if empty result set and no more resutls Start have unlocked
+		// In case if empty result set and no more resutls Start has unlocked
 		// it before.
 		res.conn.unlock()
 	}

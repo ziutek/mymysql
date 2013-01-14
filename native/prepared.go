@@ -138,7 +138,7 @@ loop:
 			goto loop
 		}
 	}
-	panic(UNK_RESULT_PKT_ERROR)
+	panic(mysql.ErrUnkResultPkt)
 }
 
 func (my *Conn) getPrepareOkPacket(pr *pktReader) (stmt *Stmt) {

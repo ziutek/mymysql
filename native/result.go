@@ -92,6 +92,10 @@ loop:
 			res = my.getResSetHeadPacket(pr)
 			// Read next packet
 			goto loop
+		case pkt0 == 251:
+			// Load infile response
+			// Handle response
+			goto loop
 		case pkt0 == 254:
 			// EOF packet (without body)
 			return nil
@@ -117,7 +121,7 @@ loop:
 		case pkt0 < 254 && res.field_count == len(res.fields):
 			// Row Data Packet
 			if len(row) != res.field_count {
-				panic(ROW_LENGTH_ERROR)
+				panic(mysql.ErrRowLength)
 			}
 			if res.binary {
 				my.getBinRowPacket(pr, res, row)
@@ -127,7 +131,7 @@ loop:
 			return nil
 		}
 	}
-	panic(UNK_RESULT_PKT_ERROR)
+	panic(mysql.ErrUnkResultPkt)
 }
 
 func (my *Conn) getOkPacket(pr *pktReader) (res *Result) {
@@ -162,7 +166,7 @@ func (my *Conn) getErrorPacket(pr *pktReader) {
 	var err mysql.Error
 	err.Code = readU16(pr)
 	if readByte(pr) != '#' {
-		panic(PKT_ERROR)
+		panic(mysql.ErrPkt)
 	}
 	read(pr, 5)
 	err.Msg = pr.readAll()
@@ -321,7 +325,7 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result, row mysql.Row) {
 		case MYSQL_TYPE_TIME:
 			row[ii] = readDuration(pr)
 		default:
-			panic(UNK_MYSQL_TYPE_ERROR)
+			panic(mysql.ErrUnkMySQLType)
 		}
 	}
 }

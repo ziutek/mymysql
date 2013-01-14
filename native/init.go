@@ -1,6 +1,7 @@
 package native
 
 import (
+	"github.com/ziutek/mymysql/mysql"
 	"log"
 )
 
@@ -31,7 +32,7 @@ func (my *Conn) init() {
 		)
 	}
 	if my.info.caps&_CLIENT_PROTOCOL_41 == 0 {
-		panic(OLD_PROTOCOL_ERROR)
+		panic(mysql.ErrOldProtocol)
 	}
 }
 
@@ -45,6 +46,7 @@ func (my *Conn) auth() {
 			_CLIENT_LONG_FLAG |
 			_CLIENT_TRANSACTIONS |
 			_CLIENT_SECURE_CONN |
+			_CLIENT_LOCAL_FILES |
 			_CLIENT_MULTI_STATEMENTS |
 			_CLIENT_MULTI_RESULTS)
 	// Reset flags not supported by server

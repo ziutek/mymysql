@@ -684,7 +684,7 @@ func TestEmpty(t *testing.T) {
 	checkErr(t, err, nil)
 	checkNil(row)
 	row, err = res.GetRow()
-	checkErr(t, err, READ_AFTER_EOR_ERROR)
+	checkErr(t, err, mysql.ErrReadAfterEOR)
 	checkNil(row)
 	// Prepared statement
 	sel, err := my.Prepare("select * from e")
@@ -695,7 +695,7 @@ func TestEmpty(t *testing.T) {
 	checkErr(t, err, nil)
 	checkNil(row)
 	row, err = res.GetRow()
-	checkErr(t, err, READ_AFTER_EOR_ERROR)
+	checkErr(t, err, mysql.ErrReadAfterEOR)
 	checkNil(row)
 	// Drop test table
 	checkResult(t, query("drop table e"), cmdOK(0, false, true))

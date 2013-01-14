@@ -159,7 +159,7 @@ func (my *Conn) connect() (err error) {
 		my.oldPasswd()
 		res = my.getResult(nil, nil)
 		if res == nil {
-			return AUTHENTICATION_ERROR
+			return mysql.ErrAuthentication
 		}
 	}
 
@@ -201,7 +201,7 @@ func (my *Conn) connect() (err error) {
 // Establishes a connection with MySQL server version 4.1 or later.
 func (my *Conn) Connect() (err error) {
 	if my.net_conn != nil {
-		return ALREDY_CONN_ERROR
+		return mysql.ErrAlredyConn
 	}
 
 	return my.connect()
@@ -230,10 +230,10 @@ func (my *Conn) closeConn() (err error) {
 // Close connection to the server
 func (my *Conn) Close() (err error) {
 	if my.net_conn == nil {
-		return NOT_CONN_ERROR
+		return mysql.ErrNotConn
 	}
 	if my.unreaded_reply {
-		return UNREADED_REPLY_ERROR
+		return mysql.ErrUnreadedReply
 	}
 
 	return my.closeConn()
@@ -278,10 +278,10 @@ func (my *Conn) Use(dbname string) (err error) {
 	defer catchError(&err)
 
 	if my.net_conn == nil {
-		return NOT_CONN_ERROR
+		return mysql.ErrNotConn
 	}
 	if my.unreaded_reply {
-		return UNREADED_REPLY_ERROR
+		return mysql.ErrUnreadedReply
 	}
 
 	// Send command
@@ -297,7 +297,7 @@ func (my *Conn) Use(dbname string) (err error) {
 func (my *Conn) getResponse() (res *Result) {
 	res = my.getResult(nil, nil)
 	if res == nil {
-		panic(BAD_RESULT_ERROR)
+		panic(mysql.ErrBadResult)
 	}
 	my.unreaded_reply = !res.StatusOnly()
 	return
@@ -312,10 +312,10 @@ func (my *Conn) Start(sql string, params ...interface{}) (res mysql.Result, err 
 	defer catchError(&err)
 
 	if my.net_conn == nil {
-		return nil, NOT_CONN_ERROR
+		return nil, mysql.ErrNotConn
 	}
 	if my.unreaded_reply {
-		return nil, UNREADED_REPLY_ERROR
+		return nil, mysql.ErrUnreadedReply
 	}
 
 	if len(params) != 0 {
@@ -349,10 +349,10 @@ func (res *Result) MoreResults() bool {
 // Returns io.EOF if there is no more rows in current result set.
 func (res *Result) ScanRow(row mysql.Row) error {
 	if row == nil {
-		return ROW_LENGTH_ERROR
+		return mysql.ErrRowLength
 	}
 	if res.eor_returned {
-		return READ_AFTER_EOR_ERROR
+		return mysql.ErrReadAfterEOR
 	}
 	if res.StatusOnly() {
 		// There is no fields in result (OK result)
@@ -402,10 +402,10 @@ func (my *Conn) Ping() (err error) {
 	defer catchError(&err)
 
 	if my.net_conn == nil {
-		return NOT_CONN_ERROR
+		return mysql.ErrNotConn
 	}
 	if my.unreaded_reply {
-		return UNREADED_REPLY_ERROR
+		return mysql.ErrUnreadedReply
 	}
 
 	// Send command
@@ -424,7 +424,7 @@ func (my *Conn) prepare(sql string) (stmt *Stmt, err error) {
 	// Get server response
 	stmt, ok := my.getPrepareResult(nil).(*Stmt)
 	if !ok {
-		return nil, BAD_RESULT_ERROR
+		return nil, mysql.ErrBadResult
 	}
 	if len(stmt.params) > 0 {
 		// Get param fields
@@ -440,10 +440,10 @@ func (my *Conn) prepare(sql string) (stmt *Stmt, err error) {
 // Prepare server side statement. Return statement handler.
 func (my *Conn) Prepare(sql string) (mysql.Stmt, error) {
 	if my.net_conn == nil {
-		return nil, NOT_CONN_ERROR
+		return nil, mysql.ErrNotConn
 	}
 	if my.unreaded_reply {
-		return nil, UNREADED_REPLY_ERROR
+		return nil, mysql.ErrUnreadedReply
 	}
 
 	stmt, err := my.prepare(sql)
@@ -486,7 +486,7 @@ func (stmt *Stmt) Bind(params ...interface{}) {
 			typ != rawType {
 			// We have struct to bind
 			if pval.NumField() != stmt.param_count {
-				panic(BIND_COUNT_ERROR)
+				panic(mysql.ErrBindCount)
 			}
 			if !pval.CanAddr() {
 				// Make an addressable structure
@@ -506,7 +506,7 @@ func (stmt *Stmt) Bind(params ...interface{}) {
 	// There isn't struct to bind
 
 	if len(params) != stmt.param_count {
-		panic(BIND_COUNT_ERROR)
+		panic(mysql.ErrBindCount)
 	}
 	for ii, par := range params {
 		pval := reflect.ValueOf(par)
@@ -541,17 +541,17 @@ func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
 	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {
-		return nil, NOT_CONN_ERROR
+		return nil, mysql.ErrNotConn
 	}
 	if stmt.my.unreaded_reply {
-		return nil, UNREADED_REPLY_ERROR
+		return nil, mysql.ErrUnreadedReply
 	}
 
 	// Bind parameters if any
 	if len(params) != 0 {
 		stmt.Bind(params...)
 	} else if stmt.param_count != 0 && !stmt.binded {
-		panic(BIND_COUNT_ERROR)
+		panic(mysql.ErrBindCount)
 	}
 
 	// Send EXEC command with binded parameters
@@ -569,10 +569,10 @@ func (stmt *Stmt) Delete() (err error) {
 	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {
-		return NOT_CONN_ERROR
+		return mysql.ErrNotConn
 	}
 	if stmt.my.unreaded_reply {
-		return UNREADED_REPLY_ERROR
+		return mysql.ErrUnreadedReply
 	}
 
 	// Allways delete statement on client side, even if
@@ -595,10 +595,10 @@ func (stmt *Stmt) Reset() (err error) {
 	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {
-		return NOT_CONN_ERROR
+		return mysql.ErrNotConn
 	}
 	if stmt.my.unreaded_reply {
-		return UNREADED_REPLY_ERROR
+		return mysql.ErrUnreadedReply
 	}
 
 	// Next exec must send type information. We set rebind flag regardless of
@@ -634,16 +634,16 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) (err er
 	defer catchError(&err)
 
 	if stmt.my.net_conn == nil {
-		return NOT_CONN_ERROR
+		return mysql.ErrNotConn
 	}
 	if stmt.my.unreaded_reply {
-		return UNREADED_REPLY_ERROR
+		return mysql.ErrUnreadedReply
 	}
 	if pnum < 0 || pnum >= stmt.param_count {
-		return WRONG_PARAM_NUM_ERROR
+		return mysql.ErrWrongParamNum
 	}
 	if pkt_size -= 6; pkt_size < 0 {
-		return SMALL_PKT_SIZE_ERROR
+		return mysql.ErrSmallPktSize
 	}
 
 	switch dd := data.(type) {
@@ -689,7 +689,7 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) (err er
 		stmt.my.sendCmd(_COM_STMT_SEND_LONG_DATA, stmt.id, uint16(pnum), dd)
 		return
 	}
-	return UNK_DATA_TYPE_ERROR
+	return mysql.ErrUnkDataType
 }
 
 // Returns the thread ID of the current connection.

@@ -147,5 +147,5 @@ func bindValue(val reflect.Value) (out *paramValue) {
 		out.length = -1
 		return
 	}
-	panic(BIND_UNK_TYPE)
+	panic(mysql.ErrBindUnkType)
 }

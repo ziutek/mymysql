@@ -110,7 +110,7 @@ func writeValue(wr io.Writer, val *paramValue) {
 		writeDuration(wr, *(*time.Duration)(ptr))
 
 	default:
-		panic(BIND_UNK_TYPE)
+		panic(mysql.ErrBindUnkType)
 	}
 	return
 }

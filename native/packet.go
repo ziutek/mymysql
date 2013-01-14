@@ -3,6 +3,7 @@ package native
 import (
 	"bufio"
 	"errors"
+	"github.com/ziutek/mymysql/mysql"
 	"io"
 )
 
@@ -34,7 +35,7 @@ func (pr *pktReader) Read(buf []byte) (num int, err error) {
 		seq := readByte(pr.rd)
 		// Chceck sequence number
 		if *pr.seq != seq {
-			return 0, SEQ_ERROR
+			return 0, mysql.ErrSeq
 		}
 		*pr.seq++
 		// Last packet?
@@ -80,7 +81,7 @@ func (pr *pktReader) eof() bool {
 
 func (pr *pktReader) checkEof() {
 	if !pr.eof() {
-		panic(PKT_LONG_ERROR)
+		panic(mysql.ErrPktLong)
 	}
 }
 

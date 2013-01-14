@@ -103,7 +103,7 @@ func readNullLCB(rd io.Reader) (lcb uint64, null bool) {
 func readLCB(rd io.Reader) uint64 {
 	lcb, null := readNullLCB(rd)
 	if null {
-		panic(UNEXP_NULL_LCB_ERROR)
+		panic(mysql.ErrUnexpNullLCB)
 	}
 	return lcb
 }
@@ -155,7 +155,7 @@ func readNullBin(rd io.Reader) (buf []byte, null bool) {
 func readBin(rd io.Reader) []byte {
 	buf, null := readNullBin(rd)
 	if null {
-		panic(UNEXP_NULL_LCS_ERROR)
+		panic(mysql.ErrUnexpNullLCS)
 	}
 	return buf
 }
@@ -258,14 +258,14 @@ func readDuration(rd io.Reader) time.Duration {
 	switch dlen {
 	case 251:
 		// Null
-		panic(UNEXP_NULL_TIME_ERROR)
+		panic(mysql.ErrUnexpNullTime)
 	case 0:
 		// 00:00:00
 		return 0
 	case 5, 8, 12:
 		// Properly time length
 	default:
-		panic(WRONG_DATE_LEN_ERROR)
+		panic(mysql.ErrWrongDateLen)
 	}
 	buf := make([]byte, dlen)
 	readFull(rd, buf)
@@ -340,14 +340,14 @@ func readTime(rd io.Reader) time.Time {
 	switch dlen {
 	case 251:
 		// Null
-		panic(UNEXP_NULL_DATE_ERROR)
+		panic(mysql.ErrUnexpNullDate)
 	case 0:
 		// return 0000-00-00 converted to time.Time zero
 		return time.Time{}
 	case 4, 7, 11:
 		// Properly datetime length
 	default:
-		panic(WRONG_DATE_LEN_ERROR)
+		panic(mysql.ErrWrongDateLen)
 	}
 
 	buf := make([]byte, dlen)

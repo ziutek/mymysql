@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ziutek/mymysql/mysql"
-	"github.com/ziutek/mymysql/native"
+	_ "github.com/ziutek/mymysql/native"
 	"io"
 	"math"
 	"net"
@@ -121,7 +121,7 @@ func (r rowsRes) Close() error {
 	err := r.my.End()
 	r.my = nil
 	r.row = nil
-	if err != native.READ_AFTER_EOR_ERROR {
+	if err != mysql.ErrReadAfterEOR {
 		return errFilter(err)
 	}
 	return nil

@@ -1,13 +1,15 @@
 Sorry for my poor English. If you can help with improving the English in this
 documentation, please contact me.
 
-## MyMySQL v1.0 (2012-09-26)
+## MyMySQL v1.0 (2013-01-14)
 
 This package contains MySQL client API written entirely in Go. It works with
 the MySQL protocol version 4.1 or greater. It definitely works well with MySQL
 5.0 and 5.1 (I use these versions of MySQL servers for my applications).
 
 ## Changelog
+
+v1.1: Client error codes moved from *mymysql/native* pacage to *mymysql/mysql*.
 
 v1.0: Transactions added to autorc, new Transaction.IsValid method. I think
 this library is mature enough to release it as v1.0

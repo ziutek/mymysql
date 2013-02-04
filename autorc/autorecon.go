@@ -11,7 +11,7 @@ import (
 
 // Return true if error is network error or UnexpectedEOF.
 func IsNetErr(err error) bool {
-	if err == io.ErrUnexpectedEOF {
+	if err == io.ErrUnexpectedEOF || err == io.ErrClosedPipe {
 		return true
 	} else if _, ok := err.(net.Error); ok {
 		return true

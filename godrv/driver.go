@@ -22,7 +22,7 @@ type conn struct {
 }
 
 func errFilter(err error) error {
-	if err == io.ErrUnexpectedEOF {
+	if err == io.ErrUnexpectedEOF || err == io.ErrClosedPipe {
 		return driver.ErrBadConn
 	} else if _, ok := err.(net.Error); ok {
 		return driver.ErrBadConn

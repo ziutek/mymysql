@@ -22,9 +22,13 @@ type conn struct {
 }
 
 func errFilter(err error) error {
-	if err == io.ErrUnexpectedEOF || err == io.ErrClosedPipe {
+	if err == nil {
+		return nil
+	}
+	if err == io.ErrUnexpectedEOF {
 		return driver.ErrBadConn
-	} else if _, ok := err.(net.Error); ok {
+	}
+	if _, ok := err.(net.Error); ok {
 		return driver.ErrBadConn
 	}
 	return err
@@ -57,11 +61,11 @@ type tx struct {
 }
 
 func (t tx) Commit() error {
-	return t.my.Commit()
+	return errFilter(t.my.Commit())
 }
 
 func (t tx) Rollback() error {
-	return t.my.Rollback()
+	return errFilter(t.my.Rollback())
 }
 
 type stmt struct {

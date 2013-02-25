@@ -180,9 +180,19 @@ func (my *Conn) getErrorPacket(pr *pktReader) {
 
 func (my *Conn) getEofPacket(pr *pktReader) (warn_count int, status uint16) {
 	if my.Debug {
-		log.Printf("[%2d ->] EOF packet:", my.seq-1)
+		if pr.eof() {
+			log.Printf("[%2d ->] EOF packet without body", my.seq-1)
+		} else {
+			log.Printf("[%2d ->] EOF packet:", my.seq-1)
+		}
+	}
+	if pr.eof() {
+		return
 	}
 	warn_count = int(readU16(pr))
+	if pr.eof() {
+		return
+	}
 	status = readU16(pr)
 	pr.checkEof()
 

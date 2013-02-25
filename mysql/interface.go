@@ -1,6 +1,10 @@
 // MySQL Client API written entirely in Go without any external dependences.
 package mysql
 
+import (
+	"time"
+)
+
 type ConnCommon interface {
 	Start(sql string, params ...interface{}) (Result, error)
 	Prepare(sql string) (Stmt, error)
@@ -18,6 +22,7 @@ type Conn interface {
 	ConnCommon
 
 	Clone() Conn
+	SetTimeout(time.Duration)
 	Connect() error
 	Close() error
 	IsConnected() bool

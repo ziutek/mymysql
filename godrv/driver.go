@@ -181,7 +181,7 @@ func (r rowsRes) Next(dest []driver.Value) error {
 
 type Driver struct {
 	// Defaults
-	proto, laddr, raddr, user, passwd, db string
+	proto, laddr, raddr, user, passwd, db, timeout string
 
 	initCmds []string
 }
@@ -192,10 +192,20 @@ type Driver struct {
 //
 // where protocol spercific part may be empty (this means connection to
 // local server using default protocol). Currently possible forms:
+//
 //   DBNAME/USER/PASSWD
 //   unix:SOCKPATH*DBNAME/USER/PASSWD
+//   unix:SOCKPATH,OPTIONS*DBNAME/USER/PASSWD
 //   tcp:ADDR*DBNAME/USER/PASSWD
+//   tcp:ADDR,OPTIONS*DBNAME/USER/PASSWD
+//
+// OPTIONS can contain comma separated list of options in form:
+//   opt1=VAL1,opt2=VAL2,boolopt3,boolopt4
+// Currently implemented options:
+//   laddr   - local address/port (eg. 1.2.3.4:0)
+//   timeout - connect timeout in format accepted by time.ParseDuration
 func (d *Driver) Open(uri string) (driver.Conn, error) {
+	cfg := *d // copy default configuration
 	pd := strings.SplitN(uri, "*", 2)
 	if len(pd) == 2 {
 		// Parse protocol part of URI
@@ -203,8 +213,26 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 		if len(p) != 2 {
 			return nil, errors.New("Wrong protocol part of URI")
 		}
-		d.proto = p[0]
-		d.raddr = p[1]
+		cfg.proto = p[0]
+		options := strings.Split(p[1], ",")
+		cfg.raddr = options[0]
+		for _, o := range options[1:] {
+			kv := strings.SplitN(o, "=", 2)
+			var k, v string
+			if len(kv) == 2 {
+				k, v = kv[0], kv[1]
+			} else {
+				k, v = o, "true"
+			}
+			switch k {
+			case "laddr":
+				cfg.laddr = v
+			case "timeout":
+				cfg.timeout = v
+			default:
+				return nil, errors.New("Unknown option: " + k)
+			}
+		}
 		// Remove protocol part
 		pd = pd[1:]
 	}
@@ -213,13 +241,22 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 	if len(dup) != 3 {
 		return nil, errors.New("Wrong database part of URI")
 	}
-	d.db = dup[0]
-	d.user = dup[1]
-	d.passwd = dup[2]
+	cfg.db = dup[0]
+	cfg.user = dup[1]
+	cfg.passwd = dup[2]
 
 	// Establish the connection
-	c := conn{mysql.New(d.proto, d.laddr, d.raddr, d.user, d.passwd, d.db)}
-	for _, q := range d.initCmds {
+	c := conn{mysql.New(
+		cfg.proto, cfg.laddr, cfg.raddr, cfg.user, cfg.passwd, cfg.db,
+	)}
+	if cfg.timeout != "" {
+		to, err := time.ParseDuration(cfg.timeout)
+		if err != nil {
+			return nil, err
+		}
+		c.my.SetTimeout(to)
+	}
+	for _, q := range cfg.initCmds {
 		c.my.Register(q) // Register initialisation commands
 	}
 	if err := c.my.Connect(); err != nil {

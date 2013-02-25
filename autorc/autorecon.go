@@ -23,7 +23,8 @@ func IsNetErr(err error) bool {
 type Conn struct {
 	Raw mysql.Conn
 	// Maximum reconnect retries.
-	// Default is 7 which means 1+2+3+4+5+6+7 = 28 seconds before return error.
+	// Default is 7 which means 1+2+3+4+5+6+7 = 28 seconds before return error
+	// (if waiting for error takes no time).
 	MaxRetries int
 
 	// Debug logging. You may change it at any time.
@@ -53,12 +54,16 @@ func (c *Conn) Clone() *Conn {
 	}
 }
 
+func (c *Conn) SetTimeout(timeout time.Duration) {
+	c.Raw.SetTimeout(timeout)
+}
+
 func (c *Conn) reconnectIfNetErr(nn *int, err *error) {
 	for *err != nil && IsNetErr(*err) && *nn <= c.MaxRetries {
 		if c.Debug {
 			log.Printf("Error: '%s' - reconnecting...", *err)
 		}
-		time.Sleep(1e9 * time.Duration(*nn))
+		time.Sleep(time.Second * time.Duration(*nn))
 		*err = c.Raw.Reconnect()
 		if c.Debug && *err != nil {
 			log.Println("Can't reconnect:", *err)

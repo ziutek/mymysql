@@ -34,6 +34,29 @@ func errFilter(err error) error {
 	return err
 }
 
+func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
+	if len(args) > 0 {
+		if strings.ContainsAny(query, `'"`) {
+			return nil, driver.ErrSkip
+		}
+		var q string
+		for _, a := range args {
+			i := strings.IndexRune(query, '?')
+			if i == -1 {
+				break
+			}
+			q += query[:i] + "'" + c.my.Escape(fmt.Sprint(a)) + "'"
+			query = query[i+1:]
+		}
+		query = q + query
+	}
+	res, err := c.my.Start(query)
+	if err != nil {
+		return nil, errFilter(err)
+	}
+	return &rowsRes{res, res.MakeRow()}, nil
+}
+
 func (c conn) Prepare(query string) (driver.Stmt, error) {
 	st, err := c.my.Prepare(query)
 	if err != nil {

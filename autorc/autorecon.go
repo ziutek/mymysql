@@ -166,6 +166,10 @@ func (c *Conn) QueryLast(sql string, params ...interface{}) (row mysql.Row, res 
 	panic(nil)
 }
 
+func (c *Conn) Escape(s string) string {
+	return c.Raw.Escape(s)
+}
+
 type Stmt struct {
 	Raw mysql.Stmt
 	con *Conn

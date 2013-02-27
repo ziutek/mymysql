@@ -809,7 +809,7 @@ func (res *Result) GetRows() ([]mysql.Row, error) {
 
 // Escapes special characters in the txt, so it is safe to place returned string
 // to Query method.
-func (my *Conn) EscapeString(txt string) string {
+func (my *Conn) Escape(txt string) string {
 	if my.status&_SERVER_STATUS_NO_BACKSLASH_ESCAPES != 0 {
 		return escapeQuotes(txt)
 	}

@@ -12,6 +12,7 @@ type ConnCommon interface {
 	Ping() error
 	ThreadId() uint32
 	Escape(txt string) string
+	NarrowTypeSet(narrow bool)
 
 	Query(sql string, params ...interface{}) ([]Row, Result, error)
 	QueryFirst(sql string, params ...interface{}) (Row, Result, error)

@@ -285,57 +285,112 @@ func (my *Conn) getBinRowPacket(pr *pktReader, res *Result, row mysql.Row) {
 			row[ii] = nil
 			continue
 		}
-		typ := field.Type
 		unsigned := (field.Flags & _FLAG_UNSIGNED) != 0
-		switch typ {
-		case MYSQL_TYPE_TINY:
-			if unsigned {
-				row[ii] = readByte(pr)
-			} else {
-				row[ii] = int8(readByte(pr))
-			}
-		case MYSQL_TYPE_SHORT, MYSQL_TYPE_YEAR:
-			if unsigned {
-				row[ii] = readU16(pr)
-			} else {
-				row[ii] = int16(readU16(pr))
-			}
-		case MYSQL_TYPE_LONG, MYSQL_TYPE_INT24:
-			if unsigned {
-				row[ii] = readU32(pr)
-			} else {
-				row[ii] = int32(readU32(pr))
-			}
-		case MYSQL_TYPE_LONGLONG:
-			if unsigned {
-				row[ii] = readU64(pr)
-			} else {
-				row[ii] = int64(readU64(pr))
-			}
-		case MYSQL_TYPE_FLOAT:
-			row[ii] = math.Float32frombits(readU32(pr))
-		case MYSQL_TYPE_DOUBLE:
-			row[ii] = math.Float64frombits(readU64(pr))
-		case MYSQL_TYPE_DECIMAL, MYSQL_TYPE_NEWDECIMAL:
-			dec := string(readBin(pr))
-			var err error
-			row[ii], err = strconv.ParseFloat(dec, 64)
-			if err != nil {
-				panic("MySQL server returned wrong decimal value: " + dec)
-			}
-		case MYSQL_TYPE_STRING, MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_VARCHAR,
-			MYSQL_TYPE_BIT, MYSQL_TYPE_BLOB, MYSQL_TYPE_TINY_BLOB,
-			MYSQL_TYPE_MEDIUM_BLOB, MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET,
-			MYSQL_TYPE_ENUM, MYSQL_TYPE_GEOMETRY:
-			row[ii] = readBin(pr)
-		case MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE:
-			row[ii] = readDate(pr)
-		case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
-			row[ii] = readTime(pr)
-		case MYSQL_TYPE_TIME:
-			row[ii] = readDuration(pr)
-		default:
-			panic(mysql.ErrUnkMySQLType)
+		if my.narrowTypeSet {
+			row[ii] = readValueNarrow(pr, field.Type, unsigned)
+		} else {
+			row[ii] = readValue(pr, field.Type, unsigned)
 		}
 	}
+}
+
+func readValue(pr *pktReader, typ byte, unsigned bool) interface{} {
+	switch typ {
+	case MYSQL_TYPE_STRING, MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_VARCHAR,
+		MYSQL_TYPE_BIT, MYSQL_TYPE_BLOB, MYSQL_TYPE_TINY_BLOB,
+		MYSQL_TYPE_MEDIUM_BLOB, MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET,
+		MYSQL_TYPE_ENUM, MYSQL_TYPE_GEOMETRY:
+		return readBin(pr)
+	case MYSQL_TYPE_TINY:
+		if unsigned {
+			return readByte(pr)
+		} else {
+			return int8(readByte(pr))
+		}
+	case MYSQL_TYPE_SHORT, MYSQL_TYPE_YEAR:
+		if unsigned {
+			return readU16(pr)
+		} else {
+			return int16(readU16(pr))
+		}
+	case MYSQL_TYPE_LONG, MYSQL_TYPE_INT24:
+		if unsigned {
+			return readU32(pr)
+		} else {
+			return int32(readU32(pr))
+		}
+	case MYSQL_TYPE_LONGLONG:
+		if unsigned {
+			return readU64(pr)
+		} else {
+			return int64(readU64(pr))
+		}
+	case MYSQL_TYPE_FLOAT:
+		return math.Float32frombits(readU32(pr))
+	case MYSQL_TYPE_DOUBLE:
+		return math.Float64frombits(readU64(pr))
+	case MYSQL_TYPE_DECIMAL, MYSQL_TYPE_NEWDECIMAL:
+		dec := string(readBin(pr))
+		r, err := strconv.ParseFloat(dec, 64)
+		if err != nil {
+			panic("MySQL server returned wrong decimal value: " + dec)
+		}
+		return r
+	case MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE:
+		return readDate(pr)
+	case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
+		return readTime(pr)
+	case MYSQL_TYPE_TIME:
+		return readDuration(pr)
+	}
+	panic(mysql.ErrUnkMySQLType)
+}
+
+func readValueNarrow(pr *pktReader, typ byte, unsigned bool) interface{} {
+	switch typ {
+	case MYSQL_TYPE_STRING, MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_VARCHAR,
+		MYSQL_TYPE_BIT, MYSQL_TYPE_BLOB, MYSQL_TYPE_TINY_BLOB,
+		MYSQL_TYPE_MEDIUM_BLOB, MYSQL_TYPE_LONG_BLOB, MYSQL_TYPE_SET,
+		MYSQL_TYPE_ENUM, MYSQL_TYPE_GEOMETRY:
+		return readBin(pr)
+	case MYSQL_TYPE_TINY:
+		if unsigned {
+			return int64(readByte(pr))
+		}
+		return int64(int8(readByte(pr)))
+	case MYSQL_TYPE_SHORT, MYSQL_TYPE_YEAR:
+		if unsigned {
+			return int64(readU16(pr))
+		}
+		return int64(int16(readU16(pr)))
+	case MYSQL_TYPE_LONG, MYSQL_TYPE_INT24:
+		if unsigned {
+			return int64(readU32(pr))
+		}
+		return int64(int32(readU32(pr)))
+	case MYSQL_TYPE_LONGLONG:
+		v := readU64(pr)
+		if unsigned && v > math.MaxInt64 {
+			panic("Value to large for int64 type")
+		}
+		return int64(v)
+	case MYSQL_TYPE_FLOAT:
+		return float64(math.Float32frombits(readU32(pr)))
+	case MYSQL_TYPE_DOUBLE:
+		return math.Float64frombits(readU64(pr))
+	case MYSQL_TYPE_DECIMAL, MYSQL_TYPE_NEWDECIMAL:
+		dec := string(readBin(pr))
+		r, err := strconv.ParseFloat(dec, 64)
+		if err != nil {
+			panic("MySQL server returned wrong decimal value: " + dec)
+		}
+		return r
+	case MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE:
+		return readDate(pr)
+	case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
+		return readTime(pr)
+	case MYSQL_TYPE_TIME:
+		return int64(readDuration(pr))
+	}
+	panic(mysql.ErrUnkMySQLType)
 }

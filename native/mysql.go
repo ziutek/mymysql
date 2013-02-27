@@ -53,6 +53,9 @@ type Conn struct {
 	// Timeout for connect
 	timeout time.Duration
 
+	// Return only types accepted by godrv
+	narrowTypeSet bool
+
 	// Debug logging. You may change it at any time.
 	Debug bool
 }
@@ -77,6 +80,10 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 		panic("mymy.New: too many arguments")
 	}
 	return &my
+}
+
+func (my *Conn) NarrowTypeSet(narrow bool) {
+	my.narrowTypeSet = narrow
 }
 
 // Creates new (not connected) connection using configuration from current
@@ -219,7 +226,7 @@ func (my *Conn) connect() (err error) {
 	// Execute all registered commands
 	for _, cmd := range my.init_cmds {
 		// Send command
-		my.sendCmd(_COM_QUERY, cmd)
+		my.sendCmdStr(_COM_QUERY, cmd)
 		// Get command response
 		res := my.getResponse()
 
@@ -338,7 +345,7 @@ func (my *Conn) Use(dbname string) (err error) {
 	}
 
 	// Send command
-	my.sendCmd(_COM_INIT_DB, dbname)
+	my.sendCmdStr(_COM_INIT_DB, dbname)
 	// Get server response
 	my.getResult(nil, nil)
 	// Save new database name if no errors
@@ -375,7 +382,7 @@ func (my *Conn) Start(sql string, params ...interface{}) (res mysql.Result, err 
 		sql = fmt.Sprintf(sql, params...)
 	}
 	// Send query
-	my.sendCmd(_COM_QUERY, sql)
+	my.sendCmdStr(_COM_QUERY, sql)
 
 	// Get command response
 	res = my.getResponse()
@@ -473,7 +480,7 @@ func (my *Conn) prepare(sql string) (stmt *Stmt, err error) {
 	defer catchError(&err)
 
 	// Send command
-	my.sendCmd(_COM_STMT_PREPARE, sql)
+	my.sendCmdStr(_COM_STMT_PREPARE, sql)
 	// Get server response
 	stmt, ok := my.getPrepareResult(nil).(*Stmt)
 	if !ok {
@@ -638,7 +645,7 @@ func (stmt *Stmt) Delete() (err error) {
 	}()
 
 	// Send command
-	stmt.my.sendCmd(_COM_STMT_CLOSE, stmt.id)
+	stmt.my.sendCmdU32(_COM_STMT_CLOSE, stmt.id)
 	return
 }
 
@@ -658,7 +665,7 @@ func (stmt *Stmt) Reset() (err error) {
 	// whether the command succeeds or not.
 	stmt.rebind = true
 	// Send command
-	stmt.my.sendCmd(_COM_STMT_RESET, stmt.id)
+	stmt.my.sendCmdU32(_COM_STMT_RESET, stmt.id)
 	// Get result
 	stmt.my.getResult(nil, nil)
 	return
@@ -708,10 +715,7 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) (err er
 				return
 			}
 			if nn != 0 {
-				stmt.my.sendCmd(
-					_COM_STMT_SEND_LONG_DATA,
-					stmt.id, uint16(pnum), buf[0:nn],
-				)
+				stmt.my.sendLongData(stmt.id, uint16(pnum), buf[0:nn])
 			}
 			if ee == io.ErrUnexpectedEOF {
 				return
@@ -722,24 +726,22 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) (err er
 
 	case []byte:
 		for len(dd) > pkt_size {
-			stmt.my.sendCmd(
-				_COM_STMT_SEND_LONG_DATA,
-				stmt.id, uint16(pnum), dd[0:pkt_size],
-			)
+			stmt.my.sendLongData(stmt.id, uint16(pnum), dd[0:pkt_size])
 			dd = dd[pkt_size:]
 		}
-		stmt.my.sendCmd(_COM_STMT_SEND_LONG_DATA, stmt.id, uint16(pnum), dd)
+		stmt.my.sendLongData(stmt.id, uint16(pnum), dd)
 		return
 
 	case string:
 		for len(dd) > pkt_size {
-			stmt.my.sendCmd(
-				_COM_STMT_SEND_LONG_DATA,
-				stmt.id, uint16(pnum), dd[0:pkt_size],
+			stmt.my.sendLongData(
+				stmt.id,
+				uint16(pnum),
+				[]byte(dd[0:pkt_size]),
 			)
 			dd = dd[pkt_size:]
 		}
-		stmt.my.sendCmd(_COM_STMT_SEND_LONG_DATA, stmt.id, uint16(pnum), dd)
+		stmt.my.sendLongData(stmt.id, uint16(pnum), []byte(dd))
 		return
 	}
 	return mysql.ErrUnkDataType

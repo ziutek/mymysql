@@ -51,7 +51,7 @@ func writeString(wr io.Writer, str string) {
 	write(wr, []byte(str))
 }
 
-func writeBS(wr io.Writer, bs interface{}) {
+/*func writeBS(wr io.Writer, bs interface{}) {
 	switch buf := bs.(type) {
 	case string:
 		writeString(wr, buf)
@@ -60,9 +60,9 @@ func writeBS(wr io.Writer, bs interface{}) {
 	default:
 		panic("Can't write: argument isn't a string nor []byte")
 	}
-}
+}*/
 
-func lenBS(bs interface{}) int {
+/*func lenBS(bs interface{}) int {
 	switch buf := bs.(type) {
 	case string:
 		return len(buf)
@@ -70,7 +70,7 @@ func lenBS(bs interface{}) int {
 		return len(buf)
 	}
 	panic("Can't get length: argument isn't a string nor []byte")
-}
+}*/
 
 func catchError(err *error) {
 	if pv := recover(); pv != nil {

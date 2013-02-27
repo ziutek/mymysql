@@ -1,8 +1,40 @@
 package native
 
-import "log"
+//import "log"
 
-func (my *Conn) sendCmd(cmd byte, argv ...interface{}) {
+// _COM_QUIT, _COM_STATISTICS, _COM_PROCESS_INFO, _COM_DEBUG, _COM_PING:
+func (my *Conn) sendCmd(cmd byte) {
+	my.seq = 0
+	pw := my.newPktWriter(1)
+	writeByte(pw, cmd)
+}
+
+// _COM_QUERY, _COM_INIT_DB, _COM_CREATE_DB, _COM_DROP_DB, _COM_STMT_PREPARE:
+func (my *Conn) sendCmdStr(cmd byte, s string) {
+	my.seq = 0
+	pw := my.newPktWriter(1 + len(s))
+	writeByte(pw, cmd)
+	writeString(pw, s)
+}
+
+// _COM_PROCESS_KILL, _COM_STMT_CLOSE, _COM_STMT_RESET:
+func (my *Conn) sendCmdU32(cmd byte, u uint32) {
+	my.seq = 0
+	pw := my.newPktWriter(1 + 4)
+	writeByte(pw, cmd)
+	writeU32(pw, u)
+}
+
+func (my *Conn) sendLongData(stmtid uint32, pnum uint16, data []byte) {
+	my.seq = 0
+	pw := my.newPktWriter(1 + 4 + 2 + len(data))
+	writeByte(pw, _COM_STMT_SEND_LONG_DATA)
+	writeU32(pw, stmtid) // Statement ID
+	writeU16(pw, pnum)   // Parameter number
+	write(pw, data)      // payload
+}
+
+/*func (my *Conn) sendCmd(cmd byte, argv ...interface{}) {
 	// Reset sequence number
 	my.seq = 0
 	// Write command
@@ -98,4 +130,4 @@ func (my *Conn) sendCmd(cmd byte, argv ...interface{}) {
 	if my.Debug {
 		log.Printf("[%2d <-] Command packet: Cmd=0x%x", my.seq-1, cmd)
 	}
-}
+}*/

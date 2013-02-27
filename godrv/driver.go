@@ -9,9 +9,7 @@ import (
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native"
 	"io"
-	"math"
 	"net"
-	"reflect"
 	"strings"
 	"time"
 	"unsafe"
@@ -54,7 +52,7 @@ func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 	if err != nil {
 		return nil, errFilter(err)
 	}
-	return &rowsRes{res, res.MakeRow()}, nil
+	return &rowsRes{res}, nil
 }
 
 func (c conn) Prepare(query string) (driver.Stmt, error) {
@@ -111,7 +109,7 @@ func (s stmt) run(args []driver.Value) (*rowsRes, error) {
 	if err != nil {
 		return nil, errFilter(err)
 	}
-	return &rowsRes{res, res.MakeRow()}, nil
+	return &rowsRes{res}, nil
 }
 
 func (s stmt) Exec(args []driver.Value) (driver.Result, error) {
@@ -123,8 +121,7 @@ func (s stmt) Query(args []driver.Value) (driver.Rows, error) {
 }
 
 type rowsRes struct {
-	my  mysql.Result
-	row mysql.Row
+	my mysql.Result
 }
 
 func (r rowsRes) LastInsertId() (int64, error) {
@@ -147,7 +144,6 @@ func (r rowsRes) Columns() []string {
 func (r rowsRes) Close() error {
 	err := r.my.End()
 	r.my = nil
-	r.row = nil
 	if err != mysql.ErrReadAfterEOR {
 		return errFilter(err)
 	}
@@ -156,48 +152,9 @@ func (r rowsRes) Close() error {
 
 // DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone
 func (r rowsRes) Next(dest []driver.Value) error {
-	err := r.my.ScanRow(r.row)
+	err := r.my.ScanRow(*(*[]interface{})(unsafe.Pointer(&dest)))
 	if err != nil {
 		return errFilter(err)
-	}
-	for i, col := range r.row {
-		if col == nil {
-			dest[i] = nil
-			continue
-		}
-		switch c := col.(type) {
-		case time.Time:
-			dest[i] = c
-			continue
-		case mysql.Timestamp:
-			dest[i] = c.Time
-			continue
-		case mysql.Date:
-			dest[i] = c.Localtime()
-			continue
-		}
-		v := reflect.ValueOf(col)
-		switch v.Kind() {
-		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			// this contains time.Duration to
-			dest[i] = v.Int()
-		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			u := v.Uint()
-			if u > math.MaxInt64 {
-				panic("Value to large for int64 type")
-			}
-			dest[i] = int64(u)
-		case reflect.Float32, reflect.Float64:
-			dest[i] = v.Float()
-		case reflect.Slice:
-			if v.Type().Elem().Kind() == reflect.Uint8 {
-				dest[i] = v.Interface().([]byte)
-				break
-			}
-			fallthrough
-		default:
-			panic(fmt.Sprint("Unknown type of column: ", v.Type()))
-		}
 	}
 	return nil
 }
@@ -285,6 +242,7 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 	if err := c.my.Connect(); err != nil {
 		return nil, errFilter(err)
 	}
+	c.my.NarrowTypeSet(true)
 	return &c, nil
 }
 

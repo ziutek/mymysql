@@ -45,25 +45,6 @@ func (pr *pktReader) readHeader() {
 	pr.last = (pr.remain != 0xffffff)
 }
 
-/*func (pr *pktReader) Read(buf []byte) (num int, err error) {
-	if len(buf) == 0 {
-		return 0, nil
-	}
-	defer catchError(&err)
-
-	if pr.remain == 0 {
-		pr.readHeader()
-	}
-	// Reading data
-	if len(buf) <= pr.remain {
-		num, err = pr.rd.Read(buf)
-	} else {
-		num, err = pr.rd.Read(buf[0:pr.remain])
-	}
-	pr.remain -= num
-	return
-}*/
-
 func (pr *pktReader) readFull(buf []byte) {
 	for {
 		if len(buf) == 0 {
@@ -174,11 +155,6 @@ type pktWriter struct {
 func (my *Conn) newPktWriter(to_write int) *pktWriter {
 	return &pktWriter{wr: my.wr, seq: &my.seq, to_write: to_write}
 }
-
-/*func writePktHeader(wr io.Writer, seq byte, pay_len int) {
-    writeU24(wr, uint32(pay_len))
-    writeByte(wr, seq)
-}*/
 
 func (pw *pktWriter) writeHeader(l int) {
 	buf := pw.ibuf[:]

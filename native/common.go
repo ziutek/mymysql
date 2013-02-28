@@ -7,7 +7,7 @@ import (
 
 var tab8s = "        "
 
-func readFull(rd io.Reader, buf []byte) {
+/*func readFull(rd io.Reader, buf []byte) {
 	for nn := 0; nn < len(buf); {
 		kk, err := rd.Read(buf[nn:])
 		if err != nil {
@@ -18,15 +18,9 @@ func readFull(rd io.Reader, buf []byte) {
 		}
 		nn += kk
 	}
-}
+}*/
 
-func read(rd io.Reader, nn int) (buf []byte) {
-	buf = make([]byte, nn)
-	readFull(rd, buf)
-	return
-}
-
-func readByte(rd io.Reader) byte {
+/*func readByte(rd io.Reader) byte {
 	buf := make([]byte, 1)
 	if _, err := rd.Read(buf); err != nil {
 		if err == io.EOF {
@@ -35,21 +29,17 @@ func readByte(rd io.Reader) byte {
 		panic(err)
 	}
 	return buf[0]
-}
+}*/
 
-func write(wr io.Writer, buf []byte) {
+/*func write(wr io.Writer, buf []byte) {
 	if _, err := wr.Write(buf); err != nil {
 		panic(err)
 	}
-}
+}*/
 
-func writeByte(wr io.Writer, ch byte) {
-	write(wr, []byte{ch})
-}
-
-func writeString(wr io.Writer, str string) {
+/*func writeString(wr io.Writer, str string) {
 	write(wr, []byte(str))
-}
+}*/
 
 /*func writeBS(wr io.Writer, bs interface{}) {
 	switch buf := bs.(type) {
@@ -78,7 +68,11 @@ func catchError(err *error) {
 		case runtime.Error:
 			panic(pv)
 		case error:
-			*err = e
+			if e == io.EOF {
+				*err = io.ErrUnexpectedEOF
+			} else {
+				*err = e
+			}
 		default:
 			panic(pv)
 		}

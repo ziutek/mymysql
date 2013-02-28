@@ -13,19 +13,19 @@ func (my *Conn) init() {
 	pr := my.newPktReader()
 	my.info.scramble = make([]byte, 20)
 
-	my.info.prot_ver = readByte(pr)
-	my.info.serv_ver = readNTS(pr)
-	my.info.thr_id = readU32(pr)
-	readFull(pr, my.info.scramble[0:8])
-	read(pr, 1)
-	my.info.caps = readU16(pr)
-	my.info.lang = readByte(pr)
-	my.status = readU16(pr)
-	read(pr, 13)
+	my.info.prot_ver = pr.readByte()
+	my.info.serv_ver = string(pr.readNTB())
+	my.info.thr_id = pr.readU32()
+	pr.readFull(my.info.scramble[0:8])
+	pr.skipN(1)
+	my.info.caps = pr.readU16()
+	my.info.lang = pr.readByte()
+	my.status = pr.readU16()
+	pr.skipN(13)
 	if my.info.caps&_CLIENT_PROTOCOL_41 != 0 {
-		readFull(pr, my.info.scramble[8:])
+		pr.readFull(my.info.scramble[8:])
 	}
-	pr.readAll() // Skip other information
+	pr.skipAll() // Skip other information
 	if my.Debug {
 		log.Printf(tab8s+"ProtVer=%d, ServVer=\"%s\" Status=0x%x",
 			my.info.prot_ver, my.info.serv_ver, my.status,
@@ -58,14 +58,14 @@ func (my *Conn) auth() {
 		flags |= _CLIENT_CONNECT_WITH_DB
 	}
 	pw := my.newPktWriter(pay_len)
-	writeU32(pw, flags)
-	writeU32(pw, uint32(my.max_pkt_size))
-	writeByte(pw, my.info.lang) // Charset number
-	write(pw, make([]byte, 23)) // Filler
-	writeNTS(pw, my.user)       // Username
-	writeBin(pw, scrPasswd)     // Encrypted password
+	pw.writeU32(flags)
+	pw.writeU32(uint32(my.max_pkt_size))
+	pw.writeByte(my.info.lang)   // Charset number
+	pw.write(make([]byte, 23))   // Filler
+	pw.writeNTB([]byte(my.user)) // Username
+	pw.writeBin(scrPasswd)       // Encrypted password
 	if len(my.dbname) > 0 {
-		writeNTS(pw, my.dbname)
+		pw.writeNTB([]byte(my.dbname))
 	}
 	if len(my.dbname) > 0 {
 		pay_len += len(my.dbname) + 1
@@ -80,6 +80,6 @@ func (my *Conn) oldPasswd() {
 	}
 	scrPasswd := encryptedOldPassword(my.passwd, my.info.scramble)
 	pw := my.newPktWriter(len(scrPasswd) + 1)
-	write(pw, scrPasswd)
-	writeByte(pw, 0)
+	pw.write(scrPasswd)
+	pw.writeByte(0)
 }

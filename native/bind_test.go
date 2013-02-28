@@ -1,6 +1,7 @@
 package native
 
 import (
+	"bufio"
 	"bytes"
 	"github.com/ziutek/mymysql/mysql"
 	"math"
@@ -169,6 +170,48 @@ type WriteTest struct {
 
 var writeTest []WriteTest
 
+func encodeU16(v uint16) []byte {
+	buf := make([]byte, 2)
+	EncodeU16(buf, v)
+	return buf
+}
+
+func encodeU24(v uint32) []byte {
+	buf := make([]byte, 3)
+	EncodeU24(buf, v)
+	return buf
+}
+
+func encodeU32(v uint32) []byte {
+	buf := make([]byte, 4)
+	EncodeU32(buf, v)
+	return buf
+}
+
+func encodeU64(v uint64) []byte {
+	buf := make([]byte, 8)
+	EncodeU64(buf, v)
+	return buf
+}
+
+func encodeDuration(d time.Duration) []byte {
+	buf := make([]byte, 13)
+	n := EncodeDuration(buf, d)
+	return buf[:n]
+}
+
+func encodeTime(t time.Time) []byte {
+	buf := make([]byte, 12)
+	n := EncodeTime(buf, t)
+	return buf[:n]
+}
+
+func encodeDate(d mysql.Date) []byte {
+	buf := make([]byte, 5)
+	n := EncodeDate(buf, d)
+	return buf[:n]
+}
+
 func init() {
 	b := make([]byte, 64*1024)
 	for ii := range b {
@@ -183,7 +226,8 @@ func init() {
 		WriteTest{pString, nil},
 		WriteTest{
 			blob,
-			append(append([]byte{253}, EncodeU24(uint32(len(blob)))...),
+			append(
+				append([]byte{253}, byte(len(blob)), byte(len(blob)>>8), byte(len(blob)>>16)),
 				[]byte(blob)...),
 		},
 		WriteTest{
@@ -230,52 +274,52 @@ func init() {
 		WriteTest{&bol, []byte{1}},
 		WriteTest{pBol, nil},
 
-		WriteTest{dateT, EncodeTime(dateT)},
-		WriteTest{&dateT, EncodeTime(dateT)},
+		WriteTest{dateT, encodeTime(dateT)},
+		WriteTest{&dateT, encodeTime(dateT)},
 		WriteTest{pDateT, nil},
 
-		WriteTest{tstamp, EncodeTime(tstamp.Time)},
-		WriteTest{&tstamp, EncodeTime(tstamp.Time)},
+		WriteTest{tstamp, encodeTime(tstamp.Time)},
+		WriteTest{&tstamp, encodeTime(tstamp.Time)},
 		WriteTest{pTstamp, nil},
 
-		WriteTest{date, EncodeDate(date)},
-		WriteTest{&date, EncodeDate(date)},
+		WriteTest{date, encodeDate(date)},
+		WriteTest{&date, encodeDate(date)},
 		WriteTest{pDate, nil},
 
-		WriteTest{tim, EncodeDuration(tim)},
-		WriteTest{&tim, EncodeDuration(tim)},
+		WriteTest{tim, encodeDuration(tim)},
+		WriteTest{&tim, encodeDuration(tim)},
 		WriteTest{pTim, nil},
 
-		WriteTest{Int, EncodeU32(uint32(Int))}, // Hack
-		WriteTest{Int16, EncodeU16(uint16(Int16))},
-		WriteTest{Int32, EncodeU32(uint32(Int32))},
-		WriteTest{Int64, EncodeU64(uint64(Int64))},
+		WriteTest{Int, encodeU32(uint32(Int))}, // Hack
+		WriteTest{Int16, encodeU16(uint16(Int16))},
+		WriteTest{Int32, encodeU32(uint32(Int32))},
+		WriteTest{Int64, encodeU64(uint64(Int64))},
 
-		WriteTest{Int, EncodeU32(uint32(Int))}, // Hack
-		WriteTest{Uint16, EncodeU16(Uint16)},
-		WriteTest{Uint32, EncodeU32(Uint32)},
-		WriteTest{Uint64, EncodeU64(Uint64)},
+		WriteTest{Int, encodeU32(uint32(Int))}, // Hack
+		WriteTest{Uint16, encodeU16(Uint16)},
+		WriteTest{Uint32, encodeU32(Uint32)},
+		WriteTest{Uint64, encodeU64(Uint64)},
 
-		WriteTest{&Int, EncodeU32(uint32(Int))}, // Hack
-		WriteTest{&Int16, EncodeU16(uint16(Int16))},
-		WriteTest{&Int32, EncodeU32(uint32(Int32))},
-		WriteTest{&Int64, EncodeU64(uint64(Int64))},
+		WriteTest{&Int, encodeU32(uint32(Int))}, // Hack
+		WriteTest{&Int16, encodeU16(uint16(Int16))},
+		WriteTest{&Int32, encodeU32(uint32(Int32))},
+		WriteTest{&Int64, encodeU64(uint64(Int64))},
 
-		WriteTest{&Uint, EncodeU32(uint32(Uint))}, // Hack
-		WriteTest{&Uint16, EncodeU16(Uint16)},
-		WriteTest{&Uint32, EncodeU32(Uint32)},
-		WriteTest{&Uint64, EncodeU64(Uint64)},
+		WriteTest{&Uint, encodeU32(uint32(Uint))}, // Hack
+		WriteTest{&Uint16, encodeU16(Uint16)},
+		WriteTest{&Uint32, encodeU32(Uint32)},
+		WriteTest{&Uint64, encodeU64(Uint64)},
 
 		WriteTest{pInt, nil},
 		WriteTest{pInt16, nil},
 		WriteTest{pInt32, nil},
 		WriteTest{pInt64, nil},
 
-		WriteTest{Float32, EncodeU32(math.Float32bits(Float32))},
-		WriteTest{Float64, EncodeU64(math.Float64bits(Float64))},
+		WriteTest{Float32, encodeU32(math.Float32bits(Float32))},
+		WriteTest{Float64, encodeU64(math.Float64bits(Float64))},
 
-		WriteTest{&Float32, EncodeU32(math.Float32bits(Float32))},
-		WriteTest{&Float64, EncodeU64(math.Float64bits(Float64))},
+		WriteTest{&Float32, encodeU32(math.Float32bits(Float32))},
+		WriteTest{&Float64, encodeU64(math.Float64bits(Float64))},
 
 		WriteTest{pFloat32, nil},
 		WriteTest{pFloat64, nil},
@@ -286,11 +330,21 @@ func TestWrite(t *testing.T) {
 	buf := new(bytes.Buffer)
 	for _, test := range writeTest {
 		buf.Reset()
+		var seq byte
+		pw := &pktWriter{
+			wr:       bufio.NewWriter(buf),
+			seq:      &seq,
+			to_write: len(test.exp),
+		}
 		v := makeAddressable(reflect.ValueOf(test.val))
 		val := bindValue(v)
-		writeValue(buf, val)
-		if !bytes.Equal(buf.Bytes(), test.exp) || val.Len() != len(test.exp) {
-			t.Errorf("%s - exp_len=%d res_len=%d exp: %v res: %v",
+		pw.writeValue(val)
+		if !reflect.Indirect(v).IsValid() && len(buf.Bytes()) == 0 {
+			// writeValue writes nothing for nil
+			continue
+		}
+		if len(buf.Bytes()) != len(test.exp)+4 || !bytes.Equal(buf.Bytes()[4:], test.exp) || val.Len() != len(test.exp) {
+			t.Fatalf("%s - exp_len=%d res_len=%d exp: %v res: %v",
 				reflect.TypeOf(test.val), len(test.exp), val.Len(),
 				test.exp, buf.Bytes(),
 			)

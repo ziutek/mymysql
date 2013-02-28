@@ -64,23 +64,23 @@ func (stmt *Stmt) sendCmdExec() {
 	stmt.my.seq = 0
 	// Packet sending
 	pw := stmt.my.newPktWriter(pkt_len)
-	writeByte(pw, _COM_STMT_EXECUTE)
-	writeU32(pw, stmt.id)
-	writeByte(pw, 0) // flags = CURSOR_TYPE_NO_CURSOR
-	writeU32(pw, 1)  // iteration_count
-	write(pw, null_bitmap)
+	pw.writeByte(_COM_STMT_EXECUTE)
+	pw.writeU32(stmt.id)
+	pw.writeByte(0) // flags = CURSOR_TYPE_NO_CURSOR
+	pw.writeU32(1)  // iteration_count
+	pw.write(null_bitmap)
 	if stmt.rebind {
-		writeByte(pw, 1)
+		pw.writeByte(1)
 		// Types
 		for _, param := range stmt.params {
-			writeU16(pw, param.typ)
+			pw.writeU16(param.typ)
 		}
 	} else {
-		writeByte(pw, 0)
+		pw.writeByte(0)
 	}
 	// Values
 	for _, param := range stmt.params {
-		writeValue(pw, param)
+		pw.writeValue(param)
 	}
 
 	if stmt.my.Debug {
@@ -95,7 +95,7 @@ func (stmt *Stmt) sendCmdExec() {
 func (my *Conn) getPrepareResult(stmt *Stmt) interface{} {
 loop:
 	pr := my.newPktReader() // New reader for next packet
-	pkt0 := readByte(pr)
+	pkt0 := pr.readByte()
 
 	//log.Println("pkt0:", pkt0, "stmt:", stmt)
 
@@ -124,13 +124,14 @@ loop:
 			if unreaded_params {
 				// Read and ignore parameter field. Sentence from MySQL source:
 				/* skip parameters data: we don't support it yet */
-				my.getFieldPacket(pr)
+				pr.skipAll()
 				// Increment field count
 				stmt.param_count++
 			} else {
 				field := my.getFieldPacket(pr)
 				stmt.fields[stmt.field_count] = field
 				stmt.fc_map[field.Name] = stmt.field_count
+				//pr.skipAll()
 				// Increment field count
 				stmt.field_count++
 			}
@@ -149,11 +150,11 @@ func (my *Conn) getPrepareOkPacket(pr *pktReader) (stmt *Stmt) {
 	stmt = new(Stmt)
 	stmt.my = my
 	// First byte was readed by getPrepRes
-	stmt.id = readU32(pr)
-	stmt.fields = make([]*mysql.Field, int(readU16(pr))) // FieldCount
-	stmt.params = make([]*paramValue, int(readU16(pr)))  // ParamCount
-	read(pr, 1)
-	stmt.warning_count = int(readU16(pr))
+	stmt.id = pr.readU32()
+	stmt.fields = make([]*mysql.Field, int(pr.readU16())) // FieldCount
+	stmt.params = make([]*paramValue, int(pr.readU16()))  // ParamCount
+	pr.skipN(1)
+	stmt.warning_count = int(pr.readU16())
 	pr.checkEof()
 
 	// Make field map if fields exists.

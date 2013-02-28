@@ -12,34 +12,47 @@ type pktReader struct {
 	seq    *byte
 	remain int
 	last   bool
+	buf    [8]byte
+	ibuf   [3]byte
 }
 
 func (my *Conn) newPktReader() *pktReader {
 	return &pktReader{rd: my.rd, seq: &my.seq}
 }
 
-func (pr *pktReader) Read(buf []byte) (num int, err error) {
+func (pr *pktReader) readHeader() {
+	if pr.last {
+		// No more packets
+		panic(io.EOF)
+	}
+	// Read next packet header
+	buf := pr.ibuf[:]
+	_, err := io.ReadFull(pr.rd, buf)
+	if err != nil {
+		panic(err)
+	}
+	pr.remain = int(DecodeU24(buf))
+	seq, err := pr.rd.ReadByte()
+	if err != nil {
+		panic(err)
+	}
+	// Chceck sequence number
+	if *pr.seq != seq {
+		panic(mysql.ErrSeq)
+	}
+	*pr.seq++
+	// Last packet?
+	pr.last = (pr.remain != 0xffffff)
+}
+
+/*func (pr *pktReader) Read(buf []byte) (num int, err error) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
 	defer catchError(&err)
 
 	if pr.remain == 0 {
-		// No data to read from current packet
-		if pr.last {
-			// No more packets
-			return 0, io.EOF
-		}
-		// Read next packet header
-		pr.remain = int(readU24(pr.rd))
-		seq := readByte(pr.rd)
-		// Chceck sequence number
-		if *pr.seq != seq {
-			return 0, mysql.ErrSeq
-		}
-		*pr.seq++
-		// Last packet?
-		pr.last = (pr.remain != 0xffffff)
+		pr.readHeader()
 	}
 	// Reading data
 	if len(buf) <= pr.remain {
@@ -49,13 +62,50 @@ func (pr *pktReader) Read(buf []byte) (num int, err error) {
 	}
 	pr.remain -= num
 	return
+}*/
+
+func (pr *pktReader) readFull(buf []byte) {
+	for {
+		if len(buf) == 0 {
+			return
+		}
+		if pr.remain == 0 {
+			pr.readHeader()
+		}
+		var (
+			n   int
+			err error
+		)
+		if len(buf) <= pr.remain {
+			n, err = pr.rd.Read(buf)
+		} else {
+			n, err = pr.rd.Read(buf[0:pr.remain])
+		}
+		pr.remain -= n
+		if err != nil {
+			panic(err)
+		}
+		buf = buf[n:]
+	}
+}
+
+func (pr *pktReader) readByte() byte {
+	if pr.remain == 0 {
+		pr.readHeader()
+	}
+	b, err := pr.rd.ReadByte()
+	if err != nil {
+		panic(err)
+	}
+	pr.remain--
+	return b
 }
 
 func (pr *pktReader) readAll() (buf []byte) {
 	buf = make([]byte, pr.remain)
 	nn := 0
 	for {
-		readFull(pr, buf[nn:])
+		pr.readFull(buf[nn:])
 		if pr.last {
 			break
 		}
@@ -66,6 +116,32 @@ func (pr *pktReader) readAll() (buf []byte) {
 		buf = new_buf
 	}
 	return
+}
+
+var skipBuf [4069]byte
+
+func (pr *pktReader) skipAll() {
+	for {
+		n := len(skipBuf)
+		if n > pr.remain {
+			n = pr.remain
+		}
+		pr.readFull(skipBuf[:n])
+		if pr.last {
+			break
+		}
+	}
+}
+
+func (pr *pktReader) skipN(n int) {
+	for n != 0 {
+		m := len(skipBuf)
+		if m > n {
+			m = n
+		}
+		pr.readFull(skipBuf[:m])
+		n -= n
+	}
 }
 
 func (pr *pktReader) unreadByte() {
@@ -91,6 +167,8 @@ type pktWriter struct {
 	remain   int
 	to_write int
 	last     bool
+	buf      [13]byte
+	ibuf     [3]byte
 }
 
 func (my *Conn) newPktWriter(to_write int) *pktWriter {
@@ -102,18 +180,28 @@ func (my *Conn) newPktWriter(to_write int) *pktWriter {
     writeByte(wr, seq)
 }*/
 
-func (pw *pktWriter) Write(buf []byte) (num int, err error) {
+func (pw *pktWriter) writeHeader(l int) {
+	buf := pw.ibuf[:]
+	EncodeU24(buf, uint32(l))
+	if _, err := pw.wr.Write(buf); err != nil {
+		panic(err)
+	}
+	if err := pw.wr.WriteByte(*pw.seq); err != nil {
+		panic(err)
+	}
+	// Update sequence number
+	*pw.seq++
+}
+
+func (pw *pktWriter) write(buf []byte) {
 	if len(buf) == 0 {
 		return
 	}
-	defer catchError(&err)
-
 	var nn int
 	for len(buf) != 0 {
 		if pw.remain == 0 {
 			if pw.to_write == 0 {
-				err = errors.New("too many data for write as packet")
-				return
+				panic(errors.New("too many data for write as packet"))
 			}
 			if pw.to_write >= 0xffffff {
 				pw.remain = 0xffffff
@@ -122,34 +210,38 @@ func (pw *pktWriter) Write(buf []byte) (num int, err error) {
 				pw.last = true
 			}
 			pw.to_write -= pw.remain
-			// Write packet header
-			writeU24(pw.wr, uint32(pw.remain))
-			writeByte(pw.wr, *pw.seq)
-			// Update sequence number
-			*pw.seq++
+			pw.writeHeader(pw.remain)
 		}
 		nn = len(buf)
 		if nn > pw.remain {
 			nn = pw.remain
 		}
+		var err error
 		nn, err = pw.wr.Write(buf[0:nn])
-		num += nn
 		pw.remain -= nn
 		if err != nil {
-			return
+			panic(err)
 		}
 		buf = buf[nn:]
 	}
 	if pw.remain+pw.to_write == 0 {
 		if !pw.last {
 			// Write  header for empty packet
-			writeU24(pw.wr, 0)
-			writeByte(pw.wr, *pw.seq)
-			// Update sequence number
-			*pw.seq++
+			pw.writeHeader(0)
 		}
 		// Flush bufio buffers
-		err = pw.wr.Flush()
+		if err := pw.wr.Flush(); err != nil {
+			panic(err)
+		}
 	}
 	return
+}
+
+func (pw *pktWriter) writeByte(b byte) {
+	pw.buf[0] = b
+	pw.write(pw.buf[:1])
+}
+
+type writer interface {
+	write([]byte)
 }

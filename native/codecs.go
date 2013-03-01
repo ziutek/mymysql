@@ -264,7 +264,7 @@ func (pr *pktReader) readDuration() time.Duration {
 	default:
 		panic(mysql.ErrWrongDateLen)
 	}
-	buf := make([]byte, dlen)
+	buf := pr.buf[:dlen]
 	pr.readFull(buf)
 	tt := int64(0)
 	switch dlen {
@@ -348,7 +348,7 @@ func (pr *pktReader) readTime() time.Time {
 		panic(mysql.ErrWrongDateLen)
 	}
 
-	buf := make([]byte, dlen)
+	buf := pr.buf[:dlen]
 	pr.readFull(buf)
 	var y, mon, d, h, m, s, n int
 	switch dlen {

@@ -21,10 +21,6 @@ func (my *Conn) newPktReader() *pktReader {
 }
 
 func (pr *pktReader) readHeader() {
-	if pr.last {
-		// No more packets
-		panic(io.EOF)
-	}
 	// Read next packet header
 	buf := pr.ibuf[:]
 	_, err := io.ReadFull(pr.rd, buf)
@@ -46,11 +42,12 @@ func (pr *pktReader) readHeader() {
 }
 
 func (pr *pktReader) readFull(buf []byte) {
-	for {
-		if len(buf) == 0 {
-			return
-		}
+	for len(buf) > 0 {
 		if pr.remain == 0 {
+			if pr.last {
+				// No more packets
+				panic(io.EOF)
+			}
 			pr.readHeader()
 		}
 		var (
@@ -58,9 +55,9 @@ func (pr *pktReader) readFull(buf []byte) {
 			err error
 		)
 		if len(buf) <= pr.remain {
-			n, err = pr.rd.Read(buf)
+			n, err = io.ReadFull(pr.rd, buf)
 		} else {
-			n, err = pr.rd.Read(buf[0:pr.remain])
+			n, err = io.ReadFull(pr.rd, buf[0:pr.remain])
 		}
 		pr.remain -= n
 		if err != nil {
@@ -68,10 +65,15 @@ func (pr *pktReader) readFull(buf []byte) {
 		}
 		buf = buf[n:]
 	}
+	return
 }
 
 func (pr *pktReader) readByte() byte {
 	if pr.remain == 0 {
+		if pr.last {
+			// No more packets
+			panic(io.EOF)
+		}
 		pr.readHeader()
 	}
 	b, err := pr.rd.ReadByte()
@@ -83,18 +85,22 @@ func (pr *pktReader) readByte() byte {
 }
 
 func (pr *pktReader) readAll() (buf []byte) {
-	buf = make([]byte, pr.remain)
-	nn := 0
 	for {
-		pr.readFull(buf[nn:])
-		if pr.last {
-			break
+		if pr.remain == 0 {
+			if pr.last {
+				break
+			}
+			pr.readHeader()
 		}
-		// There is next packet to read
-		new_buf := make([]byte, len(buf)+pr.remain)
-		copy(new_buf[nn:], buf)
-		nn += len(buf)
+		l := len(buf)
+		new_buf := make([]byte, l+pr.remain)
+		copy(new_buf, buf)
 		buf = new_buf
+		n, err := io.ReadFull(pr.rd, buf[l:])
+		pr.remain -= n
+		if err != nil {
+			panic(err)
+		}
 	}
 	return
 }
@@ -103,17 +109,22 @@ var skipBuf [4069]byte
 
 func (pr *pktReader) skipAll() {
 	for {
-		n := len(skipBuf)
-		if n > pr.remain {
-			n = pr.remain
+		if pr.remain == 0 {
+			if pr.last {
+				break
+			}
+			pr.readHeader()
 		}
-		pr.readFull(skipBuf[:n])
-		if pr.last {
-			break
+		n, err := io.ReadFull(pr.rd, skipBuf[:pr.remain])
+		pr.remain -= n
+		if err != nil {
+			panic(err)
 		}
 	}
+	return
 }
 
+// works only for n <= len(skipBuf)
 func (pr *pktReader) skipN(n int) {
 	for n != 0 {
 		m := len(skipBuf)

@@ -62,7 +62,7 @@ type Conn struct {
 
 // Create new MySQL handler. The first three arguments are passed to net.Bind
 // for create connection. user and passwd are for authentication. Optional db
-// is database name (you may not specifi it and use Use() method later).
+// is database name (you may not specify it and use Use() method later).
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	my := Conn{
 		proto:        proto,

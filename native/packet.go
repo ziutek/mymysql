@@ -2,7 +2,6 @@ package native
 
 import (
 	"bufio"
-	"errors"
 	"github.com/ziutek/mymysql/mysql"
 	"io"
 )
@@ -209,7 +208,7 @@ func (pw *pktWriter) write(buf []byte) {
 	for len(buf) != 0 {
 		if pw.remain == 0 {
 			if pw.to_write == 0 {
-				panic(errors.New("too many data for write as packet"))
+				panic("too many data for write as packet")
 			}
 			if pw.to_write >= 0xffffff {
 				pw.remain = 0xffffff

@@ -19,10 +19,11 @@ type conn struct {
 	my mysql.Conn
 }
 
+type rowsRes struct {
+	my mysql.Result
+}
+
 func errFilter(err error) error {
-	if err == nil {
-		return nil
-	}
 	if err == io.ErrUnexpectedEOF {
 		return driver.ErrBadConn
 	}
@@ -32,10 +33,28 @@ func errFilter(err error) error {
 	return err
 }
 
-func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
+func run(s mysql.Stmt, args []driver.Value) (rr rowsRes, err error) {
+	a := (*[]interface{})(unsafe.Pointer(&args))
+	rr.my, err = s.Run(*a...)
+	if err != nil {
+		err = errFilter(err)
+	}
+	return
+}
+
+func (c conn) query(query string, args []driver.Value) (rr rowsRes, err error) {
 	if len(args) > 0 {
 		if strings.ContainsAny(query, `'"`) {
-			return nil, driver.ErrSkip
+			//err = driver.ErrSkip
+			//return
+			var s mysql.Stmt
+			s, err = c.my.Prepare(query)
+			if err != nil {
+				err = errFilter(err)
+				return
+			}
+			defer s.Delete()
+			return run(s, args)
 		}
 		var q string
 		for _, a := range args {
@@ -48,11 +67,23 @@ func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 		}
 		query = q + query
 	}
-	res, err := c.my.Start(query)
+	rr.my, err = c.my.Start(query)
 	if err != nil {
-		return nil, errFilter(err)
+		errFilter(err)
 	}
-	return &rowsRes{res}, nil
+	return
+}
+
+func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
+	return c.query(query, args)
+}
+
+func (c conn) Query(query string, args []driver.Value) (driver.Rows, error) {
+	return c.query(query, args)
+}
+
+type stmt struct {
+	my mysql.Stmt
 }
 
 func (c conn) Prepare(query string) (driver.Stmt, error) {
@@ -63,65 +94,62 @@ func (c conn) Prepare(query string) (driver.Stmt, error) {
 	return stmt{st}, nil
 }
 
-func (c conn) Close() error {
-	err := c.my.Close()
+func (c conn) Close() (err error) {
+	err = c.my.Close()
 	c.my = nil
-	return errFilter(err)
-}
-
-func (c conn) Begin() (driver.Tx, error) {
-	t, err := c.my.Begin()
 	if err != nil {
-		return tx{nil}, errFilter(err)
+		err = errFilter(err)
 	}
-	return tx{t}, nil
+	return
 }
 
 type tx struct {
 	my mysql.Transaction
 }
 
-func (t tx) Commit() error {
-	return errFilter(t.my.Commit())
+func (c conn) Begin() (driver.Tx, error) {
+	t, err := c.my.Begin()
+	if err != nil {
+		return nil, errFilter(err)
+	}
+	return tx{t}, nil
 }
 
-func (t tx) Rollback() error {
-	return errFilter(t.my.Rollback())
+func (t tx) Commit() (err error) {
+	err = t.my.Commit()
+	if err != nil {
+		err = errFilter(err)
+	}
+	return
 }
 
-type stmt struct {
-	my mysql.Stmt
+func (t tx) Rollback() (err error) {
+	err = t.my.Rollback()
+	if err != nil {
+		err = errFilter(err)
+	}
+	return
 }
 
-func (s stmt) Close() error {
-	err := s.my.Delete()
+func (s stmt) Close() (err error) {
+	err = s.my.Delete()
 	s.my = nil
-	return errFilter(err)
+	if err != nil {
+		err = errFilter(err)
+	}
+	return
 }
 
 func (s stmt) NumInput() int {
 	return s.my.NumParam()
 }
 
-func (s stmt) run(args []driver.Value) (*rowsRes, error) {
-	a := (*[]interface{})(unsafe.Pointer(&args))
-	res, err := s.my.Run(*a...)
-	if err != nil {
-		return nil, errFilter(err)
-	}
-	return &rowsRes{res}, nil
-}
-
 func (s stmt) Exec(args []driver.Value) (driver.Result, error) {
-	return s.run(args)
+	return run(s.my, args)
 }
 
 func (s stmt) Query(args []driver.Value) (driver.Rows, error) {
-	return s.run(args)
-}
-
-type rowsRes struct {
-	my mysql.Result
+	return run(s.my, args)
 }
 
 func (r rowsRes) LastInsertId() (int64, error) {
@@ -141,22 +169,26 @@ func (r rowsRes) Columns() []string {
 	return cls
 }
 
-func (r rowsRes) Close() error {
-	err := r.my.End()
+func (r rowsRes) Close() (err error) {
+	err = r.my.End()
 	r.my = nil
-	if err != mysql.ErrReadAfterEOR {
-		return errFilter(err)
+	if err != nil {
+		if err == mysql.ErrReadAfterEOR {
+			err = nil
+		} else {
+			err = errFilter(err)
+		}
 	}
-	return nil
+	return
 }
 
 // DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone
-func (r rowsRes) Next(dest []driver.Value) error {
-	err := r.my.ScanRow(*(*[]interface{})(unsafe.Pointer(&dest)))
+func (r rowsRes) Next(dest []driver.Value) (err error) {
+	err = r.my.ScanRow(*(*[]interface{})(unsafe.Pointer(&dest)))
 	if err != nil {
-		return errFilter(err)
+		err = errFilter(err)
 	}
-	return nil
+	return
 }
 
 type Driver struct {
@@ -243,6 +275,7 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 		return nil, errFilter(err)
 	}
 	c.my.NarrowTypeSet(true)
+	c.my.FullFieldInfo(false)
 	return &c, nil
 }
 

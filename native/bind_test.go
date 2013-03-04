@@ -338,7 +338,7 @@ func TestWrite(t *testing.T) {
 		}
 		v := makeAddressable(reflect.ValueOf(test.val))
 		val := bindValue(v)
-		pw.writeValue(val)
+		pw.writeValue(&val)
 		if !reflect.Indirect(v).IsValid() && len(buf.Bytes()) == 0 {
 			// writeValue writes nothing for nil
 			continue

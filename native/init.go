@@ -11,10 +11,9 @@ func (my *Conn) init() {
 		log.Printf("[%2d ->] Init packet:", my.seq)
 	}
 	pr := my.newPktReader()
-	my.info.scramble = make([]byte, 20)
 
 	my.info.prot_ver = pr.readByte()
-	my.info.serv_ver = string(pr.readNTB())
+	my.info.serv_ver = pr.readNTB()
 	my.info.thr_id = pr.readU32()
 	pr.readFull(my.info.scramble[0:8])
 	pr.skipN(1)
@@ -51,7 +50,7 @@ func (my *Conn) auth() {
 			_CLIENT_MULTI_RESULTS)
 	// Reset flags not supported by server
 	flags &= uint32(my.info.caps) | 0xffff0000
-	scrPasswd := encryptedPasswd(my.passwd, my.info.scramble)
+	scrPasswd := encryptedPasswd(my.passwd, my.info.scramble[:])
 	pay_len := 4 + 4 + 1 + 23 + len(my.user) + 1 + 1 + len(scrPasswd)
 	if len(my.dbname) > 0 {
 		pay_len += len(my.dbname) + 1
@@ -61,7 +60,7 @@ func (my *Conn) auth() {
 	pw.writeU32(flags)
 	pw.writeU32(uint32(my.max_pkt_size))
 	pw.writeByte(my.info.lang)   // Charset number
-	pw.write(make([]byte, 23))   // Filler
+	pw.writeZeros(23)            // Filler
 	pw.writeNTB([]byte(my.user)) // Username
 	pw.writeBin(scrPasswd)       // Encrypted password
 	if len(my.dbname) > 0 {
@@ -78,7 +77,7 @@ func (my *Conn) oldPasswd() {
 	if my.Debug {
 		log.Printf("[%2d <-] Password packet", my.seq)
 	}
-	scrPasswd := encryptedOldPassword(my.passwd, my.info.scramble)
+	scrPasswd := encryptedOldPassword(my.passwd, my.info.scramble[:])
 	pw := my.newPktWriter(len(scrPasswd) + 1)
 	pw.write(scrPasswd)
 	pw.writeByte(0)

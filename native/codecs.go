@@ -177,6 +177,11 @@ func (pr *pktReader) readBin() []byte {
 	return buf
 }
 
+func (pr *pktReader) skipBin() {
+	n, _ := pr.readNullLCB()
+	pr.skipN(int(n))
+}
+
 func (pw *pktWriter) writeBin(buf []byte) {
 	pw.writeLCB(uint64(len(buf)))
 	pw.write(buf)
@@ -219,15 +224,13 @@ func lenLC(v interface{}) int {
 	panic("Unknown data type for write as lenght coded string")
 }
 
-// TODO: optimize this
 func (pr *pktReader) readNTB() (buf []byte) {
-	bb := new(bytes.Buffer)
 	for {
 		ch := pr.readByte()
 		if ch == 0 {
-			return bb.Bytes()
+			break
 		}
-		bb.WriteByte(ch)
+		buf = append(buf, ch)
 	}
 	return
 }

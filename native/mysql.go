@@ -14,9 +14,9 @@ import (
 
 type serverInfo struct {
 	prot_ver byte
-	serv_ver string
+	serv_ver []byte
 	thr_id   uint32
-	scramble []byte
+	scramble [20]byte
 	caps     uint16
 	lang     byte
 }
@@ -55,6 +55,8 @@ type Conn struct {
 
 	// Return only types accepted by godrv
 	narrowTypeSet bool
+	// Store full information about fields in result
+	fullFieldInfo bool
 
 	// Debug logging. You may change it at any time.
 	Debug bool
@@ -65,14 +67,15 @@ type Conn struct {
 // is database name (you may not specify it and use Use() method later).
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	my := Conn{
-		proto:        proto,
-		laddr:        laddr,
-		raddr:        raddr,
-		user:         user,
-		passwd:       passwd,
-		stmt_map:     make(map[uint32]*Stmt),
-		max_pkt_size: 16*1024*1024 - 1,
-		timeout:      2 * time.Minute,
+		proto:         proto,
+		laddr:         laddr,
+		raddr:         raddr,
+		user:          user,
+		passwd:        passwd,
+		stmt_map:      make(map[uint32]*Stmt),
+		max_pkt_size:  16*1024*1024 - 1,
+		timeout:       2 * time.Minute,
+		fullFieldInfo: true,
 	}
 	if len(db) == 1 {
 		my.dbname = db[0]
@@ -84,6 +87,10 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 
 func (my *Conn) NarrowTypeSet(narrow bool) {
 	my.narrowTypeSet = narrow
+}
+
+func (my *Conn) FullFieldInfo(full bool) {
+	my.fullFieldInfo = full
 }
 
 // Creates new (not connected) connection using configuration from current
@@ -586,14 +593,6 @@ func (stmt *Stmt) Bind(params ...interface{}) {
 	stmt.binded = true
 }
 
-// Resets the previous parameter binding
-func (stmt *Stmt) ResetParams() {
-	stmt.rebind = true
-	for ii := 0; ii < stmt.param_count; ii++ {
-		stmt.params[ii] = nil
-	}
-}
-
 // Execute prepared statement. If statement requires parameters you may bind
 // them first or specify directly. After this command you may use GetRow to
 // retrieve data.
@@ -710,16 +709,14 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) (err er
 	case io.Reader:
 		buf := make([]byte, pkt_size)
 		for {
-			nn, ee := io.ReadFull(dd, buf)
-			if ee == io.EOF {
-				return
-			}
+			nn, ee := dd.Read(buf)
 			if nn != 0 {
 				stmt.my.sendLongData(stmt.id, uint16(pnum), buf[0:nn])
 			}
-			if ee == io.ErrUnexpectedEOF {
+			if ee == io.EOF {
 				return
-			} else if ee != nil {
+			}
+			if ee != nil {
 				return ee
 			}
 		}

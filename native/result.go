@@ -231,12 +231,23 @@ func (my *Conn) getFieldPacket(pr *pktReader) (field *mysql.Field) {
 	pr.unreadByte()
 
 	field = new(mysql.Field)
-	field.Catalog = string(pr.readBin())
-	field.Db = string(pr.readBin())
-	field.Table = string(pr.readBin())
-	field.OrgTable = string(pr.readBin())
+	if my.fullFieldInfo {
+		field.Catalog = string(pr.readBin())
+		field.Db = string(pr.readBin())
+		field.Table = string(pr.readBin())
+		field.OrgTable = string(pr.readBin())
+	} else {
+		pr.skipBin()
+		pr.skipBin()
+		pr.skipBin()
+		pr.skipBin()
+	}
 	field.Name = string(pr.readBin())
-	field.OrgName = string(pr.readBin())
+	if my.fullFieldInfo {
+		field.OrgName = string(pr.readBin())
+	} else {
+		pr.skipBin()
+	}
 	pr.skipN(1 + 2)
 	//field.Charset= pr.readU16()
 	field.DispLen = pr.readU32()

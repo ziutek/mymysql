@@ -205,7 +205,6 @@ func TestQuery(t *testing.T) {
 					Scale:    0,
 				},
 			},
-			fc_map:       map[string]int{"Str": 0},
 			status:       _SERVER_STATUS_AUTOCOMMIT,
 			eor_returned: true,
 		},
@@ -247,7 +246,6 @@ func checkStmt(t *testing.T, res, exp *StmtErr) {
 	ok := res.err == exp.err &&
 		// Skipping id
 		reflect.DeepEqual(res.stmt.fields, exp.stmt.fields) &&
-		reflect.DeepEqual(res.stmt.fc_map, exp.stmt.fc_map) &&
 		res.stmt.field_count == exp.stmt.field_count &&
 		res.stmt.param_count == exp.stmt.param_count &&
 		res.stmt.warning_count == exp.stmt.warning_count &&
@@ -307,7 +305,6 @@ func TestPrepared(t *testing.T) {
 				Scale:   0,
 			},
 		},
-		fc_map:        map[string]int{"i": 0, "s": 1, "d": 2},
 		field_count:   3,
 		param_count:   2,
 		warning_count: 0,

@@ -13,6 +13,7 @@ type ConnCommon interface {
 	ThreadId() uint32
 	Escape(txt string) string
 	NarrowTypeSet(narrow bool)
+	FullFieldInfo(full bool)
 
 	Query(sql string, params ...interface{}) ([]Row, Result, error)
 	QueryFirst(sql string, params ...interface{}) (Row, Result, error)
@@ -46,14 +47,12 @@ type Transaction interface {
 
 type Stmt interface {
 	Bind(params ...interface{})
-	ResetParams()
 	Run(params ...interface{}) (Result, error)
 	Delete() error
 	Reset() error
 	SendLongData(pnum int, data interface{}, pkt_size int) error
 
-	Map(string) int
-	NumField() int
+	Fields() []*Field
 	NumParam() int
 	WarnCount() int
 

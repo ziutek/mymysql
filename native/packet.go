@@ -23,11 +23,17 @@ func (my *Conn) newPktReader() *pktReader {
 func (pr *pktReader) readHeader() {
 	// Read next packet header
 	buf := pr.ibuf[:]
-	_, err := io.ReadFull(pr.rd, buf)
-	if err != nil {
-		panic(err)
+	for {
+		n, err := pr.rd.Read(buf)
+		if err != nil {
+			panic(err)
+		}
+		buf = buf[n:]
+		if len(buf) == 0 {
+			break
+		}
 	}
-	pr.remain = int(DecodeU24(buf))
+	pr.remain = int(DecodeU24(pr.ibuf[:]))
 	seq, err := pr.rd.ReadByte()
 	if err != nil {
 		panic(err)
@@ -50,15 +56,11 @@ func (pr *pktReader) readFull(buf []byte) {
 			}
 			pr.readHeader()
 		}
-		var (
-			n   int
-			err error
-		)
-		if len(buf) <= pr.remain {
-			n, err = io.ReadFull(pr.rd, buf)
-		} else {
-			n, err = io.ReadFull(pr.rd, buf[0:pr.remain])
+		n := len(buf)
+		if n > pr.remain {
+			n = pr.remain
 		}
+		n, err := pr.rd.Read(buf[:n])
 		pr.remain -= n
 		if err != nil {
 			panic(err)
@@ -85,6 +87,7 @@ func (pr *pktReader) readByte() byte {
 }
 
 func (pr *pktReader) readAll() (buf []byte) {
+	m := 0
 	for {
 		if pr.remain == 0 {
 			if pr.last {
@@ -92,12 +95,12 @@ func (pr *pktReader) readAll() (buf []byte) {
 			}
 			pr.readHeader()
 		}
-		l := len(buf)
-		new_buf := make([]byte, l+pr.remain)
+		new_buf := make([]byte, m+pr.remain)
 		copy(new_buf, buf)
 		buf = new_buf
-		n, err := io.ReadFull(pr.rd, buf[l:])
+		n, err := pr.rd.Read(buf[m:])
 		pr.remain -= n
+		m += n
 		if err != nil {
 			panic(err)
 		}
@@ -115,7 +118,11 @@ func (pr *pktReader) skipAll() {
 			}
 			pr.readHeader()
 		}
-		n, err := io.ReadFull(pr.rd, skipBuf[:pr.remain])
+		n := len(skipBuf)
+		if n > pr.remain {
+			n = pr.remain
+		}
+		n, err := pr.rd.Read(skipBuf[:n])
 		pr.remain -= n
 		if err != nil {
 			panic(err)
@@ -126,14 +133,28 @@ func (pr *pktReader) skipAll() {
 
 // works only for n <= len(skipBuf)
 func (pr *pktReader) skipN(n int) {
-	for n != 0 {
-		m := len(skipBuf)
-		if m > n {
-			m = n
+	for n > 0 {
+		if pr.remain == 0 {
+			if pr.last {
+				panic(io.EOF)
+			}
+			pr.readHeader()
 		}
-		pr.readFull(skipBuf[:m])
-		n -= n
+		m := n
+		if m > len(skipBuf) {
+			m = len(skipBuf)
+		}
+		if m > pr.remain {
+			m = pr.remain
+		}
+		m, err := pr.rd.Read(skipBuf[:m])
+		pr.remain -= m
+		n -= m
+		if err != nil {
+			panic(err)
+		}
 	}
+	return
 }
 
 func (pr *pktReader) unreadByte() {
@@ -159,7 +180,7 @@ type pktWriter struct {
 	remain   int
 	to_write int
 	last     bool
-	buf      [13]byte
+	buf      [23]byte
 	ibuf     [3]byte
 }
 
@@ -229,6 +250,11 @@ func (pw *pktWriter) writeByte(b byte) {
 	pw.write(pw.buf[:1])
 }
 
-type writer interface {
-	write([]byte)
+// n should be <= 23
+func (pw *pktWriter) writeZeros(n int) {
+	buf := pw.buf[:n]
+	for i := range buf {
+		buf[i] = 0
+	}
+	pw.write(buf)
 }

@@ -16,12 +16,12 @@ var (
 )
 
 // val should be an addressable value
-func bindValue(val reflect.Value) (out *paramValue) {
+func bindValue(val reflect.Value) (out paramValue) {
 	if !val.IsValid() {
-		return &paramValue{typ: MYSQL_TYPE_NULL}
+		out.typ = MYSQL_TYPE_NULL
+		return
 	}
 	typ := val.Type()
-	out = new(paramValue)
 	if typ.Kind() == reflect.Ptr {
 		// We have addressable pointer
 		out.SetAddr(val.UnsafeAddr())

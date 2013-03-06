@@ -43,16 +43,14 @@ func run(s mysql.Stmt, args []driver.Value) (rr rowsRes, err error) {
 	return
 }
 
-func (c conn) query(query string, args []driver.Value) (rr rowsRes, err error) {
+func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 	if len(args) > 0 {
 		if strings.ContainsAny(query, `'"`) {
 			//err = driver.ErrSkip
 			//return
-			var s mysql.Stmt
-			s, err = c.my.Prepare(query)
+			s, err := c.my.Prepare(query)
 			if err != nil {
-				err = errFilter(err)
-				return
+				return nil, errFilter(err)
 			}
 			defer s.Delete()
 			return run(s, args)
@@ -65,6 +63,8 @@ func (c conn) query(query string, args []driver.Value) (rr rowsRes, err error) {
 			}
 			var s string
 			switch v := a.(type) {
+			case nil:
+				s = "NULL"
 			case string:
 				s = "'" + c.my.Escape(v) + "'"
 			case []byte:
@@ -82,26 +82,27 @@ func (c conn) query(query string, args []driver.Value) (rr rowsRes, err error) {
 			case float64:
 				s = strconv.FormatFloat(v, 'e', 12, 64)
 			default:
-				s = "'" + c.my.Escape(fmt.Sprint(a)) + "'"
+				panic(fmt.Sprintf("%v (%T) can't be handled by godrv"))
 			}
 			q += query[:i] + s
 			query = query[i+1:]
 		}
 		query = q + query
 	}
-	rr.my, err = c.my.Start(query)
+	res, err := c.my.Start(query)
 	if err != nil {
-		errFilter(err)
+		return nil, errFilter(err)
 	}
-	return
-}
-
-func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
-	return c.query(query, args)
+	return rowsRes{res}, nil
 }
 
 func (c conn) Query(query string, args []driver.Value) (driver.Rows, error) {
-	return c.query(query, args)
+	s, err := c.my.Prepare(query)
+	if err != nil {
+		return nil, errFilter(err)
+	}
+	defer s.Delete()
+	return run(s, args)
 }
 
 type stmt struct {

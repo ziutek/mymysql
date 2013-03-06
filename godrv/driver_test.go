@@ -3,6 +3,7 @@ package godrv
 import (
 	"database/sql"
 	"testing"
+	"time"
 )
 
 func init() {
@@ -136,24 +137,68 @@ func TestMediumInt(t *testing.T) {
 	}
 }
 
-func TestAll(t *testing.T) {
+func TestTypes(t *testing.T) {
 	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
 	checkErr(t, err)
 	defer db.Close()
-	defer db.Exec("DROP TABLE types")
+	defer db.Exec("DROP TABLE t")
 
-	db.Exec("DROP TABLE types")
+	db.Exec("DROP TABLE t")
 
 	_, err = db.Exec(
-		`CREATE TABLE types (
-			i INT,
-			f DOUBLE, 
-			b BOOL,
-			s VARCHAR(8),
-			t DATETIME,
+		`CREATE TABLE t (
+			i INT NOT NULL,
+			f DOUBLE NOT NULL, 
+			b BOOL NOT NULL,
+			s VARCHAR(8) NOT NULL,
+			d DATETIME NOT NULL,
+			n INT
 		) ENGINE=InnoDB`)
 	checkErr(t, err)
 
-	_, err = db.Exec("INSERT mi VALUES (1, 0.25, 0, 'test', '2013-03-06 21:07')")
+	_, err = db.Exec(
+		"INSERT t VALUES (23, 0.25, true, 'test', '2013-03-06 21:07', NULL)",
+	)
 	checkErr(t, err)
+	l, err := time.LoadLocation("Local")
+	td := time.Date(2013, 3, 6, 21, 7, 0, 0, l)
+	checkErr(t, err)
+	_, err = db.Exec(
+		"INSERT t VALUES (?, ?, ?, ?, ?, ?)",
+		23, 0.25, true, "test", td, nil,
+	)
+
+	rows, err := db.Query("SELECT * FROM t")
+	checkErr(t, err)
+	var (
+		i int64
+		f float64
+		b bool
+		s string
+		d time.Time
+		n sql.NullInt64
+	)
+
+	for rows.Next() {
+		checkErr(t, rows.Scan(&i, &f, &b, &s, &d, &n))
+		if i != 23 {
+			t.Fatal("int64", i)
+		}
+		if f != 0.25 {
+			t.Fatal("float64", f)
+		}
+		if b != true {
+			t.Fatal("bool", b)
+		}
+		if s != "test" {
+			t.Fatal("string", s)
+		}
+		if d != td {
+			t.Fatal("time.Time", d)
+
+		}
+		if n.Valid {
+			t.Fatal("mysql.NullInt64", n)
+		}
+	}
 }

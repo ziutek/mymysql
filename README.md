@@ -70,6 +70,7 @@ BindParams supports Go bool type.
 v0.4:
 
 1. Modular design:
+
 - MySQL wire protocol handling moved to *mymysql/native*
 - Thread safe wrapper of *native* engine in separate *mymysql/thrsafe*
 - *mymysql/mysql* package contains definitions of interfaces to engines and
@@ -110,8 +111,8 @@ The default MySQL server address is *127.0.0.1:3306*.
 
 Next run tests:
 
-$ cd $GOPATH/src/github.com/ziutek/mymysql
-$ ./all.bash test
+	$ cd $GOPATH/src/github.com/ziutek/mymysql
+	$ ./all.bash test
 
 ## Examples
 
@@ -488,9 +489,9 @@ This is the improved code of the previous example:
 
 	for rows.Next() {
 		var id int
-			var txt string
-			checkErr(rows.Scan(&id, &txt))
-			// Do something with id and txt
+		var txt string
+		checkErr(rows.Scan(&id, &txt))
+		// Do something with id and txt
 	}
 
 	checkErr(db.Close())

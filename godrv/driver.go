@@ -67,12 +67,12 @@ func (c conn) query(query string, args []driver.Value) (rr rowsRes, err error) {
 			switch v := a.(type) {
 			case string:
 				s = "'" + c.my.Escape(v) + "'"
+			case []byte:
+				s = "'" + c.my.Escape(string(v)) + "'"
 			case int64:
 				s = strconv.FormatInt(v, 10)
 			case time.Time:
-				s = v.Format(mysql.TimeFormat)
-			case []byte:
-				s = "'" + c.my.Escape(string(v)) + "'"
+				s = "'" + v.Format(mysql.TimeFormat) + "'"
 			case bool:
 				if v {
 					s = "1"

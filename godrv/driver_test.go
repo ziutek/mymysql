@@ -116,6 +116,7 @@ func TestMediumInt(t *testing.T) {
 
 	for i := 0; i < n; i++ {
 		_, err = db.Exec("INSERT mi VALUES (0, ?)", i)
+		checkErr(t, err)
 	}
 
 	rows, err := db.Query("SELECT * FROM mi")
@@ -133,4 +134,26 @@ func TestMediumInt(t *testing.T) {
 	if i != n {
 		t.Fatalf("%d rows read, %d expected", i, n)
 	}
+}
+
+func TestAll(t *testing.T) {
+	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
+	checkErr(t, err)
+	defer db.Close()
+	defer db.Exec("DROP TABLE types")
+
+	db.Exec("DROP TABLE types")
+
+	_, err = db.Exec(
+		`CREATE TABLE types (
+			i INT,
+			f DOUBLE, 
+			b BOOL,
+			s VARCHAR(8),
+			t DATETIME,
+		) ENGINE=InnoDB`)
+	checkErr(t, err)
+
+	_, err = db.Exec("INSERT mi VALUES (1, 0.25, 0, 'test', '2013-03-06 21:07')")
+	checkErr(t, err)
 }

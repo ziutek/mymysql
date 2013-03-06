@@ -10,6 +10,7 @@ import (
 	_ "github.com/ziutek/mymysql/native"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 	"unsafe"
@@ -62,7 +63,28 @@ func (c conn) query(query string, args []driver.Value) (rr rowsRes, err error) {
 			if i == -1 {
 				break
 			}
-			q += query[:i] + "'" + c.my.Escape(fmt.Sprint(a)) + "'"
+			var s string
+			switch v := a.(type) {
+			case string:
+				s = "'" + c.my.Escape(v) + "'"
+			case int64:
+				s = strconv.FormatInt(v, 10)
+			case time.Time:
+				s = v.Format(mysql.TimeFormat)
+			case []byte:
+				s = "'" + c.my.Escape(string(v)) + "'"
+			case bool:
+				if v {
+					s = "1"
+				} else {
+					s = "0"
+				}
+			case float64:
+				s = strconv.FormatFloat(v, 'e', 12, 64)
+			default:
+				s = "'" + c.my.Escape(fmt.Sprint(a)) + "'"
+			}
+			q += query[:i] + s
 			query = query[i+1:]
 		}
 		query = q + query

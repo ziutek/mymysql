@@ -6,6 +6,7 @@ import (
 	"github.com/ziutek/mymysql/mysql"
 	"math"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -65,6 +66,27 @@ type BindTest struct {
 	length int
 }
 
+func intSize() int {
+	switch strconv.IntSize {
+	case 32:
+		return 4
+	case 64:
+		return 8
+	}
+	panic("bad int size")
+}
+
+func intType() uint16 {
+	switch strconv.IntSize {
+	case 32:
+		return MYSQL_TYPE_LONG
+	case 64:
+		return MYSQL_TYPE_LONGLONG
+	}
+	panic("bad int size")
+
+}
+
 var bindTests = []BindTest{
 	BindTest{nil, MYSQL_TYPE_NULL, 0},
 
@@ -100,37 +122,37 @@ var bindTests = []BindTest{
 	BindTest{Int16, MYSQL_TYPE_SHORT, 2},
 	BindTest{Int32, MYSQL_TYPE_LONG, 4},
 	BindTest{Int64, MYSQL_TYPE_LONGLONG, 8},
-	BindTest{Int, MYSQL_TYPE_LONG, 4}, // Hack
+	BindTest{Int, intType(), intSize()},
 
 	BindTest{&Int8, MYSQL_TYPE_TINY, 1},
 	BindTest{&Int16, MYSQL_TYPE_SHORT, 2},
 	BindTest{&Int32, MYSQL_TYPE_LONG, 4},
 	BindTest{&Int64, MYSQL_TYPE_LONGLONG, 8},
-	BindTest{&Int, MYSQL_TYPE_LONG, 4}, // Hack
+	BindTest{&Int, intType(), intSize()},
 
 	BindTest{pInt8, MYSQL_TYPE_TINY, 1},
 	BindTest{pInt16, MYSQL_TYPE_SHORT, 2},
 	BindTest{pInt32, MYSQL_TYPE_LONG, 4},
 	BindTest{pInt64, MYSQL_TYPE_LONGLONG, 8},
-	BindTest{pInt, MYSQL_TYPE_LONG, 4}, // Hack
+	BindTest{pInt, intType(), intSize()},
 
 	BindTest{Uint8, MYSQL_TYPE_TINY | MYSQL_UNSIGNED_MASK, 1},
 	BindTest{Uint16, MYSQL_TYPE_SHORT | MYSQL_UNSIGNED_MASK, 2},
 	BindTest{Uint32, MYSQL_TYPE_LONG | MYSQL_UNSIGNED_MASK, 4},
 	BindTest{Uint64, MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK, 8},
-	BindTest{Uint, MYSQL_TYPE_LONG | MYSQL_UNSIGNED_MASK, 4}, //Hack
+	BindTest{Uint, intType() | MYSQL_UNSIGNED_MASK, intSize()},
 
 	BindTest{&Uint8, MYSQL_TYPE_TINY | MYSQL_UNSIGNED_MASK, 1},
 	BindTest{&Uint16, MYSQL_TYPE_SHORT | MYSQL_UNSIGNED_MASK, 2},
 	BindTest{&Uint32, MYSQL_TYPE_LONG | MYSQL_UNSIGNED_MASK, 4},
 	BindTest{&Uint64, MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK, 8},
-	BindTest{&Uint, MYSQL_TYPE_LONG | MYSQL_UNSIGNED_MASK, 4}, //Hack
+	BindTest{&Uint, intType() | MYSQL_UNSIGNED_MASK, intSize()},
 
 	BindTest{pUint8, MYSQL_TYPE_TINY | MYSQL_UNSIGNED_MASK, 1},
 	BindTest{pUint16, MYSQL_TYPE_SHORT | MYSQL_UNSIGNED_MASK, 2},
 	BindTest{pUint32, MYSQL_TYPE_LONG | MYSQL_UNSIGNED_MASK, 4},
 	BindTest{pUint64, MYSQL_TYPE_LONGLONG | MYSQL_UNSIGNED_MASK, 8},
-	BindTest{pUint, MYSQL_TYPE_LONG | MYSQL_UNSIGNED_MASK, 4}, //Hack
+	BindTest{pUint, intType() | MYSQL_UNSIGNED_MASK, intSize()},
 
 	BindTest{Float32, MYSQL_TYPE_FLOAT, 4},
 	BindTest{Float64, MYSQL_TYPE_DOUBLE, 8},
@@ -212,6 +234,17 @@ func encodeDate(d mysql.Date) []byte {
 	return buf[:n]
 }
 
+func encodeUint(u uint) []byte {
+	switch strconv.IntSize {
+	case 32:
+		return encodeU32(uint32(u))
+	case 64:
+		return encodeU64(uint64(u))
+	}
+	panic("bad int size")
+
+}
+
 func init() {
 	b := make([]byte, 64*1024)
 	for ii := range b {
@@ -290,22 +323,22 @@ func init() {
 		WriteTest{&tim, encodeDuration(tim)},
 		WriteTest{pTim, nil},
 
-		WriteTest{Int, encodeU32(uint32(Int))}, // Hack
+		WriteTest{Int, encodeUint(uint(Int))},
 		WriteTest{Int16, encodeU16(uint16(Int16))},
 		WriteTest{Int32, encodeU32(uint32(Int32))},
 		WriteTest{Int64, encodeU64(uint64(Int64))},
 
-		WriteTest{Int, encodeU32(uint32(Int))}, // Hack
+		WriteTest{Uint, encodeUint(Uint)},
 		WriteTest{Uint16, encodeU16(Uint16)},
 		WriteTest{Uint32, encodeU32(Uint32)},
 		WriteTest{Uint64, encodeU64(Uint64)},
 
-		WriteTest{&Int, encodeU32(uint32(Int))}, // Hack
+		WriteTest{&Int, encodeUint(uint(Int))},
 		WriteTest{&Int16, encodeU16(uint16(Int16))},
 		WriteTest{&Int32, encodeU32(uint32(Int32))},
 		WriteTest{&Int64, encodeU64(uint64(Int64))},
 
-		WriteTest{&Uint, encodeU32(uint32(Uint))}, // Hack
+		WriteTest{&Uint, encodeUint(Uint)},
 		WriteTest{&Uint16, encodeU16(Uint16)},
 		WriteTest{&Uint32, encodeU32(Uint32)},
 		WriteTest{&Uint64, encodeU64(Uint64)},

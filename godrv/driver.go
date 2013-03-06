@@ -59,7 +59,7 @@ func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 		for _, a := range args {
 			i := strings.IndexRune(query, '?')
 			if i == -1 {
-				break
+				return nil, errors.New("the number of parameters placeholders doesn't match")
 			}
 			var s string
 			switch v := a.(type) {

@@ -2,6 +2,8 @@ package godrv
 
 import (
 	"database/sql"
+	"fmt"
+	"github.com/ziutek/mymysql/mysql"
 	"testing"
 	"time"
 )
@@ -200,5 +202,113 @@ func TestTypes(t *testing.T) {
 		if n.Valid {
 			t.Fatal("mysql.NullInt64", n)
 		}
+	}
+}
+
+func TestMultiple(t *testing.T) {
+	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
+	checkErr(t, err)
+	defer db.Close()
+	defer db.Exec("DROP TABLE t")
+
+	db.Exec("DROP TABLE t")
+	_, err = db.Exec(`CREATE TABLE t (
+		email       VARCHAR(16),
+		password    VARCHAR(16),
+		status      VARCHAR(16),
+		signup_date DATETIME,
+		zipcode     VARCHAR(16),
+		fname       VARCHAR(16),
+		lname       VARCHAR(16)
+	)`)
+	checkErr(t, err)
+
+	const shortFormat = "2006-01-02 15:04:05"
+	now := time.Now()
+
+	_, err = db.Exec(fmt.Sprintf(`INSERT INTO t (
+		email,
+		password,
+		status,
+		signup_date,
+		zipcode,
+		fname,
+		lname
+	) VALUES (
+		'a@a.com',
+		'asdf',
+		'unverified',
+		'%s',
+		'111',
+		'asdf',
+		'asdf'
+	);`, now.Format(mysql.TimeFormat)))
+	checkErr(t, err)
+
+	_, err = db.Exec(`INSERT INTO t (
+		email,
+		password,
+		status,
+		signup_date,
+		zipcode,
+		fname,
+	    lname
+	) VALUES (
+      ?, ?, ?, ?, ?, ?, ?
+	);`, "a@a.com", "asdf", "unverified", now, "111", "asdf", "asdf")
+	checkErr(t, err)
+
+	_, err = db.Exec(`INSERT INTO t (
+		email,
+		password,
+		status,
+		signup_date,
+		zipcode,
+		fname,
+	    lname
+	) VALUES (
+      "a@a.com", 'asdf', ?, ?, ?, ?, 'asdf'
+	);`, "unverified", now, "111", "asdf")
+	checkErr(t, err)
+
+	rows, err := db.Query("SELECT * FROM t")
+	checkErr(t, err)
+	var (
+		email, password, status, zipcode, fname, lname string
+		signup_date                                    time.Time
+	)
+	n := 0
+	for rows.Next() {
+		checkErr(t, rows.Scan(
+			&email, &password, &status, &signup_date, &zipcode, &fname, &lname,
+		))
+		if email != "a@a.com" {
+			t.Fatal(n, "email:", email)
+		}
+		if password != "asdf" {
+			t.Fatal(n, "password:", password)
+		}
+		if status != "unverified" {
+			t.Fatal(n, "status:", status)
+
+		}
+		e := signup_date.Format(mysql.TimeFormat)
+		d := signup_date.Format(mysql.TimeFormat)
+		if e[:len(shortFormat)] != d[:len(shortFormat)] {
+			t.Fatal(n, "signup_date:", d)
+		}
+		if zipcode != "111" {
+			t.Fatal(n, "zipcode:", zipcode)
+		}
+		if fname != "asdf" {
+			t.Fatal(n, "fname:", fname)
+		}
+		if lname != "asdf" {
+			t.Fatal(n, "lname:", lname)
+		}
+		n++
+	}
+	if n != 3 {
+		t.Fatal("Too short result set")
 	}
 }

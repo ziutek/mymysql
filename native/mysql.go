@@ -527,7 +527,7 @@ func (my *Conn) Prepare(sql string) (mysql.Stmt, error) {
 
 // Bind input data for the parameter markers in the SQL statement that was
 // passed to Prepare.
-// 
+//
 // params may be a parameter list (slice), a struct or a pointer to the struct.
 // A struct field can by value or pointer to value. A parameter (slice element)
 // can be value, pointer to value or pointer to pointer to value.
@@ -682,7 +682,7 @@ func (stmt *Stmt) Reset() (err error) {
 // max_allowed_packet variable. You can obtain value of this variable
 // using such query: SHOW variables WHERE Variable_name = 'max_allowed_packet'
 // If data source is io.Reader then (pkt_size - 6) is size of a buffer that
-// will be allocated for reading. 
+// will be allocated for reading.
 //
 // If you have data source of type string or []byte in one piece you may
 // properly set pkt_size and call this method once. If you have data in

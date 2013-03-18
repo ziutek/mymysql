@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ziutek/mymysql/mysql"
-	_ "github.com/ziutek/mymysql/native"
+	"github.com/ziutek/mymysql/native"
 	"io"
 	"net"
 	"strconv"
@@ -21,7 +21,8 @@ type conn struct {
 }
 
 type rowsRes struct {
-	my mysql.Result
+	my          mysql.Result
+	simpleQuery mysql.Stmt
 }
 
 func errFilter(err error) error {
@@ -34,75 +35,126 @@ func errFilter(err error) error {
 	return err
 }
 
-func run(s mysql.Stmt, args []driver.Value) (rr rowsRes, err error) {
+func run(s mysql.Stmt, args []driver.Value) (*rowsRes, error) {
 	a := (*[]interface{})(unsafe.Pointer(&args))
-	rr.my, err = s.Run(*a...)
-	if err != nil {
-		err = errFilter(err)
-	}
-	return
-}
-
-func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
-	if len(args) > 0 {
-		if strings.ContainsAny(query, `'"`) {
-			//err = driver.ErrSkip
-			//return
-			s, err := c.my.Prepare(query)
-			if err != nil {
-				return nil, errFilter(err)
-			}
-			defer s.Delete()
-			return run(s, args)
-		}
-		var q string
-		for _, a := range args {
-			i := strings.IndexRune(query, '?')
-			if i == -1 {
-				return nil, errors.New("the number of parameters placeholders doesn't match")
-			}
-			var s string
-			switch v := a.(type) {
-			case nil:
-				s = "NULL"
-			case string:
-				s = "'" + c.my.Escape(v) + "'"
-			case []byte:
-				s = "'" + c.my.Escape(string(v)) + "'"
-			case int64:
-				s = strconv.FormatInt(v, 10)
-			case time.Time:
-				s = "'" + v.Format(mysql.TimeFormat) + "'"
-			case bool:
-				if v {
-					s = "1"
-				} else {
-					s = "0"
-				}
-			case float64:
-				s = strconv.FormatFloat(v, 'e', 12, 64)
-			default:
-				panic(fmt.Sprintf("%v (%T) can't be handled by godrv"))
-			}
-			q += query[:i] + s
-			query = query[i+1:]
-		}
-		query = q + query
-	}
-	res, err := c.my.Start(query)
+	res, err := s.Run(*a...)
 	if err != nil {
 		return nil, errFilter(err)
 	}
-	return rowsRes{res}, nil
+	return &rowsRes{my: res}, nil
 }
 
-func (c conn) Query(query string, args []driver.Value) (driver.Rows, error) {
+func join(a []string) string {
+	n := 0
+	for _, s := range a {
+		n += len(s)
+	}
+	b := make([]byte, n)
+	i := 0
+	for _, s := range a {
+		i += copy(b[i:], s)
+	}
+	return string(b)
+}
+
+func (c conn) parseQuery(query string, args []driver.Value) (string, error) {
+	if len(args) == 0 {
+		return query, nil
+	}
+	if strings.ContainsAny(query, `'"`) {
+		return "", nil
+	}
+	q := make([]string, 2*len(args)+1)
+	n := 0
+	for _, a := range args {
+		i := strings.IndexRune(query, '?')
+		if i == -1 {
+			return "", errors.New("number of parameters doesn't match number of placeholders")
+		}
+		var s string
+		switch v := a.(type) {
+		case nil:
+			s = "NULL"
+		case string:
+			s = "'" + c.my.Escape(v) + "'"
+		case []byte:
+			s = "'" + c.my.Escape(string(v)) + "'"
+		case int64:
+			s = strconv.FormatInt(v, 10)
+		case time.Time:
+			s = "'" + v.Format(mysql.TimeFormat) + "'"
+		case bool:
+			if v {
+				s = "1"
+			} else {
+				s = "0"
+			}
+		case float64:
+			s = strconv.FormatFloat(v, 'e', 12, 64)
+		default:
+			panic(fmt.Sprintf("%v (%T) can't be handled by godrv"))
+		}
+		q[n] = query[:i]
+		q[n+1] = s
+		query = query[i+1:]
+		n += 2
+	}
+	q[n] = query
+	return join(q), nil
+}
+
+func (c conn) Exec(query string, args []driver.Value) (driver.Result, error) {
+	q, err := c.parseQuery(query, args)
+	if err != nil {
+		return nil, err
+	}
+	if len(q) > 0 {
+		res, err := c.my.Start(q)
+		if err != nil {
+			return nil, errFilter(err)
+		}
+		return &rowsRes{my: res}, nil
+	}
+
 	s, err := c.my.Prepare(query)
 	if err != nil {
 		return nil, errFilter(err)
 	}
-	defer s.Delete()
-	return run(s, args)
+	res, err := run(s, args)
+	if err != nil {
+		return nil, errFilter(err)
+	}
+	if err = s.Delete(); err != nil {
+		return nil, errFilter(err)
+	}
+	return res, nil
+}
+
+var textQuery = mysql.Stmt(new(native.Stmt))
+
+func (c conn) Query(query string, args []driver.Value) (driver.Rows, error) {
+	q, err := c.parseQuery(query, args)
+	if err != nil {
+		return nil, err
+	}
+	if len(q) > 0 {
+		res, err := c.my.Start(q)
+		if err != nil {
+			return nil, errFilter(err)
+		}
+		return &rowsRes{my: res, simpleQuery: textQuery}, nil
+	}
+
+	s, err := c.my.Prepare(query)
+	if err != nil {
+		return nil, errFilter(err)
+	}
+	rows, err := run(s, args)
+	if err != nil {
+		return nil, errFilter(err)
+	}
+	rows.simpleQuery = s
+	return rows, nil
 }
 
 type stmt struct {
@@ -175,15 +227,15 @@ func (s stmt) Query(args []driver.Value) (driver.Rows, error) {
 	return run(s.my, args)
 }
 
-func (r rowsRes) LastInsertId() (int64, error) {
+func (r *rowsRes) LastInsertId() (int64, error) {
 	return int64(r.my.InsertId()), nil
 }
 
-func (r rowsRes) RowsAffected() (int64, error) {
+func (r *rowsRes) RowsAffected() (int64, error) {
 	return int64(r.my.AffectedRows()), nil
 }
 
-func (r rowsRes) Columns() []string {
+func (r *rowsRes) Columns() []string {
 	flds := r.my.Fields()
 	cls := make([]string, len(flds))
 	for i, f := range flds {
@@ -192,26 +244,51 @@ func (r rowsRes) Columns() []string {
 	return cls
 }
 
-func (r rowsRes) Close() (err error) {
-	err = r.my.End()
-	r.my = nil
-	if err != nil {
-		if err == mysql.ErrReadAfterEOR {
-			err = nil
-		} else {
-			err = errFilter(err)
+func (r *rowsRes) Close() error {
+	if r.my == nil {
+		return nil // closed before
+	}
+	if err := r.my.End(); err != nil {
+		return errFilter(err)
+	}
+	if r.simpleQuery != nil && r.simpleQuery != r.simpleQuery {
+		if err := r.simpleQuery.Delete(); err != nil {
+			return errFilter(err)
 		}
 	}
-	return
+	r.my = nil
+	return nil
 }
 
 // DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone
-func (r rowsRes) Next(dest []driver.Value) (err error) {
-	err = r.my.ScanRow(*(*[]interface{})(unsafe.Pointer(&dest)))
-	if err != nil {
-		err = errFilter(err)
+func (r *rowsRes) Next(dest []driver.Value) error {
+	if r.my == nil {
+		return io.EOF // closed before
 	}
-	return
+	d := *(*mysql.Row)(unsafe.Pointer(&dest))
+	err := r.my.ScanRow(d)
+	if err == nil {
+		if r.simpleQuery == textQuery {
+			// workaround for time.Time from text queries
+			for i, f := range r.my.Fields() {
+				switch f.Type {
+				case native.MYSQL_TYPE_TIMESTAMP, native.MYSQL_TYPE_DATETIME:
+					d[i] = d.ForceLocaltime(i)
+				}
+			}
+		}
+		return nil
+	}
+	if err != io.EOF {
+		return errFilter(err)
+	}
+	if r.simpleQuery != nil && r.simpleQuery != r.simpleQuery {
+		if err = r.simpleQuery.Delete(); err != nil {
+			return errFilter(err)
+		}
+	}
+	r.my = nil
+	return io.EOF
 }
 
 type Driver struct {

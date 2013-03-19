@@ -50,9 +50,9 @@ func join(a []string) string {
 		n += len(s)
 	}
 	b := make([]byte, n)
-	i := 0
+	n = 0
 	for _, s := range a {
-		i += copy(b[i:], s)
+		n += copy(b[n:], s)
 	}
 	return string(b)
 }

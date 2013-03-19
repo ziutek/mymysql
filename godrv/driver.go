@@ -251,7 +251,7 @@ func (r *rowsRes) Close() error {
 	if err := r.my.End(); err != nil {
 		return errFilter(err)
 	}
-	if r.simpleQuery != nil && r.simpleQuery != r.simpleQuery {
+	if r.simpleQuery != nil && r.simpleQuery != textQuery {
 		if err := r.simpleQuery.Delete(); err != nil {
 			return errFilter(err)
 		}
@@ -282,7 +282,7 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 	if err != io.EOF {
 		return errFilter(err)
 	}
-	if r.simpleQuery != nil && r.simpleQuery != r.simpleQuery {
+	if r.simpleQuery != nil && r.simpleQuery != textQuery {
 		if err = r.simpleQuery.Delete(); err != nil {
 			return errFilter(err)
 		}

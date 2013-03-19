@@ -397,9 +397,7 @@ func readValueNarrow(pr *pktReader, typ byte, unsigned bool) interface{} {
 			panic("MySQL server returned wrong decimal value: " + dec)
 		}
 		return r
-	case MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE:
-		return pr.readDate()
-	case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
+	case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE:
 		return pr.readTime()
 	case MYSQL_TYPE_TIME:
 		return int64(pr.readDuration())

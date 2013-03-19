@@ -154,20 +154,24 @@ func TestTypes(t *testing.T) {
 			b BOOL NOT NULL,
 			s VARCHAR(8) NOT NULL,
 			d DATETIME NOT NULL,
+			y DATE NOT NULL,
 			n INT
 		) ENGINE=InnoDB`)
 	checkErr(t, err)
 
 	_, err = db.Exec(
-		"INSERT t VALUES (23, 0.25, true, 'test', '2013-03-06 21:07', NULL)",
+		`INSERT t VALUES (
+			23, 0.25, true, 'test', '2013-03-06 21:07', '2013-03-19', NULL
+		)`,
 	)
 	checkErr(t, err)
 	l, err := time.LoadLocation("Local")
 	td := time.Date(2013, 3, 6, 21, 7, 0, 0, l)
+	dd := time.Date(2013, 3, 19, 0, 0, 0, 0, l)
 	checkErr(t, err)
 	_, err = db.Exec(
 		"INSERT t VALUES (?, ?, ?, ?, ?, ?)",
-		23, 0.25, true, "test", td, nil,
+		23, 0.25, true, "test", td, dd, nil,
 	)
 
 	rows, err := db.Query("SELECT * FROM t")
@@ -178,11 +182,12 @@ func TestTypes(t *testing.T) {
 		b bool
 		s string
 		d time.Time
+		y time.Time
 		n sql.NullInt64
 	)
 
 	for rows.Next() {
-		checkErr(t, rows.Scan(&i, &f, &b, &s, &d, &n))
+		checkErr(t, rows.Scan(&i, &f, &b, &s, &d, &y, &n))
 		if i != 23 {
 			t.Fatal("int64", i)
 		}
@@ -197,7 +202,9 @@ func TestTypes(t *testing.T) {
 		}
 		if d != td {
 			t.Fatal("time.Time", d)
-
+		}
+		if y != dd {
+			t.Fatal("time.Time", y)
 		}
 		if n.Valid {
 			t.Fatal("mysql.NullInt64", n)

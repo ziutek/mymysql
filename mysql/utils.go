@@ -28,8 +28,8 @@ func syntaxError(ln int) error {
 //	DbPass	TestPasswd9
 //	# optional: DbName	test
 //	# optional: DbEncd	utf8	
-//	# optional: DbLaddr	127.0.0.1
-//  # optional: DbTimeout 15s
+//	# optional: DbLaddr	127.0.0.1:0
+//	# optional: DbTimeout 15s
 //
 //	# Your options (returned in unk)
 //

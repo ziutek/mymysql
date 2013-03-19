@@ -12,8 +12,6 @@ type ConnCommon interface {
 	Ping() error
 	ThreadId() uint32
 	Escape(txt string) string
-	NarrowTypeSet(narrow bool)
-	FullFieldInfo(full bool)
 
 	Query(sql string, params ...interface{}) ([]Row, Result, error)
 	QueryFirst(sql string, params ...interface{}) (Row, Result, error)
@@ -32,6 +30,8 @@ type Conn interface {
 	Use(dbname string) error
 	Register(sql string)
 	SetMaxPktSize(new_size int) int
+	NarrowTypeSet(narrow bool)
+	FullFieldInfo(full bool)
 
 	Begin() (Transaction, error)
 }

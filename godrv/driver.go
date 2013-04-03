@@ -386,7 +386,11 @@ var d = Driver{proto: "tcp", raddr: "127.0.0.1:3306"}
 // Registers initialisation commands.
 // This is workaround, see http://codereview.appspot.com/5706047
 func Register(query string) {
-	d.initCmds = append(d.initCmds, query)
+	d.Register(query)
+}
+
+func (drv *Driver) Register(query string) {
+	drv.initCmds = append(d.initCmds, query)
 }
 
 func init() {

@@ -27,7 +27,7 @@ func syntaxError(ln int) error {
 //	DbUser	testuser
 //	DbPass	TestPasswd9
 //	# optional: DbName	test
-//	# optional: DbEncd	utf8	
+//	# optional: DbEncd	utf8
 //	# optional: DbLaddr	127.0.0.1:0
 //	# optional: DbTimeout 15s
 //
@@ -208,6 +208,9 @@ func GetRows(r Result) (rows []Row, err error) {
 func GetLastRow(r Result) (Row, error) {
 	row := r.MakeRow()
 	err := r.ScanRow(row)
+	if err == io.EOF {
+		return nil, nil
+	}
 	for err == nil {
 		err = r.ScanRow(row)
 	}

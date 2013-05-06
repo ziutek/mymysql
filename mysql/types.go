@@ -43,7 +43,7 @@ func (dd Date) Localtime() time.Time {
 }
 
 // Convert string date in format YYYY-MM-DD to Date.
-// Leading and trailing spaces are ignored. If format is invalid returns zero.
+// Leading and trailing spaces are ignored.
 func ParseDate(str string) (dd Date, err error) {
 	str = strings.TrimSpace(str)
 	if str == "0000-00-00" {
@@ -61,14 +61,28 @@ func ParseDate(str string) (dd Date, err error) {
 	if m, err = strconv.Atoi(str[5:7]); err != nil {
 		return
 	}
-	if m < 1 || m > 12 {
+	if m < 0 || m > 12 { // MySQL permits month == 0
 		goto invalid
 	}
 	if d, err = strconv.Atoi(str[8:10]); err != nil {
 		return
 	}
-	if d < 1 || d > 31 {
+	if d < 0 { // MySQL permits day == 0
 		goto invalid
+	}
+	switch m {
+	case 1, 3, 5, 7, 8, 10, 12:
+		if d > 31 {
+			goto invalid
+		}
+	case 4, 6, 9, 11:
+		if d > 30 {
+			goto invalid
+		}
+	case 2:
+		if d > 29 {
+			goto invalid
+		}
 	}
 	dd.Year = int16(y)
 	dd.Month = byte(m)

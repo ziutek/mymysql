@@ -206,7 +206,7 @@ func (pw *pktWriter) writeLC(v interface{}) {
 	case *string:
 		pw.writeBin([]byte(*val))
 	default:
-		panic("Unknown data type for write as lenght coded string")
+		panic("Unknown data type for write as length coded string")
 	}
 }
 
@@ -221,7 +221,7 @@ func lenLC(v interface{}) int {
 	case *string:
 		return lenStr(*val)
 	}
-	panic("Unknown data type for write as lenght coded string")
+	panic("Unknown data type for write as length coded string")
 }
 
 func (pr *pktReader) readNTB() (buf []byte) {

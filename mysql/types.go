@@ -49,16 +49,34 @@ func ParseDate(str string) (dd Date, err error) {
 	if str == "0000-00-00" {
 		return
 	}
-	if len(str) != 10 {
-		err = errors.New("Invalid MySQL DATE string: " + str)
+	var (
+		y, m, d int
+	)
+	if len(str) != 10 || str[4] != '-' || str[7] != '-' {
+		goto invalid
+	}
+	if y, err = strconv.Atoi(str[0:4]); err != nil {
 		return
 	}
-	t, err := time.Parse("2006-01-02", str)
-	if err == nil {
-		dd.Year = int16(t.Year())
-		dd.Month = byte(t.Month())
-		dd.Day = byte(t.Day())
+	if m, err = strconv.Atoi(str[5:7]); err != nil {
+		return
 	}
+	if m < 1 || m > 12 {
+		goto invalid
+	}
+	if d, err = strconv.Atoi(str[8:10]); err != nil {
+		return
+	}
+	if d < 1 || d > 31 {
+		goto invalid
+	}
+	dd.Year = int16(y)
+	dd.Month = byte(m)
+	dd.Day = byte(d)
+	return
+
+invalid:
+	err = errors.New("Invalid MySQL DATE string: " + str)
 	return
 }
 

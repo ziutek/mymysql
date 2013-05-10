@@ -570,6 +570,45 @@ func TestDate(t *testing.T) {
 	myClose(t)
 }
 
+func TestDateTimeZone(t *testing.T) {
+	myConnect(t, true, 0)
+	query("drop table d") // Drop test table if exists
+	checkResult(t,
+		query("create table d (dt datetime)"),
+		cmdOK(0, false, true),
+	)
+
+	ins, err := my.Prepare("insert d values (?)")
+	checkErr(t, err, nil)
+
+	sel, err := my.Prepare("select dt from d")
+	checkErr(t, err, nil)
+
+	tstr := "2013-05-10 15:26:00.000000000"
+
+	_, err = ins.Run(tstr)
+	checkErr(t, err, nil)
+
+	tt := make([]time.Time, 4)
+
+	row, _, err := sel.ExecFirst()
+	checkErr(t, err, nil)
+	tt[0] = row.Time(0, time.UTC)
+	tt[1] = row.Time(0, time.Local)
+	row, _, err = my.QueryFirst("select dt from d")
+	checkErr(t, err, nil)
+	tt[2] = row.Time(0, time.UTC)
+	tt[3] = row.Time(0, time.Local)
+	for _, v := range tt {
+		if v.Format(mysql.TimeFormat) != tstr {
+			t.Fatal("Timezone problem:", tstr, "!=", v)
+		}
+	}
+
+	checkResult(t, query("drop table d"), cmdOK(0, false, true))
+	myClose(t)
+}
+
 // Big blob
 func TestBigBlob(t *testing.T) {
 	myConnect(t, true, 34*1024*1024)
@@ -669,7 +708,7 @@ func TestEmpty(t *testing.T) {
 	}
 	myConnect(t, true, 0)
 	query("drop table e") // Drop test table if exists
-	// Create table 
+	// Create table
 	checkResult(t,
 		query("create table e (id int)"),
 		cmdOK(0, false, true),

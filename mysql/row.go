@@ -210,9 +210,10 @@ func (tr Row) TimeErr(nn int, loc *time.Location) (t time.Time, err error) {
 	case nil:
 		// nop
 	case time.Time:
-		t = data.In(loc)
-		if loc != time.Local {
-			t = convertTime(t, loc)
+		if loc == time.Local {
+			t = data
+		} else {
+			t = convertTime(data, loc)
 		}
 	case Date:
 		t = data.Time(loc)

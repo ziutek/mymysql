@@ -396,7 +396,8 @@ func (drv *Driver) Register(query string) {
 	drv.initCmds = append(d.initCmds, query)
 }
 
-// Dialer can be used to dial connections to MySQL. If Dialer returns (nil, nil)// the hook is skipped and normal dialing proceeds. user and dbname are there
+// Dialer can be used to dial connections to MySQL. If Dialer returns (nil, nil)
+// the hook is skipped and normal dialing proceeds. user and dbname are there
 // only for logging.
 type Dialer func(proto, laddr, raddr, user, dbname string, timeout time.Duration) (net.Conn, error)
 

@@ -53,6 +53,8 @@ type Conn struct {
 	// Timeout for connect
 	timeout time.Duration
 
+	dialer mysql.Dialer
+
 	// Return only types accepted by godrv
 	narrowTypeSet bool
 	// Store full information about fields in result
@@ -70,6 +72,7 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 		proto:         proto,
 		laddr:         laddr,
 		raddr:         raddr,
+		dialer:        DefaultDialer,
 		user:          user,
 		passwd:        passwd,
 		stmt_map:      make(map[uint32]*Stmt),
@@ -135,85 +138,43 @@ type stringAddr struct {
 func (a stringAddr) Network() string { return a.net }
 func (a stringAddr) String() string  { return a.addr }
 
-func (my *Conn) connect() (err error) {
-	defer catchError(&err)
+var DefaultDialer = func(proto, laddr, raddr string, timeout time.Duration) (
+	net.Conn, error) {
 
-	proto := my.proto
 	if proto == "" {
 		proto = "unix"
-		if strings.IndexRune(my.raddr, ':') != -1 {
+		if strings.IndexRune(raddr, ':') != -1 {
 			proto = "tcp"
 		}
 	}
 
-	// Simulate DialTimeout
-	t := time.NewTimer(my.timeout)
-	defer t.Stop()
-	ch := make(chan error, 1)
-
-	// Make connection
-	go func() {
-		var e error
-		defer func() {
-			ch <- e
-		}()
+	// Make a connection
+	d := &net.Dialer{Timeout: timeout}
+	if laddr != "" {
+		var err error
 		switch proto {
 		case "tcp", "tcp4", "tcp6":
-			var la, ra *net.TCPAddr
-			if my.laddr != "" {
-				if la, e = net.ResolveTCPAddr(proto, my.laddr); e != nil {
-					return
-				}
-			}
-			if my.raddr != "" {
-				if ra, e = net.ResolveTCPAddr(proto, my.raddr); e != nil {
-					return
-				}
-			}
-			if my.net_conn, e = net.DialTCP(proto, la, ra); e != nil {
-				my.net_conn = nil
-				return
-			}
-
+			d.LocalAddr, err = net.ResolveTCPAddr(proto, laddr)
 		case "unix":
-			var la, ra *net.UnixAddr
-			if my.raddr != "" {
-				if ra, e = net.ResolveUnixAddr(proto, my.raddr); e != nil {
-					return
-				}
-			}
-			if my.laddr != "" {
-				if la, e = net.ResolveUnixAddr(proto, my.laddr); e != nil {
-					return
-				}
-			}
-			if my.net_conn, e = net.DialUnix(proto, la, ra); e != nil {
-				my.net_conn = nil
-				return
-			}
-
+			d.LocalAddr, err = net.ResolveTCPAddr(proto, laddr)
 		default:
-			e = net.UnknownNetworkError(proto)
+			err = net.UnknownNetworkError(proto)
 		}
-		return
-	}()
-
-	select {
-	case <-t.C:
-		// DialTimeout timeout error
-		err = &net.OpError{
-			Op:   "dial",
-			Net:  proto,
-			Addr: &stringAddr{proto, my.raddr},
-			Err:  &timeoutError{},
-		}
-		return
-	case err = <-ch:
 		if err != nil {
-			return
+			return nil, err
 		}
 	}
+	return d.Dial(proto, raddr)
+}
 
+func (my *Conn) connect() (err error) {
+	defer catchError(&err)
+
+	my.net_conn, err = my.dialer(my.proto, my.laddr, my.raddr, my.timeout)
+	if err != nil {
+		my.net_conn = nil
+		return
+	}
 	my.rd = bufio.NewReader(my.net_conn)
 	my.wr = bufio.NewWriter(my.net_conn)
 

@@ -2,6 +2,7 @@
 package mysql
 
 import (
+	"net"
 	"time"
 )
 
@@ -17,6 +18,8 @@ type ConnCommon interface {
 	QueryFirst(sql string, params ...interface{}) (Row, Result, error)
 	QueryLast(sql string, params ...interface{}) (Row, Result, error)
 }
+
+type Dialer func(proto, laddr, raddr string, timeout time.Duration) (net.Conn, error)
 
 type Conn interface {
 	ConnCommon

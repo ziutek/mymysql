@@ -1,7 +1,6 @@
-Sorry for my poor English. If you can help with improving the English in this
-documentation, please contact me.
+Sorry for my poor English. If you can help with improving the English in this documentation, please contact me.
 
-## MyMySQL v1.4 (2013-03-04)
+## MyMySQL v1.5 (2013-06-17)
 
 This package contains MySQL client API written entirely in Go. It is designed
 to work with the MySQL protocol version 4.1 or greater. It definitely works
@@ -10,6 +9,8 @@ servers for my applications). Some people claim that mymysql works with older
 versions of MySQL protocol too.
 
 ## Changelog
+
+v1.5: Needs Go 1.1 (time.ParseInLocation and net.Dialer) to compile.
 
 v1.4: `Stmt.ResetParams`, `Stmt.Map` and `Stmt.NumFields` methods disappeared.
 New `Stmt.Fields` method. *godrv* implements `driver.Queryer` interface which

@@ -295,6 +295,7 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 type Driver struct {
 	// Defaults
 	proto, laddr, raddr, user, passwd, db, timeout string
+	dialer                                         Dialer
 
 	initCmds []string
 }
@@ -358,10 +359,19 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 	cfg.user = dup[1]
 	cfg.passwd = dup[2]
 
-	// Establish the connection
 	c := conn{mysql.New(
 		cfg.proto, cfg.laddr, cfg.raddr, cfg.user, cfg.passwd, cfg.db,
 	)}
+	if d.dialer != nil {
+		dialer := func(proto, laddr, raddr string, timeout time.Duration) (
+			net.Conn, error) {
+
+			return d.dialer(proto, laddr, raddr, cfg.user, cfg.passwd, timeout)
+		}
+		c.my.SetDialer(dialer)
+	}
+
+	// Establish the connection
 	if cfg.timeout != "" {
 		to, err := time.ParseDuration(cfg.timeout)
 		if err != nil {
@@ -386,12 +396,25 @@ func (drv *Driver) Register(query string) {
 	drv.initCmds = append(d.initCmds, query)
 }
 
+// Dialer can be used to dial connections to MySQL. If Dialer returns (nil, nil)// the hook is skipped and normal dialing proceeds. user and dbname are there
+// only for logging.
+type Dialer func(proto, laddr, raddr, user, dbname string, timeout time.Duration) (net.Conn, error)
+
+// SetDialer sets custom Dialer used by Driver to make connections
+func (drv *Driver) SetDialer(dialer Dialer) {
+	drv.dialer = dialer
+}
+
 // Driver automatically registered in database/sql
 var d = Driver{proto: "tcp", raddr: "127.0.0.1:3306"}
 
 // Register calls (*Driver) Register method on driver registered in database/sql
 func Register(query string) {
 	d.Register(query)
+}
+
+func SetDialer(dialer Dialer) {
+	d.SetDialer(dialer)
 }
 
 func init() {

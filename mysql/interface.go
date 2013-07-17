@@ -27,6 +27,7 @@ type Conn interface {
 	Clone() Conn
 	SetTimeout(time.Duration)
 	Connect() error
+	SetDialer(Dialer)
 	Close() error
 	IsConnected() bool
 	Reconnect() error

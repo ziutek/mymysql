@@ -72,7 +72,6 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 		proto:         proto,
 		laddr:         laddr,
 		raddr:         raddr,
-		dialer:        DefaultDialer,
 		user:          user,
 		passwd:        passwd,
 		stmt_map:      make(map[uint32]*Stmt),
@@ -138,8 +137,8 @@ type stringAddr struct {
 func (a stringAddr) Network() string { return a.net }
 func (a stringAddr) String() string  { return a.addr }
 
-var DefaultDialer = func(proto, laddr, raddr string, timeout time.Duration) (
-	net.Conn, error) {
+var DefaultDialer mysql.Dialer = func(proto, laddr, raddr string,
+	timeout time.Duration) (net.Conn, error) {
 
 	if proto == "" {
 		proto = "unix"
@@ -167,13 +166,27 @@ var DefaultDialer = func(proto, laddr, raddr string, timeout time.Duration) (
 	return d.Dial(proto, raddr)
 }
 
+func (my *Conn) SetDialer(d mysql.Dialer) {
+	my.dialer = d
+}
+
 func (my *Conn) connect() (err error) {
 	defer catchError(&err)
 
-	my.net_conn, err = my.dialer(my.proto, my.laddr, my.raddr, my.timeout)
-	if err != nil {
-		my.net_conn = nil
-		return
+	my.net_conn = nil
+	if my.dialer != nil {
+		my.net_conn, err = my.dialer(my.proto, my.laddr, my.raddr, my.timeout)
+		if err != nil {
+			my.net_conn = nil
+			return
+		}
+	}
+	if my.net_conn == nil {
+		my.net_conn, err = DefaultDialer(my.proto, my.laddr, my.raddr, my.timeout)
+		if err != nil {
+			my.net_conn = nil
+			return
+		}
 	}
 	my.rd = bufio.NewReader(my.net_conn)
 	my.wr = bufio.NewWriter(my.net_conn)

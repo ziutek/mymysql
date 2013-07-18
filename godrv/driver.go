@@ -294,8 +294,9 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 
 type Driver struct {
 	// Defaults
-	proto, laddr, raddr, user, passwd, db, timeout string
-	dialer                                         Dialer
+	proto, laddr, raddr, user, passwd, db string
+	timeout                               time.Duration
+	dialer                                Dialer
 
 	initCmds []string
 }
@@ -342,7 +343,11 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 			case "laddr":
 				cfg.laddr = v
 			case "timeout":
-				cfg.timeout = v
+				to, err := time.ParseDuration(v)
+				if err != nil {
+					return nil, err
+				}
+				cfg.timeout = to
 			default:
 				return nil, errors.New("Unknown option: " + k)
 			}
@@ -372,13 +377,7 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 	}
 
 	// Establish the connection
-	if cfg.timeout != "" {
-		to, err := time.ParseDuration(cfg.timeout)
-		if err != nil {
-			return nil, err
-		}
-		c.my.SetTimeout(to)
-	}
+	c.my.SetTimeout(cfg.timeout)
 	for _, q := range cfg.initCmds {
 		c.my.Register(q) // Register initialisation commands
 	}

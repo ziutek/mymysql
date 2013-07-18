@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// ConCommon is a common interface to the connection.
+// See mymysql/native for method documentation
 type ConnCommon interface {
 	Start(sql string, params ...interface{}) (Result, error)
 	Prepare(sql string) (Stmt, error)
@@ -19,8 +21,12 @@ type ConnCommon interface {
 	QueryLast(sql string, params ...interface{}) (Row, Result, error)
 }
 
+// Dialer can be used to dial connections to MySQL. If Dialer returns (nil, nil)
+// the hook is skipped and normal dialing proceeds.
 type Dialer func(proto, laddr, raddr string, timeout time.Duration) (net.Conn, error)
 
+// Conn represnts connection to the MySQL server.
+// See mymysql/native for method documentation
 type Conn interface {
 	ConnCommon
 
@@ -40,6 +46,8 @@ type Conn interface {
 	Begin() (Transaction, error)
 }
 
+// Transaction represents MySQL transaction
+// See mymysql/native for method documentation
 type Transaction interface {
 	ConnCommon
 
@@ -49,6 +57,8 @@ type Transaction interface {
 	IsValid() bool
 }
 
+// Stmt represents MySQL prepared statement.
+// See mymysql/native for method documentation
 type Stmt interface {
 	Bind(params ...interface{})
 	Run(params ...interface{}) (Result, error)
@@ -65,6 +75,8 @@ type Stmt interface {
 	ExecLast(params ...interface{}) (Row, Result, error)
 }
 
+// Result represents one MySQL result set.
+// See mymysql/native for method documentation
 type Result interface {
 	StatusOnly() bool
 	ScanRow(Row) error
@@ -87,4 +99,6 @@ type Result interface {
 	GetLastRow() (Row, error)
 }
 
+// New can be used to establish a connection. It is set by imported engine
+// (see mymysql/native, mymysql/thrsafe)
 var New func(proto, laddr, raddr, user, passwd string, db ...string) Conn

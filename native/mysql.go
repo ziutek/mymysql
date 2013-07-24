@@ -510,8 +510,8 @@ func (my *Conn) Prepare(sql string) (mysql.Stmt, error) {
 func (stmt *Stmt) Bind(params ...interface{}) {
 	stmt.rebind = true
 
-	// Check for struct binding
 	if len(params) == 1 {
+		// Check for struct binding
 		pval := reflect.ValueOf(params[0])
 		kind := pval.Kind()
 		if kind == reflect.Ptr {
@@ -525,7 +525,7 @@ func (stmt *Stmt) Bind(params ...interface{}) {
 			typ != dateType &&
 			typ != timestampType &&
 			typ != rawType {
-			// We have struct to bind
+			// We have a struct to bind
 			if pval.NumField() != stmt.param_count {
 				panic(mysql.ErrBindCount)
 			}
@@ -541,7 +541,6 @@ func (stmt *Stmt) Bind(params ...interface{}) {
 			stmt.binded = true
 			return
 		}
-
 	}
 
 	// There isn't struct to bind

@@ -33,6 +33,7 @@ type Conn interface {
 	Clone() Conn
 	SetTimeout(time.Duration)
 	Connect() error
+	NetConn() net.Conn
 	SetDialer(Dialer)
 	Close() error
 	IsConnected() bool

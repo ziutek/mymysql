@@ -124,6 +124,11 @@ func (my *Conn) SetTimeout(timeout time.Duration) {
 	my.timeout = timeout
 }
 
+// NetConn return internall net.Conn
+func (my *Conn) NetConn() net.Conn {
+	return my.net_conn
+}
+
 type timeoutError struct{}
 
 func (e *timeoutError) Error() string   { return "i/o timeout" }

@@ -13,7 +13,7 @@ import (
 
 // Version returns mymysql version string
 func Version() string {
-	return "1.5.1"
+	return "1.5.2"
 }
 
 func syntaxError(ln int) error {

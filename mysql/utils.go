@@ -11,6 +11,11 @@ import (
 	"unicode"
 )
 
+// Version returns mymysql version string
+func Version() string {
+	return "1.5.1"
+}
+
 func syntaxError(ln int) error {
 	return fmt.Errorf("syntax error at line: %d", ln)
 }

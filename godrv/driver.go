@@ -405,3 +405,8 @@ func init() {
 	Register("SET NAMES utf8")
 	sql.Register("mymysql", &d)
 }
+
+// Version returns mymysql version string
+func Version() string {
+	return mysql.Version()
+}

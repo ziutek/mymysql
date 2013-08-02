@@ -205,7 +205,12 @@ func (s *stmt) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
-	return s.run(args)
+	r, err := s.run(args)
+	if err != nil {
+		return nil, err
+	}
+	r.row = r.my.MakeRow()
+	return r, nil
 }
 
 func (r *rowsRes) LastInsertId() (int64, error) {
@@ -257,9 +262,9 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 					r.row[i] = r.row.ForceLocaltime(i)
 				}
 			}
-			for i, d := range r.row {
-				dest[i] = driver.Value(d)
-			}
+		}
+		for i, d := range r.row {
+			dest[i] = driver.Value(d)
 		}
 		return nil
 	}

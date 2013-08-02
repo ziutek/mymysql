@@ -36,7 +36,7 @@ func TestAll(t *testing.T) {
 
 	_, err = db.Exec(
 		`CREATE TABLE go (
-			id  INT PRIMARY KEY AUTO_INCREMENT,
+			id  INT(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
 			txt TEXT,
 			n   BIGINT
 		) ENGINE=InnoDB`)
@@ -73,6 +73,29 @@ func TestAll(t *testing.T) {
 	rows, err := db.Query("SELECT * FROM go")
 	checkErr(t, err)
 	i := 1
+	for rows.Next() {
+		var (
+			id  int
+			txt string
+			n   int64
+		)
+		checkErr(t, rows.Scan(&id, &txt, &n))
+		if id > len(data) {
+			t.Fatal("To many rows in table")
+		}
+		if id != i || data[i-1] != txt || int64(i-1) != n {
+			t.Fatalf("txt[%d] == '%s' != '%s'", id, txt, data[id-1])
+		}
+		i++
+	}
+	checkErr(t, rows.Err())
+
+	sel, err := db.Prepare("SELECT * FROM go")
+	checkErr(t, err)
+
+	rows, err = sel.Query()
+	checkErr(t, err)
+	i = 1
 	for rows.Next() {
 		var (
 			id  int

@@ -1,6 +1,6 @@
 Sorry for my poor English. If you can help with improving the English in this documentation, please contact me.
 
-## MyMySQL v1.5.1 (2013-07-30)
+## MyMySQL v1.5.3 (2013-08-02)
 
 This package contains MySQL client API written entirely in Go. It is designed
 to work with the MySQL protocol version 4.1 or greater. It definitely works
@@ -9,6 +9,8 @@ servers for my applications). Some people claim that mymysql works with older
 versions of MySQL protocol too.
 
 ## Changelog
+
+v1.5.3: Bugs fixed in new godrv code.
 
 v1.5.1: Conn.NetConn method added. 
 

@@ -301,6 +301,7 @@ type Driver struct {
 //   unix:SOCKPATH,OPTIONS*DBNAME/USER/PASSWD
 //   tcp:ADDR*DBNAME/USER/PASSWD
 //   tcp:ADDR,OPTIONS*DBNAME/USER/PASSWD
+//   cloudsql:INSTANCE*DBNAME/USER/PASSWD
 //
 // OPTIONS can contain comma separated list of options in form:
 //   opt1=VAL1,opt2=VAL2,boolopt3,boolopt4

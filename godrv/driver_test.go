@@ -348,3 +348,34 @@ func TestMultiple(t *testing.T) {
 		t.Fatal("Too short result set")
 	}
 }
+
+func TestDateTime(t *testing.T) {
+	db, err := sql.Open("mymysql", "test/testuser/TestPasswd9")
+	checkErr(t, err)
+	defer db.Close()
+	defer db.Exec("DROP TABLE time")
+
+	db.Exec("DROP TABLE IF EXISTS time")
+
+	_, err = db.Exec(
+		`CREATE TABLE time (
+						id  INT(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+						t   DATETIME
+		) ENGINE=InnoDB`)
+	checkErr(t, err)
+
+	t1, err := time.Parse("2006-01-02 15:04:05 -0700 MST",
+		"2013-08-09 21:30:43 +0800 CST")
+	checkErr(t, err)
+
+	_, err = db.Exec(`INSERT INTO time(t) VALUES (?)`, t1)
+	checkErr(t, err)
+
+	var t2 time.Time
+	err = db.QueryRow("SELECT t FROM time").Scan(&t2)
+	checkErr(t, err)
+
+	if t1.UnixNano() != t2.UnixNano() {
+		t.Errorf("%v != %v", t1, t2)
+	}
+}

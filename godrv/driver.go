@@ -73,7 +73,7 @@ func (c conn) parseQuery(query string, args []driver.Value) (string, error) {
 		case int64:
 			s = strconv.FormatInt(v, 10)
 		case time.Time:
-			s = "'" + v.Format(mysql.TimeFormat) + "'"
+			s = "'" + v.Local().Format(mysql.TimeFormat) + "'"
 		case bool:
 			if v {
 				s = "1"

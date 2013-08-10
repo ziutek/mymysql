@@ -179,7 +179,7 @@ func TestTypes(t *testing.T) {
 	_, err = db.Exec(
 		`CREATE TABLE t (
 			i INT NOT NULL,
-			f DOUBLE NOT NULL, 
+			f DOUBLE NOT NULL,
 			b BOOL NOT NULL,
 			s VARCHAR(8) NOT NULL,
 			d DATETIME NOT NULL,
@@ -288,9 +288,9 @@ func TestMultiple(t *testing.T) {
 		signup_date,
 		zipcode,
 		fname,
-	    lname
+		lname
 	) VALUES (
-      ?, ?, ?, ?, ?, ?, ?
+		?, ?, ?, ?, ?, ?, ?
 	);`, "a@a.com", "asdf", "unverified", now, "111", "asdf", "asdf")
 	checkErr(t, err)
 
@@ -301,9 +301,9 @@ func TestMultiple(t *testing.T) {
 		signup_date,
 		zipcode,
 		fname,
-	    lname
+		lname
 	) VALUES (
-      "a@a.com", 'asdf', ?, ?, ?, ?, 'asdf'
+		"a@a.com", 'asdf', ?, ?, ?, ?, 'asdf'
 	);`, "unverified", now, "111", "asdf")
 	checkErr(t, err)
 

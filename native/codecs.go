@@ -373,11 +373,12 @@ func (pr *pktReader) readTime() time.Time {
 	return time.Date(y, time.Month(mon), d, h, m, s, n, time.Local)
 }
 
+// See http://dev.mysql.com/doc/internals/en/binary-protocol-value.html#packet-ProtocolBinary::MYSQL_TYPE_TIMESTAMP
 func encodeNonzeroTime(buf []byte, y int16, mon, d, h, m, s byte, n uint32) int {
 	buf[0] = 0
 	switch {
 	case n != 0:
-		EncodeU32(buf[7:12], n)
+		EncodeU32(buf[8:12], n / 1000) // microseconds
 		buf[0] += 4
 		fallthrough
 	case s != 0 || m != 0 || h != 0:

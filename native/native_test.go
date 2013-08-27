@@ -1083,7 +1083,7 @@ func TestStoredProcedures(t *testing.T) {
 		query(
 			`CREATE TABLE p (
 				id INT PRIMARY KEY AUTO_INCREMENT,
-				txt VARCHAR(8)	
+				txt VARCHAR(8)
 			)`,
 		),
 		cmdOK(0, false, true),

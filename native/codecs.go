@@ -395,7 +395,7 @@ func encodeNonzeroTime(buf []byte, y int16, mon, d, h, m, s byte, n uint32) int 
 }
 
 func getTimeMicroseconds(t time.Time) int {
-	return t.Nanosecond()/int(time.Microsecond)
+	return t.Nanosecond() / int(time.Microsecond)
 }
 
 func EncodeTime(buf []byte, t time.Time) int {
@@ -406,7 +406,7 @@ func EncodeTime(buf []byte, t time.Time) int {
 	}
 	y, mon, d := t.Date()
 	h, m, s := t.Clock()
-	u:= getTimeMicroseconds(t)
+	u := getTimeMicroseconds(t)
 	return encodeNonzeroTime(
 		buf,
 		int16(y), byte(mon), byte(d),

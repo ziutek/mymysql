@@ -371,7 +371,7 @@ func (pr *pktReader) readTime() time.Time {
 		d = int(buf[3])
 	}
 	n := u * int(time.Microsecond)
-	return time.Date(y, time.Month(mon), d, h, m, s, n, time.Local)
+	return time.Date(y, time.Month(mon), d, h, m, s, n, pr.timeZone)
 }
 
 func encodeNonzeroTime(buf []byte, y int16, mon, d, h, m, s byte, n uint32) int {
@@ -395,7 +395,7 @@ func encodeNonzeroTime(buf []byte, y int16, mon, d, h, m, s byte, n uint32) int 
 }
 
 func getTimeMicroseconds(t time.Time) int {
-	return t.Nanosecond()/int(time.Microsecond)
+	return t.Nanosecond() / int(time.Microsecond)
 }
 
 func EncodeTime(buf []byte, t time.Time) int {
@@ -406,7 +406,7 @@ func EncodeTime(buf []byte, t time.Time) int {
 	}
 	y, mon, d := t.Date()
 	h, m, s := t.Clock()
-	u:= getTimeMicroseconds(t)
+	u := getTimeMicroseconds(t)
 	return encodeNonzeroTime(
 		buf,
 		int16(y), byte(mon), byte(d),
@@ -415,6 +415,11 @@ func EncodeTime(buf []byte, t time.Time) int {
 }
 
 func (pw *pktWriter) writeTime(t time.Time) {
+	if pw.timeZone != nil {
+		// Convert to the timezone used in the database table, if
+		// specified.
+		t = t.In(pw.timeZone)
+	}
 	buf := pw.buf[:12]
 	n := EncodeTime(buf, t)
 	pw.write(buf[:n])

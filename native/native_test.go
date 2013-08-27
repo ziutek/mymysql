@@ -609,6 +609,48 @@ func TestDateTimeZone(t *testing.T) {
 	myClose(t)
 }
 
+func TestTimeZoneConversion(t *testing.T) {
+	myConnect(t, true, 0)
+	my.(*Conn).TimeZone = time.UTC
+
+	query("drop table time")
+	checkResult(t, query("create table time (t datetime)"),
+		cmdOK(0, false, true))
+
+	ins, err := my.Prepare("insert time values (?)")
+	checkErr(t, err, nil)
+
+	sel, err := my.Prepare("select t from time")
+	checkErr(t, err, nil)
+
+	timeFormat := "2006-01-02 15:04:05 -0700 MST"
+	for _, timeString := range []string{
+		time.Now().Format(timeFormat),
+		"2013-08-09 21:30:43 +0800 CST",
+		"2013-10-27 01:30:00 +0100 BST",
+		"2013-10-27 01:30:00 +0000 GMT",
+	} {
+		t1, err := time.Parse(timeFormat, timeString)
+		checkErr(t, err, nil)
+
+		_, err = ins.Run(t1)
+		checkErr(t, err, nil)
+
+		row, _, err := sel.ExecFirst()
+		checkErr(t, err, nil)
+		t2 := row.Time(0, time.Local)
+
+		if t1.UnixNano() != t2.UnixNano() {
+			t.Errorf("%v != %v", t1, t2)
+		}
+
+		checkResult(t, query("delete from time"),
+			cmdOK(1, false, true))
+	}
+
+	checkResult(t, query("DROP TABLE time"), cmdOK(0, false, true))
+}
+
 // Big blob
 func TestBigBlob(t *testing.T) {
 	myConnect(t, true, 34*1024*1024)
@@ -1083,7 +1125,7 @@ func TestStoredProcedures(t *testing.T) {
 		query(
 			`CREATE TABLE p (
 				id INT PRIMARY KEY AUTO_INCREMENT,
-				txt VARCHAR(8)	
+				txt VARCHAR(8)
 			)`,
 		),
 		cmdOK(0, false, true),

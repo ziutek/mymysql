@@ -62,6 +62,11 @@ type Conn struct {
 
 	// Debug logging. You may change it at any time.
 	Debug bool
+
+	// TimeZone used for mysql DATETIME values on the database server.
+	// See mysql.DefaultTimeZone for a more detailed description of
+	// this value.
+	TimeZone *time.Location
 }
 
 // Create new MySQL handler. The first three arguments are passed to net.Bind
@@ -78,6 +83,7 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 		max_pkt_size:  16*1024*1024 - 1,
 		timeout:       2 * time.Minute,
 		fullFieldInfo: true,
+		TimeZone:      mysql.DefaultTimeZone,
 	}
 	if len(db) == 1 {
 		my.dbname = db[0]

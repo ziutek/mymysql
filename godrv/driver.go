@@ -73,6 +73,10 @@ func (c conn) parseQuery(query string, args []driver.Value) (string, error) {
 		case int64:
 			s = strconv.FormatInt(v, 10)
 		case time.Time:
+			tz := c.my.(*native.Conn).TimeZone
+			if tz != nil {
+				v = v.In(tz)
+			}
 			s = "'" + v.Format(mysql.TimeFormat) + "'"
 		case bool:
 			if v {
@@ -259,7 +263,8 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 				switch f.Type {
 				case native.MYSQL_TYPE_TIMESTAMP, native.MYSQL_TYPE_DATETIME,
 					native.MYSQL_TYPE_DATE, native.MYSQL_TYPE_NEWDATE:
-					r.row[i] = r.row.ForceLocaltime(i)
+					tz := r.my.(*native.Result).GetTimeZone()
+					r.row[i] = r.row.ForceTime(i, tz)
 				}
 			}
 		}

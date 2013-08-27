@@ -103,3 +103,19 @@ type Result interface {
 // New can be used to establish a connection. It is set by imported engine
 // (see mymysql/native, mymysql/thrsafe)
 var New func(proto, laddr, raddr, user, passwd string, db ...string) Conn
+
+// DefaultTimeZone specifies the time zone used for DATETIME columns
+// on the server.  This variable is used as the default value for the
+// native.Conn.TimeZone field.
+//
+// If DefaultTimeZone is nil, time zone information is discarded when
+// inserting a time.Time object into the database, and local time is
+// assumed when retrieving values from the database.  The effect is
+// that the digits in the string representation of a time are
+// preserved for values stored in the database.
+//
+// If DefaultTimeZone is non-nil, time.Time values are converted to
+// the given timezone before being sent to the database server.  The
+// effect of this is, that the .Unixnano() value of a time is
+// preserved for values stored in the database.
+var DefaultTimeZone *time.Location

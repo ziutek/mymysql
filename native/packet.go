@@ -4,19 +4,27 @@ import (
 	"bufio"
 	"github.com/ziutek/mymysql/mysql"
 	"io"
+	"time"
 )
 
 type pktReader struct {
-	rd     *bufio.Reader
-	seq    *byte
-	remain int
-	last   bool
-	buf    [8]byte
-	ibuf   [3]byte
+	rd       *bufio.Reader
+	seq      *byte
+	remain   int
+	last     bool
+	buf      [8]byte
+	ibuf     [3]byte
+	timeZone *time.Location
 }
 
 func (my *Conn) newPktReader() *pktReader {
-	return &pktReader{rd: my.rd, seq: &my.seq}
+	timeZone := my.TimeZone
+	if timeZone == nil {
+		// If no timezone is specified for the database table, assume
+		// local time.
+		timeZone = time.Local
+	}
+	return &pktReader{rd: my.rd, seq: &my.seq, timeZone: timeZone}
 }
 
 func (pr *pktReader) readHeader() {
@@ -181,10 +189,16 @@ type pktWriter struct {
 	last     bool
 	buf      [23]byte
 	ibuf     [3]byte
+	timeZone *time.Location
 }
 
 func (my *Conn) newPktWriter(to_write int) *pktWriter {
-	return &pktWriter{wr: my.wr, seq: &my.seq, to_write: to_write}
+	return &pktWriter{
+		wr:       my.wr,
+		seq:      &my.seq,
+		to_write: to_write,
+		timeZone: my.TimeZone,
+	}
 }
 
 func (pw *pktWriter) writeHeader(l int) {

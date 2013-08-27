@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"strconv"
+	"time"
 )
 
 type Result struct {
@@ -70,6 +71,10 @@ func (res *Result) WarnCount() int {
 
 func (res *Result) MakeRow() mysql.Row {
 	return make(mysql.Row, res.field_count)
+}
+
+func (res *Result) GetTimeZone() *time.Location {
+	return res.my.TimeZone
 }
 
 func (my *Conn) getResult(res *Result, row mysql.Row) *Result {

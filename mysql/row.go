@@ -200,6 +200,9 @@ func (tr Row) ForceDate(nn int) (val Date) {
 // Get the nn-th value and return it as time.Time in loc location (zero if NULL)
 // Returns error if conversion is impossible. It can convert Date to time.Time.
 func (tr Row) TimeErr(nn int, loc *time.Location) (t time.Time, err error) {
+	if loc == nil {
+		loc = time.Local
+	}
 	switch data := tr[nn].(type) {
 	case nil:
 		// nop
@@ -243,7 +246,7 @@ func (tr Row) LocaltimeErr(nn int) (t time.Time, err error) {
 	case nil:
 		// nop
 	case time.Time:
-		t = data
+		t = data.Local()
 	case Date:
 		t = data.Time(time.Local)
 	case []byte:

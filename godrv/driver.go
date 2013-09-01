@@ -256,10 +256,12 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 		if r.simpleQuery == textQuery {
 			// workaround for time.Time from text queries
 			for i, f := range r.my.Fields() {
-				switch f.Type {
-				case native.MYSQL_TYPE_TIMESTAMP, native.MYSQL_TYPE_DATETIME,
-					native.MYSQL_TYPE_DATE, native.MYSQL_TYPE_NEWDATE:
-					r.row[i] = r.row.ForceLocaltime(i)
+				if r.row[i] != nil {
+					switch f.Type {
+					case native.MYSQL_TYPE_TIMESTAMP, native.MYSQL_TYPE_DATETIME,
+						native.MYSQL_TYPE_DATE, native.MYSQL_TYPE_NEWDATE:
+						r.row[i] = r.row.ForceLocaltime(i)
+					}
 				}
 			}
 		}

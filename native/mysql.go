@@ -216,26 +216,24 @@ func (my *Conn) connect() (err error) {
 		// Get command response
 		res := my.getResponse()
 
-		if res.StatusOnly() {
-			// No fields in result (OK result)
-			continue
-		}
 		// Read and discard all result rows
 		row := res.MakeRow()
-		for {
-			err = res.getRow(row)
-			if err == io.EOF {
-				res, err = res.nextResult()
-				if err != nil {
-					return
+		for res != nil {
+			// Only read rows if they exist
+			if !res.StatusOnly() {
+				//read each row in this set
+				for {
+					err = res.getRow(row)
+					if err == io.EOF {
+						break
+					} else if err != nil {
+						return
+					}
 				}
-				if res == nil {
-					// No more rows and results from this cmd
-					break
-				}
-				row = res.MakeRow()
 			}
-			if err != nil {
+
+			// Move to the next result
+			if res, err = res.nextResult(); err != nil {
 				return
 			}
 		}

@@ -17,6 +17,20 @@ func IsNetErr(err error) bool {
 	if _, ok := err.(net.Error); ok {
 		return true
 	}
+	if mysqlError, ok := err.(mysql.Error); ok {
+		switch mysqlError.Code {
+		case mysql.ER_QUERY_INTERRUPTED:
+			return true
+		case mysql.ER_NET_READ_ERROR:
+			return true
+		case mysql.ER_NET_READ_INTERRUPTED:
+			return true
+		case mysql.ER_NET_ERROR_ON_WRITE:
+			return true
+		case mysql.ER_NET_WRITE_INTERRUPTED:
+			return true
+		}
+	}
 	return false
 }
 

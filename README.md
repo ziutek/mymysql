@@ -449,6 +449,13 @@ This is the improved code of the previous example:
 
 ### Example 7 - use database/sql with mymysql driver
 
+    import (
+        "database/sql"
+        _"github.com/ziutek/mymysql/godrv"
+    )
+
+	// [...]
+
 	// Open new connection. The uri need to have the following syntax:
 	//
 	//   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD

@@ -711,8 +711,8 @@ causes panic.
 
 # Documentation
 
-[mysql](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/mysql)
-[native](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/native)
-[thrsafe](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/thrsafe)
-[autorc](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/autorc)
-[godrv](http://gopkgdoc.appspot.com/pkg/github.com/ziutek/mymysql/godrv)
+[mysql](http://godoc.org/pkg/github.com/ziutek/mymysql/mysql)
+[native](http://godoc.org/pkg/github.com/ziutek/mymysql/native)
+[thrsafe](http://godoc.org/pkg/github.com/ziutek/mymysql/thrsafe)
+[autorc](http://godoc.org/pkg/github.com/ziutek/mymysql/autorc)
+[godrv](http://godoc.org/pkg/github.com/ziutek/mymysql/godrv)

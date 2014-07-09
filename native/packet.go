@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/ziutek/mymysql/mysql"
 	"io"
+	"io/ioutil"
 )
 
 type pktReader struct {
@@ -107,8 +108,6 @@ func (pr *pktReader) readAll() (buf []byte) {
 	return
 }
 
-var skipBuf [4069]byte
-
 func (pr *pktReader) skipAll() {
 	for {
 		if pr.remain == 0 {
@@ -117,12 +116,8 @@ func (pr *pktReader) skipAll() {
 			}
 			pr.readHeader()
 		}
-		n := len(skipBuf)
-		if n > pr.remain {
-			n = pr.remain
-		}
-		n, err := pr.rd.Read(skipBuf[:n])
-		pr.remain -= n
+		n, err := io.CopyN(ioutil.Discard, pr.rd, int64(pr.remain))
+		pr.remain -= int(n)
 		if err != nil {
 			panic(err)
 		}
@@ -130,7 +125,6 @@ func (pr *pktReader) skipAll() {
 	return
 }
 
-// works only for n <= len(skipBuf)
 func (pr *pktReader) skipN(n int) {
 	for n > 0 {
 		if pr.remain == 0 {
@@ -139,16 +133,13 @@ func (pr *pktReader) skipN(n int) {
 			}
 			pr.readHeader()
 		}
-		m := n
-		if m > len(skipBuf) {
-			m = len(skipBuf)
+		m := int64(n)
+		if n > pr.remain {
+			m = int64(pr.remain)
 		}
-		if m > pr.remain {
-			m = pr.remain
-		}
-		m, err := pr.rd.Read(skipBuf[:m])
-		pr.remain -= m
-		n -= m
+		m, err := io.CopyN(ioutil.Discard, pr.rd, m)
+		pr.remain -= int(m)
+		n -= int(m)
 		if err != nil {
 			panic(err)
 		}

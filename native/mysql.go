@@ -4,12 +4,13 @@ package native
 import (
 	"bufio"
 	"fmt"
-	"github.com/ziutek/mymysql/mysql"
 	"io"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/ziutek/mymysql/mysql"
 )
 
 type serverInfo struct {

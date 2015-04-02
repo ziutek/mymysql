@@ -6,13 +6,14 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"github.com/ziutek/mymysql/mysql"
-	"github.com/ziutek/mymysql/native"
 	"io"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ziutek/mymysql/mysql"
+	"github.com/ziutek/mymysql/native"
 )
 
 type conn struct {
@@ -273,6 +274,12 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 	if err != io.EOF {
 		return errFilter(err)
 	}
+
+	// Stored Procedure hack for godrv: always ignore multi results
+	for nextRes, _ := r.my.NextResult(); nextRes != nil; nextRes, _ = nextRes.NextResult() {
+		nextRes.End()
+	}
+
 	if r.simpleQuery != nil && r.simpleQuery != textQuery {
 		if err = r.simpleQuery.Delete(); err != nil {
 			return errFilter(err)

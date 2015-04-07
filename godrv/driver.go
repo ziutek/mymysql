@@ -84,7 +84,7 @@ func (c conn) parseQuery(query string, args []driver.Value) (string, error) {
 		case float64:
 			s = strconv.FormatFloat(v, 'e', 12, 64)
 		default:
-			panic(fmt.Sprintf("%v (%T) can't be handled by godrv"))
+			panic(fmt.Sprintf("%v (%T) can't be handled by godrv", a, v))
 		}
 		q[n] = query[:i]
 		q[n+1] = s

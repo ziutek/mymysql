@@ -291,10 +291,23 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 		return errFilter(err)
 	}
 
-	// We are effectively closing the result after last row, better to do it formally
-	if err := r.Close(); err != nil {
+	// Stored Procedure hack for godrv: always ignore multi results
+	nextRes, err := r.my.NextResult()
+	if err != nil {
 		return errFilter(err)
 	}
+	if nextRes != nil {
+		if err := EndAll(nextRes); err != nil {
+			return errFilter(err)
+		}
+	}
+
+	if r.simpleQuery != nil && r.simpleQuery != textQuery {
+		if err = r.simpleQuery.Delete(); err != nil {
+			return errFilter(err)
+		}
+	}
+	r.my = nil
 	return io.EOF
 }
 

@@ -235,7 +235,9 @@ func (r *rowsRes) Close() error {
 	if r.my == nil {
 		return nil // closed before
 	}
-	if err := r.my.End(); err != nil {
+	// Stored Procedure hack for godrv: always ignore multi results
+	// by using EndAll(r.my) instead of r.my.End()
+	if err := EndAll(r.my); err != nil {
 		return errFilter(err)
 	}
 	if r.simpleQuery != nil && r.simpleQuery != textQuery {
@@ -245,6 +247,20 @@ func (r *rowsRes) Close() error {
 	}
 	r.my = nil
 	return nil
+}
+
+// Read all unreaded rows and all unread results and discard them.
+// Useful for discarding multi result query. See mysql.End
+func EndAll(r mysql.Result) error {
+	_, err := mysql.GetLastRow(r)
+	if err != nil {
+		return err
+	}
+	nextRes, err := r.NextResult()
+	if err != nil || nextRes == nil {
+		return err
+	}
+	return EndAll(nextRes)
 }
 
 // DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone
@@ -274,12 +290,6 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 	if err != io.EOF {
 		return errFilter(err)
 	}
-
-	// Stored Procedure hack for godrv: always ignore multi results
-	for nextRes, _ := r.my.NextResult(); nextRes != nil; nextRes, _ = nextRes.NextResult() {
-		nextRes.End()
-	}
-
 	if r.simpleQuery != nil && r.simpleQuery != textQuery {
 		if err = r.simpleQuery.Delete(); err != nil {
 			return errFilter(err)

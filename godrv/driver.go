@@ -290,12 +290,11 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 	if err != io.EOF {
 		return errFilter(err)
 	}
-	if r.simpleQuery != nil && r.simpleQuery != textQuery {
-		if err = r.simpleQuery.Delete(); err != nil {
-			return errFilter(err)
-		}
+
+	// We are effectively closing the result after last row, better to do it formally
+	if err := r.Close(); err != nil {
+		return errFilter(err)
 	}
-	r.my = nil
 	return io.EOF
 }
 

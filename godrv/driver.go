@@ -307,12 +307,13 @@ type Driver struct {
 //
 // OPTIONS can contain comma separated list of options in form:
 //   opt1=VAL1,opt2=VAL2,boolopt3,boolopt4
-// Currently implemented options:
+// Currently implemented options, in addition to default MySQL variables:
 //   laddr   - local address/port (eg. 1.2.3.4:0)
 //   timeout - connect timeout in format accepted by time.ParseDuration
 func (d *Driver) Open(uri string) (driver.Conn, error) {
 	cfg := *d // copy default configuration
 	pd := strings.SplitN(uri, "*", 2)
+	connCommands := []string{}
 	if len(pd) == 2 {
 		// Parse protocol part of URI
 		p := strings.SplitN(pd[0], ":", 2)
@@ -340,7 +341,7 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 				}
 				cfg.timeout = to
 			default:
-				return nil, errors.New("Unknown option: " + k)
+				connCommands = append(connCommands, "SET "+k+"="+v)
 			}
 		}
 		// Remove protocol part
@@ -371,6 +372,9 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 	c.my.SetTimeout(cfg.timeout)
 	for _, q := range cfg.initCmds {
 		c.my.Register(q) // Register initialisation commands
+	}
+	for _, q := range connCommands {
+		c.my.Register(q)
 	}
 	if err := c.my.Connect(); err != nil {
 		return nil, errFilter(err)

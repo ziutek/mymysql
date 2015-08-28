@@ -73,7 +73,10 @@ func (c *Conn) pinger() {
 		case <-c.stopPinger:
 			return
 		case t := <-timer:
-			sleep := to - t.Sub(c.lastUsed)
+			c.mutex.Lock()
+			lastUsed := c.lastUsed
+			c.mutex.Unlock()
+			sleep := to - t.Sub(lastUsed)
 			if sleep <= 0 {
 				if c.Ping() != nil {
 					return

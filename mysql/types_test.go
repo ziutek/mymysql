@@ -80,3 +80,21 @@ func TestConvDuration(t *testing.T) {
 	}
 	checkRow(t, times, conv)
 }
+
+func TestEscapeString(t *testing.T) {
+	txt := " \000 \n \r \\ ' \" \032 "
+	exp := ` \0 \n \r \\ \' \" \Z `
+	out := escapeString(txt)
+	if out != exp {
+		t.Fatalf("escapeString: ret='%s' exp='%s'", out, exp)
+	}
+}
+
+func TestEscapeQuotes(t *testing.T) {
+	txt := " '' '' ' ' ' "
+	exp := ` '''' '''' '' '' '' `
+	out := escapeQuotes(txt)
+	if out != exp {
+		t.Fatalf("escapeString: ret='%s' exp='%s'", out, exp)
+	}
+}

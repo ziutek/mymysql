@@ -205,7 +205,7 @@ func TestQuery(t *testing.T) {
 					Scale:    0,
 				},
 			},
-			status:       _SERVER_STATUS_AUTOCOMMIT,
+			status:       mysql.SERVER_STATUS_AUTOCOMMIT,
 			eor_returned: true,
 		},
 	}

@@ -136,6 +136,16 @@ func (c *Conn) Start(sql string, params ...interface{}) (mysql.Result, error) {
 	return &Result{Result: res, conn: c}, err
 }
 
+func (c *Conn) Status() mysql.ConnStatus {
+	c.lock()
+	defer c.unlock()
+	return c.Conn.Status()
+}
+
+func (c *Conn) Escape(txt string) string {
+	return mysql.Escape(c, txt)
+}
+
 func (res *Result) ScanRow(row mysql.Row) error {
 	//log.Println("ScanRow")
 	err := res.Result.ScanRow(row)

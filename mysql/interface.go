@@ -43,6 +43,7 @@ type Conn interface {
 	SetMaxPktSize(new_size int) int
 	NarrowTypeSet(narrow bool)
 	FullFieldInfo(full bool)
+	Status() ConnStatus
 
 	Begin() (Transaction, error)
 }

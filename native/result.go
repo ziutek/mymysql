@@ -28,7 +28,7 @@ type Result struct {
 	warning_count int
 
 	// MySQL server status immediately after the query execution
-	status uint16
+	status mysql.ConnStatus
 
 	// Seted by GetRow if it returns nil row
 	eor_returned bool
@@ -145,7 +145,7 @@ func (my *Conn) getOkPacket(pr *pktReader) (res *Result) {
 	// First byte was readed by getResult
 	res.affected_rows = pr.readLCB()
 	res.insert_id = pr.readLCB()
-	res.status = pr.readU16()
+	res.status = mysql.ConnStatus(pr.readU16())
 	my.status = res.status
 	res.warning_count = int(pr.readU16())
 	res.message = pr.readAll()
@@ -179,7 +179,7 @@ func (my *Conn) getErrorPacket(pr *pktReader) {
 	panic(&err)
 }
 
-func (my *Conn) getEofPacket(pr *pktReader) (warn_count int, status uint16) {
+func (my *Conn) getEofPacket(pr *pktReader) (warn_count int, status mysql.ConnStatus) {
 	if my.Debug {
 		if pr.eof() {
 			log.Printf("[%2d ->] EOF packet without body", my.seq-1)
@@ -194,7 +194,7 @@ func (my *Conn) getEofPacket(pr *pktReader) (warn_count int, status uint16) {
 	if pr.eof() {
 		return
 	}
-	status = pr.readU16()
+	status = mysql.ConnStatus(pr.readU16())
 	pr.checkEof()
 
 	if my.Debug {

@@ -56,22 +56,6 @@ const (
 	_COM_STMT_FETCH          = 0x1c
 )
 
-// Server status
-const (
-	_SERVER_STATUS_IN_TRANS          = 0x01 // Transaction has started
-	_SERVER_STATUS_AUTOCOMMIT        = 0x02 // Server in auto_commit mode
-	_SERVER_STATUS_MORE_RESULTS      = 0x04
-	_SERVER_MORE_RESULTS_EXISTS      = 0x08 // Multi query - next query exists
-	_SERVER_QUERY_NO_GOOD_INDEX_USED = 0x10
-	_SERVER_QUERY_NO_INDEX_USED      = 0x20
-	// Server opened a read-only non-scrollable cursor for a query
-	_SERVER_STATUS_CURSOR_EXISTS = 0x40
-	_SERVER_STATUS_LAST_ROW_SENT = 0x80
-
-	_SERVER_STATUS_DB_DROPPED           = 0x100
-	_SERVER_STATUS_NO_BACKSLASH_ESCAPES = 0x200
-)
-
 // MySQL protocol types.
 //
 // mymysql uses only some of them for send data to the MySQL server. Used

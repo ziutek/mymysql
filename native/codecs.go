@@ -1,9 +1,7 @@
 package native
 
 import (
-	"bytes"
 	"github.com/ziutek/mymysql/mysql"
-	"io"
 	"time"
 )
 
@@ -457,51 +455,4 @@ func lenDate(d mysql.Date) int {
 		return 1
 	}
 	return 5
-}
-
-func escapeString(txt string) string {
-	var (
-		esc string
-		buf bytes.Buffer
-	)
-	last := 0
-	for ii, bb := range txt {
-		switch bb {
-		case 0:
-			esc = `\0`
-		case '\n':
-			esc = `\n`
-		case '\r':
-			esc = `\r`
-		case '\\':
-			esc = `\\`
-		case '\'':
-			esc = `\'`
-		case '"':
-			esc = `\"`
-		case '\032':
-			esc = `\Z`
-		default:
-			continue
-		}
-		io.WriteString(&buf, txt[last:ii])
-		io.WriteString(&buf, esc)
-		last = ii + 1
-	}
-	io.WriteString(&buf, txt[last:])
-	return buf.String()
-}
-
-func escapeQuotes(txt string) string {
-	var buf bytes.Buffer
-	last := 0
-	for ii, bb := range txt {
-		if bb == '\'' {
-			io.WriteString(&buf, txt[last:ii])
-			io.WriteString(&buf, `''`)
-			last = ii + 1
-		}
-	}
-	io.WriteString(&buf, txt[last:])
-	return buf.String()
 }

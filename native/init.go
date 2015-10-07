@@ -19,7 +19,7 @@ func (my *Conn) init() {
 	pr.skipN(1)
 	my.info.caps = pr.readU16()
 	my.info.lang = pr.readByte()
-	my.status = pr.readU16()
+	my.status = mysql.ConnStatus(pr.readU16())
 	pr.skipN(13)
 	if my.info.caps&_CLIENT_PROTOCOL_41 != 0 {
 		pr.readFull(my.info.scramble[8:])

@@ -44,7 +44,7 @@ type Conn struct {
 	stmt_map  map[uint32]*Stmt // For reprepare during reconnect
 
 	// Current status of MySQL server connection
-	status uint16
+	status mysql.ConnStatus
 
 	// Maximum packet size that client can accept from server.
 	// Default 16*1024*1024-1. You may change it before connect.
@@ -385,7 +385,7 @@ func (res *Result) getRow(row mysql.Row) (err error) {
 // Returns true if more results exixts. You don't have to call it before
 // NextResult method (NextResult returns nil if there is no more results).
 func (res *Result) MoreResults() bool {
-	return res.status&_SERVER_MORE_RESULTS_EXISTS != 0
+	return res.status&mysql.SERVER_MORE_RESULTS_EXISTS != 0
 }
 
 // Get the data row from server. This method reads one row of result set
@@ -785,10 +785,11 @@ func (res *Result) GetRows() ([]mysql.Row, error) {
 // Escapes special characters in the txt, so it is safe to place returned string
 // to Query method.
 func (my *Conn) Escape(txt string) string {
-	if my.status&_SERVER_STATUS_NO_BACKSLASH_ESCAPES != 0 {
-		return escapeQuotes(txt)
-	}
-	return escapeString(txt)
+	return mysql.Escape(my, txt)
+}
+
+func (my *Conn) Status() mysql.ConnStatus {
+	return my.status
 }
 
 type Transaction struct {

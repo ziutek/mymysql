@@ -12,7 +12,7 @@ type pktReader struct {
 	seq    *byte
 	remain int
 	last   bool
-	buf    [8]byte
+	buf    [12]byte
 	ibuf   [3]byte
 }
 

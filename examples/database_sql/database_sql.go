@@ -3,8 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/ziutek/mymysql/godrv" // Go driver for database/sql package
 	"log"
+
+	_ "github.com/mrsinham/mymysql/godrv" // Go driver for database/sql package
 )
 
 func main() {

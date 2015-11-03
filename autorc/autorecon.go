@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/ziutek/mymysql/mysql"
+	"github.com/mrsinham/mymysql/mysql"
 )
 
 // Return true if error is network error or UnexpectedEOF.

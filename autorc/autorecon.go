@@ -2,11 +2,12 @@
 package autorc
 
 import (
-	"github.com/ziutek/mymysql/mysql"
 	"io"
 	"log"
 	"net"
 	"time"
+
+	"github.com/mrsinham/mymysql/mysql"
 )
 
 // Return true if error is network error or UnexpectedEOF.
@@ -137,6 +138,24 @@ func (c *Conn) Query(sql string, params ...interface{}) (rows []mysql.Row, res m
 	nn := 0
 	for {
 		if rows, res, err = c.Raw.Query(sql, params...); err == nil {
+			return
+		}
+		if c.reconnectIfNetErr(&nn, &err); err != nil {
+			return
+		}
+	}
+	panic(nil)
+}
+
+// Automatic connect/reconnect/repeat version of Start
+func (c *Conn) Start(sql string, params ...interface{}) (res mysql.Result, err error) {
+
+	if err = c.connectIfNotConnected(); err != nil {
+		return
+	}
+	nn := 0
+	for {
+		if res, err = c.Raw.Start(sql, params...); err == nil {
 			return
 		}
 		if c.reconnectIfNetErr(&nn, &err); err != nil {

@@ -1,10 +1,11 @@
 package native
 
 import (
-	"github.com/ziutek/mymysql/mysql"
 	"math"
 	"reflect"
 	"time"
+
+	"github.com/mrsinham/mymysql/mysql"
 )
 
 type paramValue struct {

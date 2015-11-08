@@ -1,9 +1,10 @@
 package native
 
 import (
-	"github.com/ziutek/mymysql/mysql"
 	"reflect"
 	"time"
+
+	"github.com/mrsinham/mymysql/mysql"
 )
 
 var (

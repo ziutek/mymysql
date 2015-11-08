@@ -3,12 +3,13 @@ package native
 import (
 	"bufio"
 	"bytes"
-	"github.com/ziutek/mymysql/mysql"
 	"math"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/mrsinham/mymysql/mysql"
 )
 
 var (

@@ -1,9 +1,10 @@
 package thrsafe
 
 import (
-	"github.com/ziutek/mymysql/mysql"
-	"github.com/ziutek/mymysql/native"
 	"testing"
+
+	"github.com/mrsinham/mymysql/mysql"
+	"github.com/mrsinham/mymysql/native"
 )
 
 const (

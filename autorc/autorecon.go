@@ -187,6 +187,8 @@ func (c *Conn) Escape(s string) string {
 type Stmt struct {
 	Raw mysql.Stmt
 	con *Conn
+
+	sql string
 }
 
 // Prepares statement if it wasn't prepared before
@@ -214,10 +216,18 @@ func (c *Conn) PrepareOnce(s *Stmt, sql string) error {
 // Automatic connect/reconnect/repeat version of Prepare
 func (c *Conn) Prepare(sql string) (*Stmt, error) {
 	var s Stmt
+	s.sql = sql
 	if err := c.PrepareOnce(&s, sql); err != nil {
 		return nil, err
 	}
 	return &s, nil
+}
+
+func (c *Conn) reprepare(stmt *Stmt) error {
+	sql := stmt.sql
+	stmt.Raw = nil
+
+	return c.PrepareOnce(stmt, sql)
 }
 
 // Begin begins a transaction and calls f to complete it .
@@ -251,6 +261,16 @@ func (s *Stmt) Bind(params ...interface{}) {
 	s.Raw.Bind(params...)
 }
 
+func (s *Stmt) needsRepreparing(err error) bool {
+	if mysqlErr, ok := err.(*mysql.Error); ok {
+		if mysqlErr.Code == mysql.ER_UNKNOWN_STMT_HANDLER {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Automatic connect/reconnect/repeat version of Exec
 func (s *Stmt) Exec(params ...interface{}) (rows []mysql.Row, res mysql.Result, err error) {
 
@@ -262,6 +282,16 @@ func (s *Stmt) Exec(params ...interface{}) (rows []mysql.Row, res mysql.Result, 
 		if rows, res, err = s.Raw.Exec(params...); err == nil {
 			return
 		}
+
+		if s.needsRepreparing(err) {
+			if s.con.reprepare(s) != nil {
+				return
+			}
+
+			// Try again
+			continue
+		}
+
 		if s.con.reconnectIfNetErr(&nn, &err); err != nil {
 			return
 		}
@@ -279,6 +309,16 @@ func (s *Stmt) ExecFirst(params ...interface{}) (row mysql.Row, res mysql.Result
 		if row, res, err = s.Raw.ExecFirst(params...); err == nil {
 			return
 		}
+
+		if s.needsRepreparing(err) {
+			if s.con.reprepare(s) != nil {
+				return
+			}
+
+			// Try again
+			continue
+		}
+
 		if s.con.reconnectIfNetErr(&nn, &err); err != nil {
 			return
 		}
@@ -296,6 +336,16 @@ func (s *Stmt) ExecLast(params ...interface{}) (row mysql.Row, res mysql.Result,
 		if row, res, err = s.Raw.ExecLast(params...); err == nil {
 			return
 		}
+
+		if s.needsRepreparing(err) {
+			if s.con.reprepare(s) != nil {
+				return
+			}
+
+			// Try again
+			continue
+		}
+
 		if s.con.reconnectIfNetErr(&nn, &err); err != nil {
 			return
 		}

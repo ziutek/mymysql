@@ -372,11 +372,11 @@ func (pr *pktReader) readTime() time.Time {
 	return time.Date(y, time.Month(mon), d, h, m, s, n, time.Local)
 }
 
-func encodeNonzeroTime(buf []byte, y int16, mon, d, h, m, s byte, n uint32) int {
+func encodeNonzeroTime(buf []byte, y int16, mon, d, h, m, s byte, u uint32) int {
 	buf[0] = 0
 	switch {
-	case n != 0:
-		EncodeU32(buf[8:12], n)
+	case u != 0:
+		EncodeU32(buf[8:12], u)
 		buf[0] += 4
 		fallthrough
 	case s != 0 || m != 0 || h != 0:
@@ -393,7 +393,7 @@ func encodeNonzeroTime(buf []byte, y int16, mon, d, h, m, s byte, n uint32) int 
 }
 
 func getTimeMicroseconds(t time.Time) int {
-	return t.Nanosecond()/int(time.Microsecond)
+	return (t.Nanosecond() + int(time.Microsecond/2)) / int(time.Microsecond)
 }
 
 func EncodeTime(buf []byte, t time.Time) int {

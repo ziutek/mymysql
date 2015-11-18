@@ -6,13 +6,14 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"github.com/ziutek/mymysql/mysql"
-	"github.com/ziutek/mymysql/native"
 	"io"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ziutek/mymysql/mysql"
+	"github.com/ziutek/mymysql/native"
 )
 
 type conn struct {
@@ -83,7 +84,7 @@ func (c conn) parseQuery(query string, args []driver.Value) (string, error) {
 		case float64:
 			s = strconv.FormatFloat(v, 'e', 12, 64)
 		default:
-			panic(fmt.Sprintf("%v (%T) can't be handled by godrv"))
+			panic(fmt.Sprintf("%v (%T) can't be handled by godrv", a, v))
 		}
 		q[n] = query[:i]
 		q[n+1] = s
@@ -234,7 +235,9 @@ func (r *rowsRes) Close() error {
 	if r.my == nil {
 		return nil // closed before
 	}
-	if err := r.my.End(); err != nil {
+	// Stored Procedure hack for godrv: always ignore multi results
+	// by using EndAll(r.my) instead of r.my.End()
+	if err := EndAll(r.my); err != nil {
 		return errFilter(err)
 	}
 	if r.simpleQuery != nil && r.simpleQuery != textQuery {
@@ -244,6 +247,20 @@ func (r *rowsRes) Close() error {
 	}
 	r.my = nil
 	return nil
+}
+
+// Read all unreaded rows and all unread results and discard them.
+// Useful for discarding multi result query. See mysql.End
+func EndAll(r mysql.Result) error {
+	_, err := mysql.GetLastRow(r)
+	if err != nil {
+		return err
+	}
+	nextRes, err := r.NextResult()
+	if err != nil || nextRes == nil {
+		return err
+	}
+	return EndAll(nextRes)
 }
 
 // DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone
@@ -273,6 +290,18 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 	if err != io.EOF {
 		return errFilter(err)
 	}
+
+	// Stored Procedure hack for godrv: always ignore multi results
+	nextRes, err := r.my.NextResult()
+	if err != nil {
+		return errFilter(err)
+	}
+	if nextRes != nil {
+		if err := EndAll(nextRes); err != nil {
+			return errFilter(err)
+		}
+	}
+
 	if r.simpleQuery != nil && r.simpleQuery != textQuery {
 		if err = r.simpleQuery.Delete(); err != nil {
 			return errFilter(err)

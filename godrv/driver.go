@@ -246,7 +246,10 @@ func (r *rowsRes) Close() error {
 	return nil
 }
 
-// DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone
+var location = time.Local
+
+// DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone (this
+// can be changed globaly using SetLocation function).
 func (r *rowsRes) Next(dest []driver.Value) error {
 	if r.my == nil {
 		return io.EOF // closed before
@@ -260,7 +263,7 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 					switch f.Type {
 					case native.MYSQL_TYPE_TIMESTAMP, native.MYSQL_TYPE_DATETIME,
 						native.MYSQL_TYPE_DATE, native.MYSQL_TYPE_NEWDATE:
-						r.row[i] = r.row.ForceLocaltime(i)
+						r.row[i] = r.row.ForceTime(i, location)
 					}
 				}
 			}
@@ -422,3 +425,9 @@ func init() {
 func Version() string {
 	return mysql.Version()
 }
+
+// SetLocation changes default location used to convert dates obtained from
+// server to time.Time.
+func SetLocation(loc *time.Location) {
+	location = loc
+} 

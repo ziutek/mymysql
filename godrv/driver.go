@@ -6,13 +6,14 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"github.com/ziutek/mymysql/mysql"
-	"github.com/ziutek/mymysql/native"
 	"io"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ziutek/mymysql/mysql"
+	"github.com/ziutek/mymysql/native"
 )
 
 type conn struct {
@@ -324,13 +325,16 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 		options := strings.Split(p[1], ",")
 		cfg.raddr = options[0]
 
-		_, _, err := net.SplitHostPort(cfg.raddr)
-		if err != nil {
-			if strings.HasPrefix(err.Error(), "missing port in address") {
-				cfg.raddr = cfg.raddr + ":3306"
-			} else {
-				// unable to split address and port for some other reason
-				return nil, err
+		if cfg.proto == "tcp" {
+			_, _, err := net.SplitHostPort(cfg.raddr)
+			if err != nil {
+
+				if strings.HasPrefix(err.Error(), "missing port in address") {
+					cfg.raddr = cfg.raddr + ":3306"
+				} else {
+					// unable to split address and port for some other reason
+					return nil, err
+				}
 			}
 		}
 

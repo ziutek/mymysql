@@ -188,6 +188,9 @@ func (t tx) Rollback() (err error) {
 }
 
 func (s *stmt) Close() (err error) {
+	if s.my == nil {
+		panic("godrv: stmt closed twice")
+	}
 	err = s.my.Delete()
 	s.my = nil
 	if err != nil {

@@ -3,10 +3,11 @@
 package main
 
 import (
-	"os"
 	"fmt"
-	"strings"
 	"net/http"
+	"os"
+	"strings"
+
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/thrsafe"
 )

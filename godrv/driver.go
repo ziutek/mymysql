@@ -6,13 +6,14 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"github.com/ziutek/mymysql/mysql"
-	"github.com/ziutek/mymysql/native"
 	"io"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ziutek/mymysql/mysql"
+	"github.com/ziutek/mymysql/native"
 )
 
 type conn struct {
@@ -83,7 +84,7 @@ func (c conn) parseQuery(query string, args []driver.Value) (string, error) {
 		case float64:
 			s = strconv.FormatFloat(v, 'e', 12, 64)
 		default:
-			panic(fmt.Sprintf("%v (%T) can't be handled by godrv"))
+			panic(fmt.Sprintf("%v (%T) can't be handled by godrv", v, v))
 		}
 		q[n] = query[:i]
 		q[n+1] = s

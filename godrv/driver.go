@@ -151,7 +151,7 @@ func (c conn) Prepare(query string) (driver.Stmt, error) {
 	return &stmt{st, make([]interface{}, st.NumParam())}, nil
 }
 
-func (c conn) Close() (err error) {
+func (c *conn) Close() (err error) {
 	err = c.my.Close()
 	c.my = nil
 	if err != nil {

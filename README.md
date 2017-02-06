@@ -95,11 +95,15 @@ fully thread safe.
 
 ## Installing
 
-To install all subpackages of *mymysql* you need to goinstal three of them:
+To install all subpackages of *mymysql* you need to get three of them:
 
 	$ go get github.com/ziutek/mymysql/thrsafe
 	$ go get github.com/ziutek/mymysql/autorc
 	$ go get github.com/ziutek/mymysql/godrv
+
+or just run one command to get all subpackages:
+
+	$ go get -v github.com/ziutek/mymysql/...
 
 *go get* automagically selects the proper version of *mymysql* for your Go 
 release. After this command *mymysql* is ready to use.

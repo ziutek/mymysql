@@ -1,21 +1,24 @@
-// Thread safe engine for MyMySQL
+// Package thrsafe is a thread safe engine for MyMySQL.
 //
 // In contrast to native engine:
-// - one connection can be used by multiple gorutines,
-// - if connection is idle pings are sent to the server (once per minute) to
-//   avoid timeout.
 //
-// See documentation of mymysql/native for details
+// - one connection can be used by multiple gorutines,
+//
+// - if connection is idle pings are sent to the server (once per minute) to avoid timeout.
+//
+// See documentation of mymysql/native for details.
 package thrsafe
 
 import (
-	"github.com/ziutek/mymysql/mysql"
-	_ "github.com/ziutek/mymysql/native"
 	"io"
 	"sync"
 	"time"
+
+	"github.com/ziutek/mymysql/mysql"
+	_ "github.com/ziutek/mymysql/native"
 )
 
+// Conn is a thread safe connection type.
 type Conn struct {
 	mysql.Conn
 	mutex *sync.Mutex
@@ -35,21 +38,25 @@ func (c *Conn) unlock() {
 	c.mutex.Unlock()
 }
 
+// Result is a thread safe result type.
 type Result struct {
 	mysql.Result
 	conn *Conn
 }
 
+// Stmt is a thread safe statement type.
 type Stmt struct {
 	mysql.Stmt
 	conn *Conn
 }
 
+// Transaction is a thread safe transaction type.
 type Transaction struct {
 	*Conn
 	conn *Conn
 }
 
+// New creates a new thread safe connection.
 func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 	return &Conn{
 		Conn:  orgNew(proto, laddr, raddr, user, passwd, db...),
@@ -96,6 +103,7 @@ func (c *Conn) Connect() error {
 	return c.Conn.Connect()
 }
 
+// Close closes the connection.
 func (c *Conn) Close() error {
 	//log.Println("Close")
 	close(c.stopPinger) // Stop pinger before lock connection

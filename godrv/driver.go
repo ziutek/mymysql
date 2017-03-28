@@ -1,4 +1,4 @@
-//MySQL driver for Go database/sql package
+// Package godrv implements database/sql MySQL driver.
 package godrv
 
 import (
@@ -289,6 +289,7 @@ func (r *rowsRes) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
+// Driver implements database/sql/driver interface.
 type Driver struct {
 	// Defaults
 	proto, laddr, raddr, user, passwd, db string
@@ -298,12 +299,12 @@ type Driver struct {
 	initCmds []string
 }
 
-// Open new connection. The uri need to have the following syntax:
+// Open creates a new connection. The uri needs to have the following syntax:
 //
 //   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
 //
-// where protocol spercific part may be empty (this means connection to
-// local server using default protocol). Currently possible forms:
+// where protocol specific part may be empty (this means connection to
+// local server using default protocol). Currently possible forms are:
 //
 //   DBNAME/USER/PASSWD
 //   unix:SOCKPATH*DBNAME/USER/PASSWD
@@ -391,7 +392,7 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 	return &c, nil
 }
 
-// Register registers initialisation commands.
+// Register registers initialization commands.
 // This is workaround, see http://codereview.appspot.com/5706047
 func (drv *Driver) Register(query string) {
 	drv.initCmds = append(drv.initCmds, query)
@@ -402,20 +403,21 @@ func (drv *Driver) Register(query string) {
 // only for logging.
 type Dialer func(proto, laddr, raddr, user, dbname string, timeout time.Duration) (net.Conn, error)
 
-// SetDialer sets custom Dialer used by Driver to make connections
+// SetDialer sets custom Dialer used by Driver to make connections.
 func (drv *Driver) SetDialer(dialer Dialer) {
 	drv.dialer = dialer
 }
 
-// Driver automatically registered in database/sql
+// Driver automatically registered in database/sql.
 var dfltdrv = Driver{proto: "tcp", raddr: "127.0.0.1:3306"}
 
-// Register calls Register method on driver registered in database/sql
+// Register calls Register method on driver registered in database/sql.
+// If Register is called twice with the same name it panics.
 func Register(query string) {
 	dfltdrv.Register(query)
 }
 
-// SetDialer calls SetDialer method on driver registered in database/sql
+// SetDialer calls SetDialer method on driver registered in database/sql.
 func SetDialer(dialer Dialer) {
 	dfltdrv.SetDialer(dialer)
 }
@@ -425,7 +427,7 @@ func init() {
 	sql.Register("mymysql", &dfltdrv)
 }
 
-// Version returns mymysql version string
+// Version returns mymysql version string.
 func Version() string {
 	return mysql.Version()
 }

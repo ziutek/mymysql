@@ -1,8 +1,10 @@
+// Example using transactions.
 package main
 
 import (
 	"fmt"
 	"os"
+
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/thrsafe"
 	//_ "github.com/ziutek/mymysql/native"

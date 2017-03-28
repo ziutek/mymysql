@@ -1,4 +1,4 @@
-// MySQL Client API written entirely in Go without any external dependences.
+// Package mysql is a MySQL Client API written entirely in Go without any external dependences.
 package mysql
 
 import (
@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// ConCommon is a common interface to the connection.
-// See mymysql/native for method documentation
+// ConnCommon is a common interface for the connection.
+// See mymysql/native for method documentation.
 type ConnCommon interface {
 	Start(sql string, params ...interface{}) (Result, error)
 	Prepare(sql string) (Stmt, error)
@@ -25,8 +25,8 @@ type ConnCommon interface {
 // the hook is skipped and normal dialing proceeds.
 type Dialer func(proto, laddr, raddr string, timeout time.Duration) (net.Conn, error)
 
-// Conn represnts connection to the MySQL server.
-// See mymysql/native for method documentation
+// Conn represents connection to the MySQL server.
+// See mymysql/native for method documentation.
 type Conn interface {
 	ConnCommon
 
@@ -49,8 +49,8 @@ type Conn interface {
 	Begin() (Transaction, error)
 }
 
-// Transaction represents MySQL transaction
-// See mymysql/native for method documentation
+// Transaction represents MySQL transaction.
+// See mymysql/native for method documentation.
 type Transaction interface {
 	ConnCommon
 
@@ -61,7 +61,7 @@ type Transaction interface {
 }
 
 // Stmt represents MySQL prepared statement.
-// See mymysql/native for method documentation
+// See mymysql/native for method documentation.
 type Stmt interface {
 	Bind(params ...interface{})
 	Run(params ...interface{}) (Result, error)
@@ -79,7 +79,7 @@ type Stmt interface {
 }
 
 // Result represents one MySQL result set.
-// See mymysql/native for method documentation
+// See mymysql/native for method documentation.
 type Result interface {
 	StatusOnly() bool
 	ScanRow(Row) error
@@ -103,5 +103,5 @@ type Result interface {
 }
 
 // New can be used to establish a connection. It is set by imported engine
-// (see mymysql/native, mymysql/thrsafe)
+// (see mymysql/native, mymysql/thrsafe).
 var New func(proto, laddr, raddr, user, passwd string, db ...string) Conn

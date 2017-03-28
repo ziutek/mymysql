@@ -1,8 +1,10 @@
+// Examples prepares and executes statements.
 package main
 
 import (
 	"fmt"
 	"os"
+
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/thrsafe"
 )

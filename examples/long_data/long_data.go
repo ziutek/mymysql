@@ -1,5 +1,5 @@
-// This example reads URL from stdin and retrieve its content directly to
-// database using SendLongData method
+// Example reads URL from stdin and retrieves its content directly to
+// database using SendLongData method.
 package main
 
 import (

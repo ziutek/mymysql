@@ -1,8 +1,10 @@
+// Example demonstrates simple thread safe DB operations.
 package main
 
 import (
-	"os"
 	"fmt"
+	"os"
+
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/thrsafe"
 )

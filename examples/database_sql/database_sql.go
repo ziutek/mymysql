@@ -1,10 +1,12 @@
+// Example demonstrates using of mymysql/godrv driver.
 package main
 
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/ziutek/mymysql/godrv" // Go driver for database/sql package
 	"log"
+
+	_ "github.com/ziutek/mymysql/godrv" // Go driver for database/sql package
 )
 
 func main() {

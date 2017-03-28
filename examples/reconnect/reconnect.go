@@ -1,9 +1,11 @@
+// Example demonstrates using of autorc package.
 package main
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"time"
+
 	"github.com/ziutek/mymysql/autorc"
 	_ "github.com/ziutek/mymysql/thrsafe"
 )

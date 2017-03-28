@@ -1,15 +1,16 @@
-// Auto reconnect interface for MyMySQL
+// Package autorc provides an auto reconnect interface for MyMySQL.
 package autorc
 
 import (
-	"github.com/ziutek/mymysql/mysql"
 	"io"
 	"log"
 	"net"
 	"time"
+
+	"github.com/ziutek/mymysql/mysql"
 )
 
-// Return true if error is network error or UnexpectedEOF.
+// IsNetErr returns true if error is network error or UnexpectedEOF.
 func IsNetErr(err error) bool {
 	if err == io.ErrUnexpectedEOF {
 		return true
@@ -34,6 +35,7 @@ func IsNetErr(err error) bool {
 	return false
 }
 
+// Conn is an autoreconnecting connection type.
 type Conn struct {
 	Raw mysql.Conn
 	// Maximum reconnect retries.
@@ -45,6 +47,7 @@ type Conn struct {
 	Debug bool
 }
 
+// New creates a new autoreconnecting connection.
 func New(proto, laddr, raddr, user, passwd string, db ...string) *Conn {
 	return &Conn{
 		Raw:        mysql.New(proto, laddr, raddr, user, passwd, db...),
@@ -52,6 +55,8 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) *Conn {
 	}
 }
 
+// NewFromCF creates a new autoreconnecting connection from config file.
+// Returns connection handler and map containing unknown options.
 func NewFromCF(cfgFile string) (*Conn, map[string]string, error) {
 	raw, unk, err := mysql.NewFromCF(cfgFile)
 	if err != nil {
@@ -60,6 +65,7 @@ func NewFromCF(cfgFile string) (*Conn, map[string]string, error) {
 	return &Conn{raw, 7, false}, unk, nil
 }
 
+// Clone makes a copy of the connection.
 func (c *Conn) Clone() *Conn {
 	return &Conn{
 		Raw:        c.Raw.Clone(),
@@ -68,6 +74,7 @@ func (c *Conn) Clone() *Conn {
 	}
 }
 
+// SetTimeout sets a timeout for underlying mysql.Conn connection.
 func (c *Conn) SetTimeout(timeout time.Duration) {
 	c.Raw.SetTimeout(timeout)
 }
@@ -96,6 +103,7 @@ func (c *Conn) connectIfNotConnected() (err error) {
 	return
 }
 
+// Reconnect tries to reconnect the connection up to MaxRetries times.
 func (c *Conn) Reconnect() (err error) {
 	err = c.Raw.Reconnect()
 	nn := 0
@@ -111,7 +119,7 @@ func (c *Conn) SetMaxPktSize(new_size int) int {
 	return c.Raw.SetMaxPktSize(new_size)
 }
 
-// Automatic connect/reconnect/repeat version of Use
+// Use is an automatic connect/reconnect/repeat version of mysql.Conn.Use.
 func (c *Conn) Use(dbname string) (err error) {
 	if err = c.connectIfNotConnected(); err != nil {
 		return
@@ -128,7 +136,7 @@ func (c *Conn) Use(dbname string) (err error) {
 	panic(nil)
 }
 
-// Automatic connect/reconnect/repeat version of Query
+// Query is an automatic connect/reconnect/repeat version of mysql.Conn.Query.
 func (c *Conn) Query(sql string, params ...interface{}) (rows []mysql.Row, res mysql.Result, err error) {
 
 	if err = c.connectIfNotConnected(); err != nil {
@@ -146,6 +154,7 @@ func (c *Conn) Query(sql string, params ...interface{}) (rows []mysql.Row, res m
 	panic(nil)
 }
 
+// QueryFirst is an automatic connect/reconnect/repeat version of mysql.Conn.QueryFirst.
 func (c *Conn) QueryFirst(sql string, params ...interface{}) (row mysql.Row, res mysql.Result, err error) {
 
 	if err = c.connectIfNotConnected(); err != nil {
@@ -163,6 +172,7 @@ func (c *Conn) QueryFirst(sql string, params ...interface{}) (row mysql.Row, res
 	panic(nil)
 }
 
+// QueryLast is an automatic connect/reconnect/repeat version of mysql.Conn.QueryLast.
 func (c *Conn) QueryLast(sql string, params ...interface{}) (row mysql.Row, res mysql.Result, err error) {
 
 	if err = c.connectIfNotConnected(); err != nil {
@@ -180,10 +190,12 @@ func (c *Conn) QueryLast(sql string, params ...interface{}) (row mysql.Row, res 
 	panic(nil)
 }
 
+// Escape is an automatic connect/reconnect/repeat version of mysql.Conn.Escape.
 func (c *Conn) Escape(s string) string {
 	return c.Raw.Escape(s)
 }
 
+// Stmt contains mysql.Stmt and autoteconnecting connection.
 type Stmt struct {
 	Raw mysql.Stmt
 	con *Conn
@@ -191,7 +203,7 @@ type Stmt struct {
 	sql string
 }
 
-// Prepares statement if it wasn't prepared before
+// PrepareOnce prepares a statement if it wasn't prepared before.
 func (c *Conn) PrepareOnce(s *Stmt, sql string) error {
 	if s.Raw != nil {
 		return nil
@@ -213,7 +225,7 @@ func (c *Conn) PrepareOnce(s *Stmt, sql string) error {
 	panic(nil)
 }
 
-// Automatic connect/reconnect/repeat version of Prepare
+// Prepare is an automatic connect/reconnect/repeat version of mysql.Conn.Prepare.
 func (c *Conn) Prepare(sql string) (*Stmt, error) {
 	var s Stmt
 	s.sql = sql
@@ -230,9 +242,9 @@ func (c *Conn) reprepare(stmt *Stmt) error {
 	return c.PrepareOnce(stmt, sql)
 }
 
-// Begin begins a transaction and calls f to complete it .
+// Begin starts a transaction and calls f to complete it.
 // If f returns an error and IsNetErr(error) == true it reconnects and calls
-// f up to MaxRetries times. If error is of type *mysql.Error it tries rollback
+// f up to MaxRetries times. If error is of type *mysql.Error it tries to rollback
 // the transaction.
 func (c *Conn) Begin(f func(mysql.Transaction, ...interface{}) error, args ...interface{}) error {
 	err := c.connectIfNotConnected()
@@ -257,6 +269,7 @@ func (c *Conn) Begin(f func(mysql.Transaction, ...interface{}) error, args ...in
 	panic(nil)
 }
 
+// Bind is an automatic connect/reconnect/repeat version of mysql.Stmt.Bind.
 func (s *Stmt) Bind(params ...interface{}) {
 	s.Raw.Bind(params...)
 }
@@ -271,7 +284,7 @@ func (s *Stmt) needsRepreparing(err error) bool {
 	return false
 }
 
-// Automatic connect/reconnect/repeat version of Exec
+// Exec is an automatic connect/reconnect/repeat version of mysql.Stmt.Exec.
 func (s *Stmt) Exec(params ...interface{}) (rows []mysql.Row, res mysql.Result, err error) {
 
 	if err = s.con.connectIfNotConnected(); err != nil {
@@ -299,6 +312,7 @@ func (s *Stmt) Exec(params ...interface{}) (rows []mysql.Row, res mysql.Result, 
 	panic(nil)
 }
 
+// ExecFirst is an automatic connect/reconnect/repeat version of mysql.Stmt.ExecFirst.
 func (s *Stmt) ExecFirst(params ...interface{}) (row mysql.Row, res mysql.Result, err error) {
 
 	if err = s.con.connectIfNotConnected(); err != nil {
@@ -326,6 +340,7 @@ func (s *Stmt) ExecFirst(params ...interface{}) (row mysql.Row, res mysql.Result
 	panic(nil)
 }
 
+// ExecLast is an automatic connect/reconnect/repeat version of mysql.Stmt.ExecLast.
 func (s *Stmt) ExecLast(params ...interface{}) (row mysql.Row, res mysql.Result, err error) {
 
 	if err = s.con.connectIfNotConnected(); err != nil {

@@ -28,7 +28,7 @@ now accept properly sized `[]byte` slice as first argument.
 v1.2: Faster execution of simple queries in *mymysql/godrv*. `EscapeString`
 method renamed to `Escape`.
 
-v1.1: Client error codes moved from *mymysql/native* pacage to *mymysql/mysql*.
+v1.1: Client error codes moved from *mymysql/native* package to *mymysql/mysql*.
 
 v1.0: Transactions added to autorc, new Transaction.IsValid method. I think
 this library is mature enough to release it as v1.0
@@ -42,7 +42,7 @@ v0.4.9: New method for create connection from configuration in file: *NewFromCF*
 v0.4.8: New methods for obtain only first/last row from result set. Better
 implementation of discarding rows in End method.
 
-v0.4.7: ScanRow and MakeRow methods addad. ScanRow is more efficient than GetRow because it doesn't allocate memory for every row received from the server. *godrv* Value.Next method now uses the new ScanRow method.
+v0.4.7: ScanRow and MakeRow methods added. ScanRow is more efficient than GetRow because it doesn't allocate memory for every row received from the server. *godrv* Value.Next method now uses the new ScanRow method.
 
 v0.4.6: StatusOnly method added to mysql.Result.
 
@@ -429,7 +429,7 @@ This is the improved code of the previous example:
 	// Initilisation commands. They will be executed after each connect.
 	db.Register("set names utf8")
 
-	// There is no need to explicity connect to the MySQL server
+	// There is no need to explicitly connect to the MySQL server
 	rows, res, err := db.Query("SELECT * FROM R")
 	checkError(err)
 
@@ -462,9 +462,9 @@ This is the improved code of the previous example:
 
 	// [...]
 
-	// Open new connection. The uri need to have the following syntax:
+	// Open new connection. The URI need to have the following syntax:
 	//
-	//   [PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
+	//   [PROTOCOL_SPECIFIC*]DBNAME/USER/PASSWD
 	//
 	// where protocol specific part may be empty (this means connection to
 	// local server using default protocol). Currently possible forms:
@@ -659,8 +659,8 @@ below:
 
 ## Big packets
 
-This package can send and receive MySQL data packets that are biger than 16 MB.
-This means that you can receive response rows biger than 16 MB and can execute
+This package can send and receive MySQL data packets that are bigger than 16 MB.
+This means that you can receive response rows bigger than 16 MB and can execute
 prepared statements with parameter data bigger than 16 MB without using
 SendLongData method. If you want to use this feature you need to change the default
 mymysql setting using the *Conn.SetMaxPktSize* method and change
@@ -681,10 +681,10 @@ data to the server,  until all results and all rows  will be readed from
 the connection in first thread.
 
 In most of my web applications I use the *autorecon* interface with *thrsafe* engine.
-For any new connection, one gorutine is created. There is one persistant
-connection to MySQL server shared by all gorutines. Applications are usually
+For any new connection, one goroutine is created. There is one persistent
+connection to MySQL server shared by all goroutines. Applications are usually
 running on dual-core machines with GOMAXPROCS=2. I use *siege* to test any
-application befor put it into production. There is example output from siege:
+application before put it into production. There is example output from siege:
 
 	# siege my.httpserver.pl -c25 -d0 -t 30s
 	** SIEGE 2.69

@@ -2,6 +2,7 @@ package native
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"math"
 )
 
@@ -32,6 +33,34 @@ func encryptedPasswd(password string, scramble []byte) (out []byte) {
 		out[ii] = stg3Hash[ii] ^ stg1Hash[ii]
 	}
 	return
+}
+
+// Hash password using MySQL 8+ method (SHA256)
+func encryptedSHA256Passwd(password string, scramble []byte) []byte {
+	if len(password) == 0 {
+		return nil
+	}
+
+	// XOR(SHA256(password), SHA256(SHA256(SHA256(password)), scramble))
+
+	crypt := sha256.New()
+	crypt.Write([]byte(password))
+	message1 := crypt.Sum(nil)
+
+	crypt.Reset()
+	crypt.Write(message1)
+	message1Hash := crypt.Sum(nil)
+
+	crypt.Reset()
+	crypt.Write(message1Hash)
+	crypt.Write(scramble)
+	message2 := crypt.Sum(nil)
+
+	for i := range message1 {
+		message1[i] ^= message2[i]
+	}
+
+	return message1
 }
 
 // Old password handling based on translating to Go some functions from

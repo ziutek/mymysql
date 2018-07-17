@@ -4,24 +4,31 @@ import "strconv"
 
 // Client caps - borrowed from GoMySQL
 const (
-	_CLIENT_LONG_PASSWORD    = 1 << iota // new more secure passwords
-	_CLIENT_FOUND_ROWS                   // Found instead of affected rows
-	_CLIENT_LONG_FLAG                    // Get all column flags
-	_CLIENT_CONNECT_WITH_DB              // One can specify db on connect
-	_CLIENT_NO_SCHEMA                    // Don't allow database.table.column
-	_CLIENT_COMPRESS                     // Can use compression protocol
-	_CLIENT_ODBC                         // Odbc client
-	_CLIENT_LOCAL_FILES                  // Can use LOAD DATA LOCAL
-	_CLIENT_IGNORE_SPACE                 // Ignore spaces before '('
-	_CLIENT_PROTOCOL_41                  // New 4.1 protocol
-	_CLIENT_INTERACTIVE                  // This is an interactive client
-	_CLIENT_SSL                          // Switch to SSL after handshake
-	_CLIENT_IGNORE_SIGPIPE               // IGNORE sigpipes
-	_CLIENT_TRANSACTIONS                 // Client knows about transactions
-	_CLIENT_RESERVED                     // Old flag for 4.1 protocol
-	_CLIENT_SECURE_CONN                  // New 4.1 authentication
-	_CLIENT_MULTI_STATEMENTS             // Enable/disable multi-stmt support
-	_CLIENT_MULTI_RESULTS                // Enable/disable multi-results
+	_CLIENT_LONG_PASSWORD                  = 1 << iota // new more secure passwords
+	_CLIENT_FOUND_ROWS                                 // Found instead of affected rows
+	_CLIENT_LONG_FLAG                                  // Get all column flags
+	_CLIENT_CONNECT_WITH_DB                            // One can specify db on connect
+	_CLIENT_NO_SCHEMA                                  // Don't allow database.table.column
+	_CLIENT_COMPRESS                                   // Can use compression protocol
+	_CLIENT_ODBC                                       // Odbc client
+	_CLIENT_LOCAL_FILES                                // Can use LOAD DATA LOCAL
+	_CLIENT_IGNORE_SPACE                               // Ignore spaces before '('
+	_CLIENT_PROTOCOL_41                                // New 4.1 protocol
+	_CLIENT_INTERACTIVE                                // This is an interactive client
+	_CLIENT_SSL                                        // Switch to SSL after handshake
+	_CLIENT_IGNORE_SIGPIPE                             // IGNORE sigpipes
+	_CLIENT_TRANSACTIONS                               // Client knows about transactions
+	_CLIENT_RESERVED                                   // Old flag for 4.1 protocol
+	_CLIENT_SECURE_CONN                                // New 4.1 authentication
+	_CLIENT_MULTI_STATEMENTS                           // Enable/disable multi-stmt support
+	_CLIENT_MULTI_RESULTS                              // Enable/disable multi-results
+	_CLIENT_PS_MULTI_RESULTS                           // Enable/disable multiple resultsets for COM_STMT_EXECUTE
+	_CLIENT_PLUGIN_AUTH                                // Supports authentication plugins
+	_CLIENT_CONNECT_ATTRS                              // Sends connection attributes in Protocol::HandshakeResponse41
+	_CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA             // Length of auth response data in Protocol::HandshakeResponse41 is a length-encoded integer
+	_CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS               // Enable/disable expired passwords
+	_CLIENT_SESSION_TRACK                              // Can set SERVER_SESSION_STATE_CHANGED in the Status Flags and send session-state change data after a OK packet.
+	_CLIENT_DEPRECATE_EOF                              // Expects an OK (instead of EOF) after the resultset rows of a Text Resultset
 )
 
 // Commands - borrowed from GoMySQL
@@ -98,7 +105,7 @@ const (
 // Comments contains corresponding types used by mymysql. string type may be
 // replaced by []byte type and vice versa. []byte type is native for sending
 // on a network, so any string is converted to it before sending. Than for
-// better preformance use []byte. 
+// better performance use []byte.
 const (
 	// Client send and receive, mymysql representation for send / receive
 	TINYINT   = MYSQL_TYPE_TINY      // int8 / int8

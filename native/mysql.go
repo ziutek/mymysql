@@ -31,6 +31,7 @@ type Conn struct {
 	user   string // MySQL username
 	passwd string // MySQL password
 	dbname string // Database name
+	plugin string // authentication plugin
 
 	net_conn net.Conn // MySQL connection
 	rd       *bufio.Reader
@@ -68,11 +69,12 @@ type Conn struct {
 // Create new MySQL handler. The first three arguments are passed to net.Bind
 // for create connection. user and passwd are for authentication. Optional db
 // is database name (you may not specify it and use Use() method later).
-func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
+func New(proto, laddr, raddr, user, passwd string, args ...string) mysql.Conn {
 	my := Conn{
 		proto:         proto,
 		laddr:         laddr,
 		raddr:         raddr,
+		plugin:        "mysql_native_password",
 		user:          user,
 		passwd:        passwd,
 		stmt_map:      make(map[uint32]*Stmt),
@@ -80,9 +82,12 @@ func New(proto, laddr, raddr, user, passwd string, db ...string) mysql.Conn {
 		timeout:       2 * time.Minute,
 		fullFieldInfo: true,
 	}
-	if len(db) == 1 {
-		my.dbname = db[0]
-	} else if len(db) > 1 {
+	if len(args) == 1 {
+		my.dbname = args[0]
+	} else if len(args) == 2 {
+		my.dbname = args[0]
+		my.plugin = args[1]
+	} else if len(args) > 2 {
 		panic("mymy.New: too many arguments")
 	}
 	return &my
@@ -203,16 +208,8 @@ func (my *Conn) connect() (err error) {
 
 	// Initialisation
 	my.init()
-	my.auth()
-	res := my.getResult(nil, nil)
-	if res == nil {
-		// Try old password
-		my.oldPasswd()
-		res = my.getResult(nil, nil)
-		if res == nil {
-			return mysql.ErrAuthentication
-		}
-	}
+	scrPasswd := my.auth()
+	my.authResponse(scrPasswd)
 
 	// Execute all registered commands
 	for _, cmd := range my.init_cmds {

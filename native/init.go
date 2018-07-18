@@ -58,6 +58,7 @@ func (my *Conn) auth() []byte {
 		scrPasswd = encryptedSHA256Passwd(my.passwd, my.info.scramble[:])
 	case "mysql_old_password":
 		my.oldPasswd()
+		return nil
 	default:
 		// mysql_native_password by default
 		scrPasswd = encryptedPasswd(my.passwd, my.info.scramble[:])

@@ -1,12 +1,12 @@
 package native
 
 import (
+	"bytes"
 	"errors"
 	"github.com/ziutek/mymysql/mysql"
 	"log"
 	"math"
 	"strconv"
-	"bytes"
 )
 
 type Result struct {
@@ -89,7 +89,7 @@ func (my *Conn) getAuthResult() ([]byte, string) {
 		return pkt[1:], ""
 
 	case 254: // EOF
-		if len(pkt) < 1 {
+		if len(pkt) == 1 {
 			// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::OldAuthSwitchRequest
 			return nil, "mysql_old_password"
 		}
@@ -101,7 +101,12 @@ func (my *Conn) getAuthResult() ([]byte, string) {
 		authData := pkt[pluginEndIndex+1:]
 		return authData, plugin
 
+	case 255: // Error packet
+		panic(mysql.ErrAuthentication)
+		return nil, ""
+
 	default: // Error otherwise
+		panic(mysql.ErrUnkResultPkt)
 		return nil, ""
 	}
 }

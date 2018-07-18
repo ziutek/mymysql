@@ -17,12 +17,17 @@ func (my *Conn) init() {
 	my.info.thr_id = pr.readU32()
 	pr.readFull(my.info.scramble[0:8])
 	pr.skipN(1)
-	my.info.caps = pr.readU16()
+	my.info.caps = uint32(pr.readU16()) // lower two bytes
 	my.info.lang = pr.readByte()
 	my.status = mysql.ConnStatus(pr.readU16())
-	pr.skipN(13)
+	my.info.caps = uint32(pr.readU16())<<16 | my.info.caps // upper two bytes
+	pr.skipN(11)
 	if my.info.caps&_CLIENT_PROTOCOL_41 != 0 {
 		pr.readFull(my.info.scramble[8:])
+	}
+	if my.info.caps&_CLIENT_PLUGIN_AUTH > 0 {
+		pr.skipN(1)
+		my.info.plugin = pr.readNTB()
 	}
 	pr.skipAll() // Skip other information
 	if my.Debug {
@@ -51,6 +56,9 @@ func (my *Conn) auth() []byte {
 			_CLIENT_MULTI_RESULTS)
 	// Reset flags not supported by server
 	flags &= uint32(my.info.caps) | 0xffff0000
+	if my.plugin != string(my.info.plugin) {
+		my.plugin = string(my.info.plugin)
+	}
 	var scrPasswd []byte
 	switch my.plugin {
 	case "caching_sha2_password":

@@ -18,8 +18,9 @@ type serverInfo struct {
 	serv_ver []byte
 	thr_id   uint32
 	scramble [20]byte
-	caps     uint16
+	caps     uint32
 	lang     byte
+	plugin   []byte
 }
 
 // MySQL connection handler

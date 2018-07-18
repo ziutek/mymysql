@@ -41,7 +41,7 @@ func (my *Conn) init() {
 }
 
 // return scramble password for auth switch
-func (my *Conn) auth() []byte {
+func (my *Conn) auth() {
 	if my.Debug {
 		log.Printf("[%2d <-] Authentication packet", my.seq)
 	}
@@ -66,7 +66,7 @@ func (my *Conn) auth() []byte {
 		scrPasswd = encryptedSHA256Passwd(my.passwd, my.info.scramble[:])
 	case "mysql_old_password":
 		my.oldPasswd()
-		return nil
+		return
 	default:
 		// mysql_native_password by default
 		scrPasswd = encryptedPasswd(my.passwd, my.info.scramble[:])
@@ -104,17 +104,28 @@ func (my *Conn) auth() []byte {
 	if my.plugin != "" {
 		pw.writeNTB([]byte(my.plugin))
 	}
-	return scrPasswd
+	return
 }
 
-func (my *Conn) authResponse(scrPasswd []byte) {
+func (my *Conn) authResponse() {
 	// Read Result Packet
 	authData, newPlugin := my.getAuthResult()
 
 	// handle auth plugin switch, if requested
 	if newPlugin != "" {
+		var scrPasswd []byte
+		copy(my.info.scramble[:], authData[:20])
+		my.info.plugin = []byte(newPlugin)
 		my.plugin = newPlugin
-		my.auth()
+		switch my.plugin {
+		case "caching_sha2_password":
+			scrPasswd = encryptedSHA256Passwd(my.passwd, my.info.scramble[:])
+		case "mysql_old_password":
+			scrPasswd = encryptedOldPassword(my.passwd, my.info.scramble[:])
+		default:
+			scrPasswd = encryptedPasswd(my.passwd, my.info.scramble[:])
+		}
+		my.writeAuthSwitchPacket(scrPasswd)
 
 		// Read Result Packet
 		authData, newPlugin = my.getAuthResult()
@@ -139,7 +150,7 @@ func (my *Conn) authResponse(scrPasswd []byte) {
 
 			case 4: // cachingSha2PasswordPerformFullAuthentication
 				// write plain text auth packet
-				my.writeAuthSwitchPacket([]byte(scrPasswd))
+				my.writeAuthSwitchPacket([]byte(my.passwd))
 			}
 		}
 	}
@@ -148,8 +159,8 @@ func (my *Conn) authResponse(scrPasswd []byte) {
 
 // http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchResponse
 func (my *Conn) writeAuthSwitchPacket(scrPasswd []byte) {
-	pw := my.newPktWriter(len(scrPasswd) + 1)
-	pw.writeBin(scrPasswd) // Encrypted password
+	pw := my.newPktWriter(len(scrPasswd))
+	pw.write(scrPasswd) // Encrypted password
 	return
 }
 

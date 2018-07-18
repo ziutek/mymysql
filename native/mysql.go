@@ -209,8 +209,8 @@ func (my *Conn) connect() (err error) {
 
 	// Initialisation
 	my.init()
-	scrPasswd := my.auth()
-	my.authResponse(scrPasswd)
+	my.auth()
+	my.authResponse()
 
 	// Execute all registered commands
 	for _, cmd := range my.init_cmds {

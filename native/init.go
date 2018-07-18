@@ -25,8 +25,8 @@ func (my *Conn) init() {
 	if my.info.caps&_CLIENT_PROTOCOL_41 != 0 {
 		pr.readFull(my.info.scramble[8:])
 	}
-	if my.info.caps&_CLIENT_PLUGIN_AUTH > 0 {
-		pr.skipN(1)
+	pr.skipN(1) // reserved (all [00])
+	if my.info.caps&_CLIENT_PLUGIN_AUTH != 0 {
 		my.info.plugin = pr.readNTB()
 	}
 	pr.skipAll() // Skip other information

@@ -17,12 +17,17 @@ func (my *Conn) init() {
 	my.info.thr_id = pr.readU32()
 	pr.readFull(my.info.scramble[0:8])
 	pr.skipN(1)
-	my.info.caps = pr.readU16()
+	my.info.caps = uint32(pr.readU16()) // lower two bytes
 	my.info.lang = pr.readByte()
 	my.status = mysql.ConnStatus(pr.readU16())
-	pr.skipN(13)
+	my.info.caps = uint32(pr.readU16())<<16 | my.info.caps // upper two bytes
+	pr.skipN(11)
 	if my.info.caps&_CLIENT_PROTOCOL_41 != 0 {
 		pr.readFull(my.info.scramble[8:])
+	}
+	pr.skipN(1) // reserved (all [00])
+	if my.info.caps&_CLIENT_PLUGIN_AUTH != 0 {
+		my.info.plugin = pr.readNTB()
 	}
 	pr.skipAll() // Skip other information
 	if my.Debug {
@@ -35,6 +40,7 @@ func (my *Conn) init() {
 	}
 }
 
+// return scramble password for auth switch
 func (my *Conn) auth() {
 	if my.Debug {
 		log.Printf("[%2d <-] Authentication packet", my.seq)
@@ -50,8 +56,33 @@ func (my *Conn) auth() {
 			_CLIENT_MULTI_RESULTS)
 	// Reset flags not supported by server
 	flags &= uint32(my.info.caps) | 0xffff0000
-	scrPasswd := encryptedPasswd(my.passwd, my.info.scramble[:])
-	pay_len := 4 + 4 + 1 + 23 + len(my.user) + 1 + 1 + len(scrPasswd)
+	if my.plugin != string(my.info.plugin) {
+		my.plugin = string(my.info.plugin)
+	}
+	var scrPasswd []byte
+	switch my.plugin {
+	case "caching_sha2_password":
+		flags |= _CLIENT_PLUGIN_AUTH
+		scrPasswd = encryptedSHA256Passwd(my.passwd, my.info.scramble[:])
+	case "mysql_old_password":
+		my.oldPasswd()
+		return
+	default:
+		// mysql_native_password by default
+		scrPasswd = encryptedPasswd(my.passwd, my.info.scramble[:])
+	}
+
+	// encode length of the auth plugin data
+	var authRespLEIBuf [9]byte
+	authRespLEI := appendLengthEncodedInteger(authRespLEIBuf[:0], uint64(len(scrPasswd)))
+	if len(authRespLEI) > 1 {
+		// if the length can not be written in 1 byte, it must be written as a
+		// length encoded integer
+		flags |= _CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
+	}
+
+	pay_len := 4 + 4 + 1 + 23 + len(my.user) + 1 + len(authRespLEI) + len(scrPasswd) + 21 + 1
+
 	if len(my.dbname) > 0 {
 		pay_len += len(my.dbname) + 1
 		flags |= _CLIENT_CONNECT_WITH_DB
@@ -63,13 +94,76 @@ func (my *Conn) auth() {
 	pw.writeZeros(23)            // Filler
 	pw.writeNTB([]byte(my.user)) // Username
 	pw.writeBin(scrPasswd)       // Encrypted password
+
+	// write database name
 	if len(my.dbname) > 0 {
 		pw.writeNTB([]byte(my.dbname))
 	}
-	if len(my.dbname) > 0 {
-		pay_len += len(my.dbname) + 1
-		flags |= _CLIENT_CONNECT_WITH_DB
+
+	// write plugin name
+	if my.plugin != "" {
+		pw.writeNTB([]byte(my.plugin))
 	}
+	return
+}
+
+func (my *Conn) authResponse() {
+	// Read Result Packet
+	authData, newPlugin := my.getAuthResult()
+
+	// handle auth plugin switch, if requested
+	if newPlugin != "" {
+		var scrPasswd []byte
+		if len(authData) >= 20 {
+			// old_password's len(authData) == 0
+			copy(my.info.scramble[:], authData[:20])
+		}
+		my.info.plugin = []byte(newPlugin)
+		my.plugin = newPlugin
+		switch my.plugin {
+		case "caching_sha2_password":
+			scrPasswd = encryptedSHA256Passwd(my.passwd, my.info.scramble[:])
+		case "mysql_old_password":
+			scrPasswd = encryptedOldPassword(my.passwd, my.info.scramble[:])
+		default:
+			scrPasswd = encryptedPasswd(my.passwd, my.info.scramble[:])
+		}
+		my.writeAuthSwitchPacket(scrPasswd)
+
+		// Read Result Packet
+		authData, newPlugin = my.getAuthResult()
+
+		// Do not allow to change the auth plugin more than once
+		if newPlugin != "" {
+			return
+		}
+	}
+
+	switch my.plugin {
+
+	// https://insidemysql.com/preparing-your-community-connector-for-mysql-8-part-2-sha256/
+	case "caching_sha2_password":
+		switch len(authData) {
+		case 0:
+			return // auth successful
+		case 1:
+			switch authData[0] {
+			case 3: // cachingSha2PasswordFastAuthSuccess
+				my.getResult(nil, nil)
+
+			case 4: // cachingSha2PasswordPerformFullAuthentication
+				// write plain text auth packet
+				my.writeAuthSwitchPacket([]byte(my.passwd))
+			}
+		}
+	}
+	return
+}
+
+// http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchResponse
+func (my *Conn) writeAuthSwitchPacket(scrPasswd []byte) {
+	pw := my.newPktWriter(len(scrPasswd))
+	pw.write(scrPasswd) // Encrypted password
 	return
 }
 

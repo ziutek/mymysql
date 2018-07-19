@@ -114,7 +114,10 @@ func (my *Conn) authResponse() {
 	// handle auth plugin switch, if requested
 	if newPlugin != "" {
 		var scrPasswd []byte
-		copy(my.info.scramble[:], authData[:20])
+		if len(authData) >= 20 {
+			// old_password's len(authData) == 0
+			copy(my.info.scramble[:], authData[:20])
+		}
 		my.info.plugin = []byte(newPlugin)
 		my.plugin = newPlugin
 		switch my.plugin {

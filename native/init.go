@@ -1,6 +1,11 @@
 package native
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha1"
+	"crypto/x509"
+	"encoding/pem"
 	"github.com/ziutek/mymysql/mysql"
 	"log"
 )
@@ -40,7 +45,6 @@ func (my *Conn) init() {
 	}
 }
 
-// return scramble password for auth switch
 func (my *Conn) auth() {
 	if my.Debug {
 		log.Printf("[%2d <-] Authentication packet", my.seq)
@@ -114,7 +118,10 @@ func (my *Conn) authResponse() {
 	// handle auth plugin switch, if requested
 	if newPlugin != "" {
 		var scrPasswd []byte
-		copy(my.info.scramble[:], authData[:20])
+		if len(authData) >= 20 {
+			// old_password's len(authData) == 0
+			copy(my.info.scramble[:], authData[:20])
+		}
 		my.info.plugin = []byte(newPlugin)
 		my.plugin = newPlugin
 		switch my.plugin {
@@ -149,8 +156,24 @@ func (my *Conn) authResponse() {
 				my.getResult(nil, nil)
 
 			case 4: // cachingSha2PasswordPerformFullAuthentication
-				// write plain text auth packet
-				my.writeAuthSwitchPacket([]byte(my.passwd))
+				// request public key from server
+				pw := my.newPktWriter(1)
+				pw.writeByte(2)
+
+				// parse public key
+				pr := my.newPktReader()
+				pr.skipN(1)
+				data := pr.readAll()
+				block, _ := pem.Decode(data)
+				pkix, err := x509.ParsePKIXPublicKey(block.Bytes)
+				if err != nil {
+					panic(mysql.ErrAuthentication)
+				}
+				pubKey := pkix.(*rsa.PublicKey)
+
+				// send encrypted password
+				my.sendEncryptedPassword(my.info.scramble[:], pubKey)
+				my.getResult(nil, nil)
 			}
 		}
 	}
@@ -162,6 +185,25 @@ func (my *Conn) writeAuthSwitchPacket(scrPasswd []byte) {
 	pw := my.newPktWriter(len(scrPasswd))
 	pw.write(scrPasswd) // Encrypted password
 	return
+}
+
+func (my *Conn) sendEncryptedPassword(seed []byte, pub *rsa.PublicKey) {
+	enc, err := encryptPassword(my.passwd, seed, pub)
+	if err != nil {
+		panic(mysql.ErrAuthentication)
+	}
+	my.writeAuthSwitchPacket(enc)
+}
+
+func encryptPassword(password string, seed []byte, pub *rsa.PublicKey) ([]byte, error) {
+	plain := make([]byte, len(password)+1)
+	copy(plain, password)
+	for i := range plain {
+		j := i % len(seed)
+		plain[i] ^= seed[j]
+	}
+	sha1 := sha1.New()
+	return rsa.EncryptOAEP(sha1, rand.Reader, pub, plain, nil)
 }
 
 func (my *Conn) oldPasswd() {

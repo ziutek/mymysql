@@ -6,8 +6,9 @@ import (
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/pem"
-	"github.com/ziutek/mymysql/mysql"
 	"log"
+
+	"github.com/ziutek/mymysql/mysql"
 )
 
 func (my *Conn) init() {
@@ -129,7 +130,10 @@ func (my *Conn) authResponse() {
 			scrPasswd = encryptedSHA256Passwd(my.passwd, my.info.scramble[:])
 		case "mysql_old_password":
 			scrPasswd = encryptedOldPassword(my.passwd, my.info.scramble[:])
-		default:
+		case "sha256_password":
+			// request public key from server
+			scrPasswd = []byte{1}
+		default: // mysql_native_password
 			scrPasswd = encryptedPasswd(my.passwd, my.info.scramble[:])
 		}
 		my.writeAuthSwitchPacket(scrPasswd)
@@ -175,6 +179,22 @@ func (my *Conn) authResponse() {
 				my.sendEncryptedPassword(my.info.scramble[:], pubKey)
 				my.getResult(nil, nil)
 			}
+		}
+	case "sha256_password":
+		switch len(authData) {
+		case 0:
+			return // auth successful
+		default:
+			// parse public key
+			block, _ := pem.Decode(authData)
+			pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+			if err != nil {
+				panic(mysql.ErrAuthentication)
+			}
+
+			// send encrypted password
+			my.sendEncryptedPassword(my.info.scramble[:], pub.(*rsa.PublicKey))
+			my.getResult(nil, nil)
 		}
 	}
 	return

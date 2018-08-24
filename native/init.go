@@ -108,6 +108,8 @@ func (my *Conn) auth() {
 	// write plugin name
 	if my.plugin != "" {
 		pw.writeNTB([]byte(my.plugin))
+	} else {
+		pw.writeNTB([]byte("mysql_native_password"))
 	}
 	return
 }
@@ -130,6 +132,8 @@ func (my *Conn) authResponse() {
 			scrPasswd = encryptedSHA256Passwd(my.passwd, my.info.scramble[:])
 		case "mysql_old_password":
 			scrPasswd = encryptedOldPassword(my.passwd, my.info.scramble[:])
+			// append \0 after old_password
+			scrPasswd = append(scrPasswd, 0)
 		case "sha256_password":
 			// request public key from server
 			scrPasswd = []byte{1}

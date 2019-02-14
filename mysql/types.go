@@ -18,12 +18,12 @@ func (dd Date) String() string {
 	return fmt.Sprintf("%04d-%02d-%02d", dd.Year, dd.Month, dd.Day)
 }
 
-// True if date is 0000-00-00
+// IsZero: True if date is 0000-00-00
 func (dd Date) IsZero() bool {
 	return dd.Day == 0 && dd.Month == 0 && dd.Year == 0
 }
 
-// Converts Date to time.Time using loc location.
+// Time: Converts Date to time.Time using loc location.
 // Converts MySQL zero to time.Time zero.
 func (dd Date) Time(loc *time.Location) (t time.Time) {
 	if !dd.IsZero() {
@@ -36,13 +36,13 @@ func (dd Date) Time(loc *time.Location) (t time.Time) {
 	return
 }
 
-// Converts Date to time.Time using Local location.
+// Localtime: Converts Date to time.Time using Local location.
 // Converts MySQL zero to time.Time zero.
 func (dd Date) Localtime() time.Time {
 	return dd.Time(time.Local)
 }
 
-// Convert string date in format YYYY-MM-DD to Date.
+// ParseDate: Convert string date in format YYYY-MM-DD to Date.
 // Leading and trailing spaces are ignored.
 func ParseDate(str string) (dd Date, err error) {
 	str = strings.TrimSpace(str)
@@ -97,7 +97,7 @@ invalid:
 // Sandard MySQL datetime format
 const TimeFormat = "2006-01-02 15:04:05.000000000"
 
-// Returns t as string in MySQL format Converts time.Time zero to MySQL zero.
+// TimeString returns t as string in MySQL format Converts time.Time zero to MySQL zero.
 func TimeString(t time.Time) string {
 	if t.IsZero() {
 		return "0000-00-00 00:00:00"
@@ -108,7 +108,7 @@ func TimeString(t time.Time) string {
 	return t.Format(TimeFormat)
 }
 
-// Parses string datetime in TimeFormat using loc location.
+// ParseTime: Parses string datetime in TimeFormat using loc location.
 // Converts MySQL zero to time.Time zero.
 func ParseTime(str string, loc *time.Location) (t time.Time, err error) {
 	str = strings.TrimSpace(str)
@@ -129,7 +129,7 @@ func ParseTime(str string, loc *time.Location) (t time.Time, err error) {
 	return
 }
 
-// Convert time.Duration to string representation of mysql.TIME
+// DurationString: Convert time.Duration to string representation of mysql.TIME
 func DurationString(d time.Duration) string {
 	sign := 1
 	if d < 0 {
@@ -148,7 +148,7 @@ func DurationString(d time.Duration) string {
 	return fmt.Sprintf("%d:%02d:%02d.%09d", hour, min, sec, ns)
 }
 
-// Parse duration from MySQL string format [+-]H+:MM:SS[.UUUUUUUUU].
+// ParseDuration: Parse duration from MySQL string format [+-]H+:MM:SS[.UUUUUUUUU].
 // Leading and trailing spaces are ignored. If format is invalid returns nil.
 func ParseDuration(str string) (dur time.Duration, err error) {
 	str = strings.TrimSpace(str)

@@ -252,7 +252,7 @@ func (r *rowsRes) Close() error {
 
 var location = time.Local
 
-// DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone (this
+// Next: DATE, DATETIME, TIMESTAMP are treated as they are in Local time zone (this
 // can be changed globaly using SetLocation function).
 func (r *rowsRes) Next(dest []driver.Value) error {
 	if r.my == nil {

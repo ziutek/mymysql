@@ -35,17 +35,17 @@ type Result struct {
 	eor_returned bool
 }
 
-// Returns true if this is status result that includes no result set
+// StatusOnly returns true if this is status result that includes no result set
 func (res *Result) StatusOnly() bool {
 	return res.status_only
 }
 
-// Returns a table containing descriptions of the columns
+// Fields returns a table containing descriptions of the columns
 func (res *Result) Fields() []*mysql.Field {
 	return res.fields
 }
 
-// Returns index for given name or -1 if field of that name doesn't exist
+// Map returns index for given name or -1 if field of that name doesn't exist
 func (res *Result) Map(field_name string) int {
 	if fi, ok := res.fc_map[field_name]; ok {
 		return fi

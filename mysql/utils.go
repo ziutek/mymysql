@@ -21,7 +21,7 @@ func syntaxError(ln int) error {
 	return fmt.Errorf("syntax error at line: %d", ln)
 }
 
-// Creates new conneection handler using configuration in cfgFile. Returns
+// NewFromCF: Creates new conneection handler using configuration in cfgFile. Returns
 // connection handler and map contains unknown options.
 //
 // Config file format(example):
@@ -121,7 +121,7 @@ func NewFromCF(cfgFile string) (con Conn, unk map[string]string, err error) {
 	return
 }
 
-// Calls Start and next calls GetRow as long as it reads all rows from the
+// Query: Calls Start and next calls GetRow as long as it reads all rows from the
 // result. Next it returns all readed rows as the slice of rows.
 func Query(c Conn, sql string, params ...interface{}) (rows []Row, res Result, err error) {
 	res, err = c.Start(sql, params...)
@@ -132,7 +132,7 @@ func Query(c Conn, sql string, params ...interface{}) (rows []Row, res Result, e
 	return
 }
 
-// Calls Start and next calls GetFirstRow
+// QueryFirst: Calls Start and next calls GetFirstRow
 func QueryFirst(c Conn, sql string, params ...interface{}) (row Row, res Result, err error) {
 	res, err = c.Start(sql, params...)
 	if err != nil {
@@ -142,7 +142,7 @@ func QueryFirst(c Conn, sql string, params ...interface{}) (row Row, res Result,
 	return
 }
 
-// Calls Start and next calls GetLastRow
+// QueryLast: Calls Start and next calls GetLastRow
 func QueryLast(c Conn, sql string, params ...interface{}) (row Row, res Result, err error) {
 	res, err = c.Start(sql, params...)
 	if err != nil {
@@ -152,7 +152,7 @@ func QueryLast(c Conn, sql string, params ...interface{}) (row Row, res Result, 
 	return
 }
 
-// Calls Run and next call GetRow as long as it reads all rows from the
+// Exec: Calls Run and next call GetRow as long as it reads all rows from the
 // result. Next it returns all readed rows as the slice of rows.
 func Exec(s Stmt, params ...interface{}) (rows []Row, res Result, err error) {
 	res, err = s.Run(params...)
@@ -163,7 +163,7 @@ func Exec(s Stmt, params ...interface{}) (rows []Row, res Result, err error) {
 	return
 }
 
-// Calls Run and next call GetFirstRow
+// ExecFirst: Calls Run and next call GetFirstRow
 func ExecFirst(s Stmt, params ...interface{}) (row Row, res Result, err error) {
 	res, err = s.Run(params...)
 	if err != nil {
@@ -173,7 +173,7 @@ func ExecFirst(s Stmt, params ...interface{}) (row Row, res Result, err error) {
 	return
 }
 
-// Calls Run and next call GetLastRow
+// ExecLast: Calls Run and next call GetLastRow
 func ExecLast(s Stmt, params ...interface{}) (row Row, res Result, err error) {
 	res, err = s.Run(params...)
 	if err != nil {
@@ -183,7 +183,7 @@ func ExecLast(s Stmt, params ...interface{}) (row Row, res Result, err error) {
 	return
 }
 
-// Calls r.MakeRow and next r.ScanRow. Doesn't return io.EOF error (returns nil
+// GetRow: Calls r.MakeRow and next r.ScanRow. Doesn't return io.EOF error (returns nil
 // row insted).
 func GetRow(r Result) (Row, error) {
 	row := r.MakeRow()
@@ -197,7 +197,7 @@ func GetRow(r Result) (Row, error) {
 	return row, nil
 }
 
-// Reads all rows from result and returns them as slice.
+// GetRows reads all rows from result and returns them as slice.
 func GetRows(r Result) (rows []Row, err error) {
 	var row Row
 	for {
@@ -210,7 +210,7 @@ func GetRows(r Result) (rows []Row, err error) {
 	return
 }
 
-// Returns last row and discard others
+// GetLastRow returns last row and discard others
 func GetLastRow(r Result) (Row, error) {
 	row := r.MakeRow()
 	err := r.ScanRow(row)
@@ -226,7 +226,7 @@ func GetLastRow(r Result) (Row, error) {
 	return nil, err
 }
 
-// Read all unreaded rows and discard them. This function is useful if you
+// End reads all unreaded rows and discard them. This function is useful if you
 // don't want to use the remaining rows. It has an impact only on current
 // result. If there is multi result query, you must use NextResult method and
 // read/discard all rows in this result, before use other method that sends
@@ -236,7 +236,7 @@ func End(r Result) error {
 	return err
 }
 
-// Returns first row and discard others
+// GetFirstRow returns first row and discard others
 func GetFirstRow(r Result) (row Row, err error) {
 	row, err = r.GetRow()
 	if err == nil && row != nil {
@@ -292,7 +292,7 @@ func escapeQuotes(txt string) string {
 	return buf.String()
 }
 
-// Escapes special characters in the txt, so it is safe to place returned string
+// Escape: Escapes special characters in the txt, so it is safe to place returned string
 // to Query method.
 func Escape(c Conn, txt string) string {
 	if c.Status()&SERVER_STATUS_NO_BACKSLASH_ESCAPES != 0 {

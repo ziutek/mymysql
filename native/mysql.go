@@ -67,7 +67,7 @@ type Conn struct {
 	Debug bool
 }
 
-// Create new MySQL handler. The first three arguments are passed to net.Bind
+// New: Create new MySQL handler. The first three arguments are passed to net.Bind
 // for create connection. user and passwd are for authentication. Optional db
 // is database name (you may not specify it and use Use() method later).
 func New(proto, laddr, raddr, user, passwd string, args ...string) mysql.Conn {
@@ -106,7 +106,7 @@ func (my *Conn) FullFieldInfo(full bool) {
 	my.fullFieldInfo = full
 }
 
-// Creates new (not connected) connection using configuration from current
+// Clone: Creates new (not connected) connection using configuration from current
 // connection.
 func (my *Conn) Clone() mysql.Conn {
 	var c *Conn
@@ -121,7 +121,7 @@ func (my *Conn) Clone() mysql.Conn {
 	return c
 }
 
-// If new_size > 0 sets maximum packet size. Returns old size.
+// SetMaxPktSize: If new_size > 0 sets maximum packet size. Returns old size.
 func (my *Conn) SetMaxPktSize(new_size int) int {
 	old_size := my.max_pkt_size
 	if new_size > 0 {
@@ -245,7 +245,7 @@ func (my *Conn) connect() (err error) {
 	return
 }
 
-// Establishes a connection with MySQL server version 4.1 or later.
+// Connect: Establishes a connection with MySQL server version 4.1 or later.
 func (my *Conn) Connect() (err error) {
 	if my.net_conn != nil {
 		return mysql.ErrAlredyConn
@@ -254,7 +254,7 @@ func (my *Conn) Connect() (err error) {
 	return my.connect()
 }
 
-// Check if connection is established
+// IsConnected checks if connection is established
 func (my *Conn) IsConnected() bool {
 	return my.net_conn != nil
 }
@@ -286,7 +286,7 @@ func (my *Conn) Close() (err error) {
 	return my.closeConn()
 }
 
-// Close and reopen connection.
+// Reconnect: Close and reopen connection.
 // Ignore unreaded rows, reprepare all prepared statements.
 func (my *Conn) Reconnect() (err error) {
 	if my.net_conn != nil {
@@ -320,7 +320,7 @@ func (my *Conn) Reconnect() (err error) {
 	return
 }
 
-// Change database
+// Use: Change database
 func (my *Conn) Use(dbname string) (err error) {
 	defer catchError(&err)
 
@@ -385,13 +385,13 @@ func (res *Result) getRow(row mysql.Row) (err error) {
 	return nil
 }
 
-// Returns true if more results exixts. You don't have to call it before
+// MoreResults returns true if more results exixts. You don't have to call it before
 // NextResult method (NextResult returns nil if there is no more results).
 func (res *Result) MoreResults() bool {
 	return res.status&mysql.SERVER_MORE_RESULTS_EXISTS != 0
 }
 
-// Get the data row from server. This method reads one row of result set
+// ScanRow gets the data row from server. This method reads one row of result set
 // directly from network connection (without rows buffering on client side).
 // Returns io.EOF if there is no more rows in current result set.
 func (res *Result) ScanRow(row mysql.Row) error {
@@ -416,7 +416,7 @@ func (res *Result) ScanRow(row mysql.Row) error {
 	return err
 }
 
-// Like ScanRow but allocates memory for every row.
+// GetRow: Like ScanRow but allocates memory for every row.
 // Returns nil row insted of io.EOF error.
 func (res *Result) GetRow() (mysql.Row, error) {
 	return mysql.GetRow(res)
@@ -430,7 +430,7 @@ func (res *Result) nextResult() (next *Result, err error) {
 	return
 }
 
-// This function is used when last query was the multi result query or
+// NextResult is used when last query was the multi result query or
 // procedure call. Returns the next result or nil if no more resuts exists.
 //
 // Statements within the procedure may produce unknown number of result sets.
@@ -444,7 +444,7 @@ func (res *Result) NextResult() (mysql.Result, error) {
 	return res, err
 }
 
-// Send MySQL PING to the server.
+// Ping: Send MySQL PING to the server.
 func (my *Conn) Ping() (err error) {
 	defer catchError(&err)
 
@@ -572,7 +572,7 @@ func (stmt *Stmt) Bind(params ...interface{}) {
 	stmt.binded = true
 }
 
-// Execute prepared statement. If statement requires parameters you may bind
+// Run executes prepared statement. If statement requires parameters you may bind
 // them first or specify directly. After this command you may use GetRow to
 // retrieve data.
 func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
@@ -601,7 +601,7 @@ func (stmt *Stmt) Run(params ...interface{}) (res mysql.Result, err error) {
 	return
 }
 
-// Destroy statement on server side. Client side handler is invalid after this
+// Delete: Destroy statement on server side. Client side handler is invalid after this
 // command.
 func (stmt *Stmt) Delete() (err error) {
 	defer catchError(&err)
@@ -627,7 +627,7 @@ func (stmt *Stmt) Delete() (err error) {
 	return
 }
 
-// Resets a prepared statement on server: data sent to the server, unbuffered
+// Reset: Resets a prepared statement on server: data sent to the server, unbuffered
 // result sets and current errors.
 func (stmt *Stmt) Reset() (err error) {
 	defer catchError(&err)
@@ -649,7 +649,7 @@ func (stmt *Stmt) Reset() (err error) {
 	return
 }
 
-// Send long data to MySQL server in chunks.
+// SendLongData: Send long data to MySQL server in chunks.
 // You can call this method after Bind and before Exec. It can be called
 // multiple times for one parameter to send TEXT or BLOB data in chunks.
 //
@@ -723,7 +723,7 @@ func (stmt *Stmt) SendLongData(pnum int, data interface{}, pkt_size int) (err er
 	return mysql.ErrUnkDataType
 }
 
-// Returns the thread ID of the current connection.
+// ThreadId returns the thread ID of the current connection.
 func (my *Conn) ThreadId() uint32 {
 	return my.info.thr_id
 }
@@ -735,57 +735,57 @@ func (my *Conn) Register(sql string) {
 	my.init_cmds = append(my.init_cmds, sql)
 }
 
-// See mysql.Query
+// Query: See mysql.Query
 func (my *Conn) Query(sql string, params ...interface{}) ([]mysql.Row, mysql.Result, error) {
 	return mysql.Query(my, sql, params...)
 }
 
-// See mysql.QueryFirst
+// QueryFirst: See mysql.QueryFirst
 func (my *Conn) QueryFirst(sql string, params ...interface{}) (mysql.Row, mysql.Result, error) {
 	return mysql.QueryFirst(my, sql, params...)
 }
 
-// See mysql.QueryLast
+// QueryLast: See mysql.QueryLast
 func (my *Conn) QueryLast(sql string, params ...interface{}) (mysql.Row, mysql.Result, error) {
 	return mysql.QueryLast(my, sql, params...)
 }
 
-// See mysql.Exec
+// Exec: See mysql.Exec
 func (stmt *Stmt) Exec(params ...interface{}) ([]mysql.Row, mysql.Result, error) {
 	return mysql.Exec(stmt, params...)
 }
 
-// See mysql.ExecFirst
+// ExecFirst: See mysql.ExecFirst
 func (stmt *Stmt) ExecFirst(params ...interface{}) (mysql.Row, mysql.Result, error) {
 	return mysql.ExecFirst(stmt, params...)
 }
 
-// See mysql.ExecLast
+// ExecLast: See mysql.ExecLast
 func (stmt *Stmt) ExecLast(params ...interface{}) (mysql.Row, mysql.Result, error) {
 	return mysql.ExecLast(stmt, params...)
 }
 
-// See mysql.End
+// End: See mysql.End
 func (res *Result) End() error {
 	return mysql.End(res)
 }
 
-// See mysql.GetFirstRow
+// GetFirstRow: See mysql.GetFirstRow
 func (res *Result) GetFirstRow() (mysql.Row, error) {
 	return mysql.GetFirstRow(res)
 }
 
-// See mysql.GetLastRow
+// GetLastRow: See mysql.GetLastRow
 func (res *Result) GetLastRow() (mysql.Row, error) {
 	return mysql.GetLastRow(res)
 }
 
-// See mysql.GetRows
+// GetRows: See mysql.GetRows
 func (res *Result) GetRows() ([]mysql.Row, error) {
 	return mysql.GetRows(res)
 }
 
-// Escapes special characters in the txt, so it is safe to place returned string
+// Escape: Escapes special characters in the txt, so it is safe to place returned string
 // to Query method.
 func (my *Conn) Escape(txt string) string {
 	return mysql.Escape(my, txt)
@@ -799,7 +799,7 @@ type Transaction struct {
 	*Conn
 }
 
-// Starts a new transaction
+// Begin starts a new transaction
 func (my *Conn) Begin() (mysql.Transaction, error) {
 	_, err := my.Start("START TRANSACTION")
 	return &Transaction{my}, err
@@ -823,7 +823,7 @@ func (tr Transaction) IsValid() bool {
 	return tr.Conn != nil
 }
 
-// Binds statement to the context of transaction. For native engine this is
+// Do: Binds statement to the context of transaction. For native engine this is
 // identity function.
 func (tr Transaction) Do(st mysql.Stmt) mysql.Stmt {
 	if s, ok := st.(*Stmt); !ok || s.my != tr.Conn {

@@ -331,6 +331,20 @@ func (d *Driver) Open(uri string) (driver.Conn, error) {
 		cfg.proto = p[0]
 		options := strings.Split(p[1], ",")
 		cfg.raddr = options[0]
+
+		if cfg.proto == "tcp" {
+			_, _, err := net.SplitHostPort(cfg.raddr)
+			if err != nil {
+
+				if strings.HasPrefix(err.Error(), "missing port in address") {
+					cfg.raddr = cfg.raddr + ":3306"
+				} else {
+					// unable to split address and port for some other reason
+					return nil, err
+				}
+			}
+		}
+
 		for _, o := range options[1:] {
 			kv := strings.SplitN(o, "=", 2)
 			var k, v string

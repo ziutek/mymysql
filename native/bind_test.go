@@ -11,9 +11,18 @@ import (
 	"time"
 )
 
+type stringer struct {
+	val string
+}
+
+func (s stringer) String() string {
+	return s.val
+}
+
 var (
 	Bytes  = []byte("Ala ma Kota!")
 	String = "ssss" //"A kot ma Alę!"
+	Stringer = stringer{String}
 	blob   = mysql.Blob{1, 2, 3}
 	dateT  = time.Date(2010, 12, 30, 17, 21, 01, 0, time.Local)
 	tstamp = mysql.Timestamp{dateT.Add(1e9)}
@@ -23,6 +32,7 @@ var (
 
 	pBytes  *[]byte
 	pString *string
+	pStringer *stringer
 	pBlob   *mysql.Blob
 	pDateT  *time.Time
 	pTstamp *mysql.Timestamp
@@ -92,6 +102,7 @@ var bindTests = []BindTest{
 
 	BindTest{Bytes, MYSQL_TYPE_VAR_STRING, -1},
 	BindTest{String, MYSQL_TYPE_STRING, -1},
+	BindTest{Stringer, MYSQL_TYPE_STRING, -1},
 	BindTest{blob, MYSQL_TYPE_BLOB, -1},
 	BindTest{dateT, MYSQL_TYPE_DATETIME, -1},
 	BindTest{tstamp, MYSQL_TYPE_TIMESTAMP, -1},
@@ -101,6 +112,7 @@ var bindTests = []BindTest{
 
 	BindTest{&Bytes, MYSQL_TYPE_VAR_STRING, -1},
 	BindTest{&String, MYSQL_TYPE_STRING, -1},
+	BindTest{&Stringer, MYSQL_TYPE_STRING, -1},
 	BindTest{&blob, MYSQL_TYPE_BLOB, -1},
 	BindTest{&dateT, MYSQL_TYPE_DATETIME, -1},
 	BindTest{&tstamp, MYSQL_TYPE_TIMESTAMP, -1},
@@ -109,6 +121,7 @@ var bindTests = []BindTest{
 
 	BindTest{pBytes, MYSQL_TYPE_VAR_STRING, -1},
 	BindTest{pString, MYSQL_TYPE_STRING, -1},
+	BindTest{pStringer, MYSQL_TYPE_STRING, -1},
 	BindTest{pBlob, MYSQL_TYPE_BLOB, -1},
 	BindTest{pDateT, MYSQL_TYPE_DATETIME, -1},
 	BindTest{pTstamp, MYSQL_TYPE_TIMESTAMP, -1},

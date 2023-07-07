@@ -454,19 +454,19 @@ func TestVarBinding(t *testing.T) {
 
 	rows, _, err := sel.Exec(1)
 	checkErr(t, err, nil)
-	if len(rows) != 1 || bytes.Compare([]byte(s1), rows[0].Bin(0)) != 0 {
+	if len(rows) != 1 || !bytes.Equal([]byte(s1), rows[0].Bin(0)) {
 		t.Fatal("First string don't match")
 	}
 
 	rows, _, err = sel.Exec(2)
 	checkErr(t, err, nil)
-	if len(rows) != 1 || bytes.Compare([]byte(s2), rows[0].Bin(0)) != 0 {
+	if len(rows) != 1 || i!bytes.Equal([]byte(s2), rows[0].Bin(0)) {
 		t.Fatal("Second string don't match")
 	}
 
 	rows, _, err = sel.Exec(3)
 	checkErr(t, err, nil)
-	if len(rows) != 1 || bytes.Compare([]byte(ss), rows[0].Bin(0)) != 0 {
+	if len(rows) != 1 || !bytes.Equal([]byte(ss), rows[0].Bin(0)) {
 		t.Fatal("Thrid string don't match")
 	}
 
@@ -674,7 +674,7 @@ func TestBigBlob(t *testing.T) {
 		t.Fatal(tmr)
 	}
 
-	if bytes.Compare(row[0].([]byte), big_blob) != 0 {
+	if !bytes.Equal(row[0].([]byte), big_blob) {
 		t.Fatal("Full blob data don't match")
 	}
 
@@ -691,7 +691,7 @@ func TestBigBlob(t *testing.T) {
 		t.Fatal(tmr)
 	}
 
-	if bytes.Compare(row.Bin(res.Map("bb")), data.Bb) != 0 {
+	if !bytes.Equal(row.Bin(res.Map("bb")), data.Bb) {
 		t.Fatal("Partial blob data don't match")
 	}
 
@@ -834,7 +834,7 @@ func TestSendLongData(t *testing.T) {
 	checkErr(t, res.End(), nil)
 
 	if row == nil || row[0] == nil ||
-		bytes.Compare(append(data, data...), row.Bin(0)) != 0 {
+		!bytes.Equal(append(data, data...), row.Bin(0)) {
 		t.Fatal("Bad result")
 	}
 
@@ -877,7 +877,7 @@ func TestSendLongData(t *testing.T) {
 	checkErr(t, err, nil)
 
 	if row == nil || row[0] == nil ||
-		bytes.Compare(append(data, data...), row.Bin(0)) != 0 {
+		!bytes.Equal(append(data, data...), row.Bin(0)) {
 		t.Fatal("Bad result")
 	}
 

@@ -158,7 +158,7 @@ var DefaultDialer mysql.Dialer = func(proto, laddr, raddr string,
 
 	if proto == "" {
 		proto = "unix"
-		if strings.IndexRune(raddr, ':') != -1 {
+		if strings.ContainsRune(raddr, ':') {
 			proto = "tcp"
 		}
 	}

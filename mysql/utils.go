@@ -80,7 +80,7 @@ func NewFromCF(cfgFile string) (con Conn, unk map[string]string, err error) {
 		case "DbRaddr":
 			raddr = l
 			proto = "tcp"
-			if strings.IndexRune(l, ':') == -1 {
+			if !strings.ContainsRune(l, ':') {
 				proto = "unix"
 			}
 		case "DbUser":

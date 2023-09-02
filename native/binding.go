@@ -1,6 +1,7 @@
 package native
 
 import (
+	"fmt"
 	"github.com/ziutek/mymysql/mysql"
 	"reflect"
 	"time"
@@ -13,6 +14,7 @@ var (
 	durationType  = reflect.TypeOf(time.Duration(0))
 	blobType      = reflect.TypeOf(mysql.Blob{})
 	rawType       = reflect.TypeOf(mysql.Raw{})
+	stringerType  = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 )
 
 // val should be an addressable value
@@ -137,6 +139,18 @@ func bindValue(val reflect.Value) (out paramValue) {
 			out.typ = val.FieldByName("Typ").Interface().(uint16)
 			out.addr = val.FieldByName("Val").Addr()
 			out.raw = true
+			return
+		}
+		if typ.Implements(stringerType) {
+			var str string
+			if val.Kind() != reflect.Invalid {
+				str = val.Interface().(fmt.Stringer).String()
+			}
+			strPtr := &str // out.addr must be addressable
+			strPtrPtr := &strPtr // we need to be able to call IsNil on out.addr.Elem()
+			out.addr = reflect.ValueOf(strPtrPtr)
+			out.typ = MYSQL_TYPE_STRING
+			out.length = -1
 			return
 		}
 

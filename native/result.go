@@ -83,6 +83,9 @@ func (my *Conn) getAuthResult() ([]byte, string) {
 	// packet indicator
 	switch pkt0 {
 	case 0: // OK
+		if my.Debug {
+			log.Printf("[%2d ->] OK packet:", my.seq-1)
+		}
 		return nil, ""
 
 	case 1: // AuthMoreData
@@ -126,19 +129,23 @@ loop:
 		case pkt0 == 0:
 			// OK packet
 			return my.getOkPacket(pr)
-
-		case pkt0 > 0 && pkt0 < 251:
-			// Result set header packet
-			res = my.getResSetHeadPacket(pr)
-			// Read next packet
-			goto loop
 		case pkt0 == 251:
 			// Load infile response
 			// Handle response
 			goto loop
 		case pkt0 == 254:
-			// EOF packet (without body)
-			return nil
+			if pr.pkglen < 8 {
+				// EOF packet (without body)
+				return nil
+			}
+			res = my.getResSetHeadPacket(pr)
+			// Read next packet
+			goto loop
+		default:
+			// Result set header packet
+			res = my.getResSetHeadPacket(pr)
+			// Read next packet
+			goto loop
 		}
 	} else {
 		switch {

@@ -11,6 +11,7 @@ type pktReader struct {
 	rd     *bufio.Reader
 	seq    *byte
 	remain int
+	pkglen int
 	last   bool
 	buf    [12]byte
 	ibuf   [3]byte
@@ -34,6 +35,7 @@ func (pr *pktReader) readHeader() {
 		}
 	}
 	pr.remain = int(DecodeU24(pr.ibuf[:]))
+	pr.pkglen = pr.remain
 	seq, err := pr.rd.ReadByte()
 	if err != nil {
 		panic(err)

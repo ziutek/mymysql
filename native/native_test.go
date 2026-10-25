@@ -460,7 +460,7 @@ func TestVarBinding(t *testing.T) {
 
 	rows, _, err = sel.Exec(2)
 	checkErr(t, err, nil)
-	if len(rows) != 1 || i!bytes.Equal([]byte(s2), rows[0].Bin(0)) {
+	if len(rows) != 1 || !bytes.Equal([]byte(s2), rows[0].Bin(0)) {
 		t.Fatal("Second string don't match")
 	}
 
